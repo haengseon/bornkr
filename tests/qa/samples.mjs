@@ -24,7 +24,7 @@ for (const { seed, L, rnd } of picked.slice(0, N)) {
   console.log(`\n══════ seed ${seed} (${rnd ? 'random' : 'default'} 정책) ${L.name} · ${b.sex} · ${b.date} · ${b.regionLabel} · ${L.death.age}세 사망(${L.death.year}) ══════`);
   console.log(`출생: ${b.story.join(' ')} | ${b.parentsLine} | ${b.accessLine} | ${b.eraLine}`);
   console.log(`판정문: ${S.verdict.main}`);
-  console.log(`   ${S.verdict.lines.join(' / ')}`);
+  console.log(`   《${S.epilogue.title}》 ${S.epilogue.paragraphs.join(' ¶ ')}`);
   console.log('연표: ' + S.timeline.map(t => `[${t.age}] ${t.text}${t.choice ? ` (${t.choice.label}${t.choice.auto ? '·자동' : ''})` : ''}`).join('  '));
   console.log('결산: ' + Object.entries(S.closing).map(([k, v]) => `${v.label} ${v.value} "${v.line}"`).join(' | '));
   console.log('이슈 상위: ' + S.issues.slice(0, 3).map(i => `${i.label} ${i.value}`).join(', '));

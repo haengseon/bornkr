@@ -243,7 +243,8 @@ test('QA#8 판정문 수치는 결산 같은 이름 항목과 같고 basis 라�
     assert.equal(S.verdict.shown.basis, 'late-weighted');
     const row = S.issues.find(i => i.key === S.verdict.shown.key);
     assert.equal(S.verdict.shown.value, row.value);
-    assert.ok(S.verdict.lines[0].includes(`${row.label} ${row.value}`), S.verdict.lines[0]);
+    assert.deepEqual(S.verdict.lines, [], '판정문은 회고문 — 수치·이유 줄을 화면에 내지 않는다');
+    assert.ok(!/\d/.test(S.verdict.main), S.verdict.main);
   }
   assert.ok(n > 50);
 });
@@ -280,6 +281,6 @@ test('피드: 한 해 표시 항목(quiet·compare 제외, 선택·사망 포함
     }
   }
   const tot = hist.reduce((x, y) => x + y, 0), mean = (hist[1] + 2 * hist[2] + 3 * hist[3]) / tot;
-  assert.ok(mean > 0.9 && mean < 1.5, `평균 ${mean.toFixed(2)}`);
-  assert.ok(hist[1] / tot > 0.45 && hist[0] / tot > 0.03 && hist[3] / tot < 0.1, JSON.stringify(hist));
+  assert.ok(mean > 1.8 && mean < 2.7, `평균 ${mean.toFixed(2)}`);
+  assert.ok(hist[2] / tot > 0.4 && hist[0] / tot < 0.1 && hist[3] / tot < 0.5, JSON.stringify(hist));
 });

@@ -53,7 +53,7 @@ export const HARD_CAP_MS = Infinity;     // 시간 상한 없음(1년=30초 정�
 export const SPEEDS = [1, 2, 3, 4, 5];
 
 // 시간 지평선: 이 해를 넘는 이야기는 없다(먼 미래 추정은 현실성이 떨어진다). 1985년생은 2050년에 65세.
-export const HORIZON_YEAR = 2050;
+export const HORIZON_YEAR = Infinity;   // 2050 이후에도 사망할 때까지 계속 진행한다
 export const BIRTH_YEAR_RANGE = [1960, 1985];
 
 // 17개 시도(현재 행정구역 명칭). since: 독립 시도로 출생 통계가 잡힌 첫 해(그 전은 parent로 합산).

@@ -30,6 +30,8 @@ export const SOURCES = {
   'R02.S12': { org: '질병관리청', title: '국민건강영양조사 2024(만성질환 유병·흡연·음주·건강 인식)', year: 2025, url: _kosis('DT_11702_N105'), kind: 'official' },
   'R02.S13': { org: '보건복지부', title: '2021년 정신건강실태조사(우울장애 유병률)', year: 2022, url: _enara(1441), kind: 'official' },
   'R02.S14': { org: '보건복지부·중앙암등록본부', title: '국가암등록통계 2023 발생·생존율', year: 2025, url: _kosis('DT_117N_A00023'), kind: 'official' },
+  'R02.S15': { org: '통계청', title: '김부연, 「한국인의 사망원인 구조 변동추이」(1983~2003 연령별 사망 구성비 표1·표2)', year: 2004, url: 'https://mods.go.kr/boardDownload.es?bid=11912&list_no=382039&seq=1', kind: 'official' },
+  'R02.S16': { org: 'J Korean Med Sci', title: 'Lim·Ha·Song, Trends in the Leading Causes of Death in Korea, 1983-2012 (Table 1 연령표준화 사망률)', year: 2014, url: 'https://doi.org/10.3346/jkms.2014.29.12.1597', kind: 'secondary' },
 
   // ── R03 교육 ──
   'R03.S1': { org: '국가데이터처·교육부', title: '2025년 초중고 사교육비조사(2026-03-12 공표) 및 2007~2025 시계열', year: 2026, url: 'https://mods.go.kr', kind: 'official' }, // ★ R03는 개별 URL 미기재

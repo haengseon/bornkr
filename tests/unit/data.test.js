@@ -163,7 +163,7 @@ test('지역 키가 REGIONS와 일치한다', () => {
 
 test('CAUSE_SHARE·ERA_CAUSE·CAUSE_LABELS 사인 키가 일치하고 자살은 10세 미만 0', () => {
   const causes = Object.keys(D.CAUSE_LABELS.values).sort();
-  assert.equal(causes.length, 18);
+  assert.equal(causes.length, 20);   // R14: 결핵·감염성 질환 추가
   assert.deepEqual(Object.keys(D.ERA_CAUSE.values).sort(), causes);
   for (const sex of ['M', 'F']) for (const [age, o] of Object.entries(D.CAUSE_SHARE.values[sex])) {
     for (const c of Object.keys(o)) assert.ok(causes.includes(c), `사인 키 ${c}`);

@@ -6,6 +6,7 @@ import { JOBS } from '../../data/jobs.js';
 import CORE from '../../content/jobs-core.js';
 import { LABOR_CAL, CLASS_CAL } from '../tuning.js';
 import { leanOdds } from '../stats.js';
+import { jobPlans, asOptions } from '../plans.js';
 
 const CORE_BY = new Map((CORE || []).map(c => [c.code, c]));
 // 핵심 직업 진입 경로 충족(GDD §10.5: 충족 시 배정 ×3)
@@ -47,11 +48,13 @@ export function assignJob(L, ctx, o = {}) {
   const byEdu = first(T('OCC_BY_EDU'), eduGroup(level));
   const sexR = T('OCC_SEX_RATIO')[sex], ageR = first(T('OCC_AGE_RATIO'), ageBand(o.older ? 60 : age));
   const era = T('OCC_ERA');
+  // 직종은 쉽게 바뀌지 않는다: 일한 적이 있으면 가장 오래 한 일의 대분류·세부 직종 쪽으로 강하게 쏠린다
+  const prev = prevJob(L), cont = prev ? (o.older ? 3 : 1) : 0;
   const wm = {};
   for (const m of Object.keys(BY_MAJOR)) {
     const base = byEdu?.[m] ?? 0;
     if (!base) continue;
-    wm[m] = base * (sexR?.[m] ?? 1) * (ageR?.[m] ?? 1) * (era[m] ? yr(era[m], year) : 1) * (colMajor ? majorAff(colMajor, m) : 1) * bias(L, 'occupationBias', m, 0.5, 2);
+    wm[m] = (prev && m === prev.major ? 1 + CONT.major * cont : 1) * base * (sexR?.[m] ?? 1) * (ageR?.[m] ?? 1) * (era[m] ? yr(era[m], year) : 1) * (colMajor ? majorAff(colMajor, m) : 1) * bias(L, 'occupationBias', m, 0.5, 2);
   }
   const major = ctx.weighted(wm) ?? '9';
   const mine = EDU_RANK[level] ?? 0;
@@ -64,6 +67,7 @@ export function assignJob(L, ctx, o = {}) {
     if (r.rural) w *= rural ? 3 : 0.3;
     const core = r.core && CORE_BY.get(r.code);
     if (core?.entry?.some(e => entryOk(e, { level, colMajor, age, year, lic }))) w *= 3;
+    if (prev && cont) w *= r.code === prev.code ? 1 + CONT.code * cont : r.code.slice(0, 2) === prev.code.slice(0, 2) ? 1 + CONT.sub * cont : 1;
     const fem = r.female ?? 0.446;
     w *= sex === 'F' ? Math.pow(fem / 0.446, 0.7) : Math.pow((1 - fem) / 0.554, 0.7);
     if (w > 0) leaf.push([r, w]);
@@ -73,6 +77,14 @@ export function assignJob(L, ctx, o = {}) {
   let r = ctx.rand() * tot;
   for (const [row, w] of leaf) if ((r -= w) < 0) return row;
   return leaf[leaf.length - 1][0];
+}
+const CONT = { major: 40, code: 80, sub: 25 };
+// 가장 오래 일한 이력(없으면 null). 군 복무는 제외
+function prevJob(L) {
+  const h = (L.job.history || []).filter(x => x.code && !String(x.code).startsWith('A'));
+  if (!h.length) return null;
+  const best = h.reduce((a, b) => ((b.to ?? L.year) - b.from >= (a.to ?? L.year) - a.from ? b : a));
+  return jobByCode(best.code) || null;
 }
 function majorAff(colMajor, m) {
   const a = T('MAJOR_AFFINITY')[colMajor]?.[m];
@@ -153,6 +165,13 @@ function tryReemploy(L, ctx) {
   return false;
 }
 
+// 일을 잃은 뒤의 다음 걸음: 실업급여·훈련·임시 일·창업·부모 집 중 비용이 보이는 선택
+function askLost(L, ctx, reasonLabel) {
+  const lost = L.flags.lastJob || { wage: 0, years: 0, regular: false };
+  const plans = jobPlans(L, lost, () => { const o = makeOffer(L, ctx, { boost: 0.05 }); return { ...o, regular: false, firmSize: o.firmSize === 'large' ? 'mid' : o.firmSize, wage: Math.round(o.wage * 0.6) }; });
+  return ctx.ask({ eventId: 'sys.job.lost', options: asOptions(plans), defaultId: 'seek', data: { plans, lost }, vars: { reasonLabel } });
+}
+
 export function step(L, ctx) {
   const j = L.job, a = L.age, fl = L.flags, y = L.year;
   if (j.status === 'military') return;
@@ -222,14 +241,15 @@ function employed(L, ctx) {
   if (j.regular && [5, 10, 15, 20].includes(j.years)) ctx.sys('sys.job.raise', { n: j.years }, { quiet: true });
   if (!j.regular) {
     if (ctx.chance(LABOR_CAL.convert)) { j.regular = true; return ctx.sys('sys.job.convert'); }
-    if (ctx.chance(j.history.length === 1 ? 0.32 : 0.25)) {
+    if (ctx.chance(j.history.length === 1 ? 0.1 : 0.07)) {
       ctx.act.endJob('계약 만료');
       fl.contractEnd = y; L.tally.contractEnds = (L.tally.contractEnds || 0) + 1; L.tally.invol = (L.tally.invol || 0) + 1;
-      return ctx.sys('sys.job.contract_end');
+      ctx.sys('sys.job.contract_end');
+      return askLost(L, ctx, '계약 만료');
     }
   }
   const shock = T('ERA_SHOCKS')[y]?.job ?? D.ERA_SHOCKS.default?.job ?? 1;
-  let pLose = (j.regular ? 0.03 : 0.05) * shock * (j.ai === 'high' && y >= 2025 ? 1.3 : 1) * (j.firmSize === 'micro' ? 1.5 : 1) * (j.public ? 0.2 : 1);
+  let pLose = (j.regular ? 0.018 : 0.03) * shock * (j.ai === 'high' && y >= 2025 ? 1.3 : 1) * (j.firmSize === 'micro' ? 1.5 : 1) * (j.public ? 0.2 : 1);
   if (fl.honoraryStay && y - fl.honoraryStay <= 2) pLose *= 2;
   if (fl.leaveYear === y - 1) pLose += 0.1;           // 육아휴직 복귀 해
   if (L.stats.health < 40) pLose *= 2;
@@ -241,8 +261,7 @@ function employed(L, ctx) {
     if (j.ai === 'high' && y >= 2023 && ctx.chance(0.3)) fl.aiLoss = y;
     L.tally.invol = (L.tally.invol || 0) + 1;
     ctx.act.loseJob(reason);
-    if (a >= 32 && a <= 55 && ctx.chance(0.35)) ctx.ask({ eventId: 'sys.job.business', options: ['open', 'job'], defaultId: 'job' });
-    return;
+    return askLost(L, ctx, reason);
   }
   // 주된 일자리 퇴직(GDD §5.3)
   if (!fl.mainExited && j.years >= 5 && a >= (L.sex === 'M' ? 45 : 40)) {
@@ -306,6 +325,30 @@ export function askChildcare(L, ctx) {
 }
 
 export const choices = {
+  'sys.job.lost'(L, ctx, opt, { plans, lost }) {
+    const p = plans.find(x => x.id === opt) || plans[0], j = L.job;
+    L.flags.lostPlan = { year: L.year, opt: p.id };
+    if (p.benefit) { ctx.act.gain(p.benefit); }
+    if (p.id === 'seek') return ctx.apply({ issues: { job: 3 }, stats: { happiness: -1 } }, { reason: '같은 분야부터 다시 구하기 시작했다' });
+    if (p.id === 'learn') {
+      ctx.act.gain(-p.tuition); L.flags.learnUntil = L.year + 1;
+      return ctx.apply({ issues: { job: 2, edu: 3 }, stats: { intellect: 3, leisure: -2 } }, { reason: '훈련 과정에 들어갔다' });
+    }
+    if (p.id === 'temp') {
+      ctx.act.startJob({ ...p.offer, silent: true });
+      return ctx.apply({ issues: { job: 4, fairness: 2 }, stats: { health: -1, leisure: -2 } }, { reason: '임시 일자리로 버텼다' });
+    }
+    if (p.id === 'shop') {
+      ctx.act.startBusiness(lost.title, { ...j, capital: p.capital, code: j.code });
+      return ctx.apply({ issues: { job: 3 }, stats: { leisure: -3 } }, { reason: '가게를 열었다' });
+    }
+    if (p.id === 'family') {
+      const D = L.home.deposit || 0, mc = 20;
+      ctx.act.move('family', { reason: '실직', silent: true });
+      L.flags.lostFamily = L.year;
+      return ctx.apply({ issues: { housing: -2, job: 3 }, stats: { relations: -1, leisure: -3, happiness: -2 } }, { reason: '부모님 집으로 들어갔다' });
+    }
+  },
   'sys.job.first_offer'(L, ctx, opt, { offer }) {
     if (opt === 'take') return offer.self ? ctx.act.startBusiness(offer.title, offer) : ctx.act.startJob(offer);
     L.flags.offerSkips = (L.flags.offerSkips || 0) + 1;

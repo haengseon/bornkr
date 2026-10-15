@@ -116,10 +116,12 @@ export function histWeights(L) {
 function cause(L, ctx, age) {
   const band = causeBand(age);
   const share = T('CAUSE_SHARE')[L.sex][band], era = T('ERA_CAUSE'), H = histWeights(L), nm = CAUSE_NORM[band] || {};
+  const EA = T('ERA_CAUSE_AGE'), ca = ag(EA[L.sex], band) || {};   // 연령대별 시대 보정(R14): 조사망률 배수가 못 잡는 연령 구조 차이
   const w = {};
   for (const [c, s] of Object.entries(share)) {
     if (c === 'suicide' && age < 10) continue;
-    w[c] = s * (era[c] ? yr(era[c], L.year) : 1) * (c === 'suicide' ? 1 : (H[c] ?? 1) / (nm[c] ?? 1));
+    const cs = ca[EA.groups[c] ?? c];
+    w[c] = s * (era[c] ? yr(era[c], L.year) : 1) * (cs ? yr(cs, L.year) : 1) * (c === 'suicide' ? 1 : (H[c] ?? 1) / (nm[c] ?? 1));
   }
   return ctx.weighted(w) || 'other';
 }

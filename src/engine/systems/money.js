@@ -50,7 +50,8 @@ export function step(L, ctx) {
   const qNow = Math.min(5, 1 + Math.floor((L.cache?.INCpos ?? econ(L).INCpos) / 20));
   const housing = ['monthly', 'public', 'dorm'].includes(h.tenure) && !h.parents ? (h.rent || 0) * 12 : 0;
   // 소비(월세 포함) = 가처분 × MPC. 최저 생활비+월세는 지키되 버는 것의 90%까지만(나머지는 의료비·이자 몫)(소득이 낮으면 줄여 산다) [추정]
-  const living = Math.max(Math.min(minLiving + housing, disposable * 0.9), disposable * T('MPC')[qNow] * (1 - 0.06 * lean(L, 'wealth')));   // 돈 쪽 선택의 누적: 씀씀이 ±6%
+  const cut = fl.cutUntil >= y ? 0.85 : 1;           // 자금 압박 때 고른 '씀씀이 줄이기'
+  const living = cut * Math.max(Math.min(minLiving + housing, disposable * 0.9), disposable * T('MPC')[qNow] * (1 - 0.06 * lean(L, 'wealth')));   // 돈 쪽 선택의 누적: 씀씀이 ±6%
   const debtCost = m.debt * realRate(y);
   // 원금 상환(전세대출은 만기 일시, 학자금은 졸업 후)
   let principal = 0;

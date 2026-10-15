@@ -3,6 +3,8 @@
 import { REGIONS } from '../engine/constants.js';
 import { placeLine, vibeOf } from '../engine/sigungu.js';
 import { schoolLabel } from '../engine/index.js';
+import { regionalPrice, regionalRow } from '../data/housing-regional.js';
+import { money, fmtWon } from './format.js';
 
 const REGION = Object.fromEntries(REGIONS.map(r => [r.key, r]));
 export const TENURE_LABEL = { own: '자가', jeonse: '전세', monthly: '월세', public: '공공임대', family: '가족 집', dorm: '기숙사', facility: '시설' };
@@ -87,6 +89,15 @@ export function familyLines(L) {
   return out;
 }
 export const familyText = x => `${x.rel}${x.name ? ' ' + x.name : ''}${x.from || x.to ? ` (${x.from ? x.from + '년~' : '~'}${x.to ? x.to + '년' : ''}${x.end ? ' ' + x.end : ''})` : x.end ? ` (${x.end})` : ''}`;
+// 이 동네 그 시대 시세 한 줄(R13 시군구 시세): 자가·가족 집 = 매매, 임차 = 전세. 군 지역(basis house)은 단독주택 시세.
+export function marketLineOf(L) {
+  const h = L.home || {}, own = !['jeonse', 'monthly', 'public', 'dorm'].includes(h.tenure);
+  const r = regionalPrice(h.sigungu, L.year, own ? 'sale' : 'jeonse');
+  if (!r) return null;
+  const m = money(r.real, L.year, w => fmtWon(Math.round(w / 100) * 100));
+  const what = own ? (regionalRow(h.sigungu)?.basis === 'house' ? '단독주택 시세' : '아파트(84㎡) 시세') : '전세 시세';
+  return { text: `이 동네 ${what} 약 ${m.nominal}`, today: m.today };
+}
 export const homeLabel = L => { const h = L.home || {}, b = L.birth || {}; return h.sigungu ? placeLine(h.region, h.sigungu, h.dong, h.transit) : REGION[h.region ?? b.region]?.label ?? ''; };
 
 // 직업 표시: 일하는 중 = 현재 직업명, 쉬는 중 = '이전 직업: … · 무직/구직 중', 이력이 없으면 구직 중 등 고용 상태.
@@ -112,6 +123,7 @@ export function profileOf(L) {
       region, regionLabel: homeLabel(L) || (rg?.label ?? region ?? ''), vibe: vibeOf(h.sigungu, h.dong), area: b.urban === false ? '농촌' : '도시',
       tenure, tenureLabel: TENURE_LABEL[tenure] ?? '', dwelling: dwellingOf(L),
       moves, recentMove: !!last && L.year - last.year <= 2, lastMoveYear: last?.year ?? null,
+      market: marketLineOf(L),
     },
     work: {
       status: j.status ?? 'none', emp, jobLine: jobLineOf(L), jobTitle: working || j.status === 'seeking' || j.status === 'retired' ? (j.title || '') : '',

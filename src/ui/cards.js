@@ -1,6 +1,6 @@
 // 공유 카드 3종(UI-SPEC §8): 1080×1350 캔버스 + 공유 시트(S11).
 // wrap·pickTimeline·shareText·cardAlt는 순수 함수(Node 테스트), 나머지는 DOM.
-import { $, $$, openSheet, copyText, toast } from './dom.js';
+import { S, $, $$, openSheet, copyText, toast } from './dom.js';
 import { sexLabel, mmdd, dateKo, dateDot, dateDotSp, receiptNo, ageText } from './labels.js';
 
 const W = 1080, H = 1350;
@@ -58,8 +58,8 @@ export function shareText(kind, d) {
   const { b, death } = lifeOf(d);
   if (kind === 'birth') return `${b.year}년 ${regionOnly(d.cert)}에서 태어났다. ${noDot(d.cert.homeLine)}. 어떤 삶이 될까.\n${SIGN}`;
   if (kind === 'verdict') {
-    const v = d.sum.verdict;
-    return ['인생 판정문', `주문: ${v.main}`, cardSafe(v.lines?.[0]) && v.lines?.[0], SIGN].filter(Boolean).join('\n');
+    const v = d.sum.verdict, ep = d.sum.epilogue;
+    return ['인생 판정문', ep && `《${ep.title}》`, v.main, SIGN].filter(Boolean).join('\n');
   }
   const rows = pickTimeline(d.sum.timeline, 5).map(t => `· ${t.age}세 ${t.text}`);
   return [`${d.L.name}의 생애 연표(${b.year}–${death.year})`, ...rows, SIGN].join('\n');
@@ -67,7 +67,7 @@ export function shareText(kind, d) {
 export function cardAlt(kind, d) {
   const { b, death } = lifeOf(d);
   if (kind === 'birth') return `출생 신고서 카드. ${regionOnly(d.cert)}, ${noDot(d.cert.homeLine)}.`;
-  if (kind === 'verdict') return `인생 판정문 카드. 주문: ${d.sum.verdict.main}`;
+  if (kind === 'verdict') return `인생 판정문 카드. ${d.sum.epilogue ? `《${d.sum.epilogue.title}》 ` : ''}${d.sum.verdict.main}`;
   const n = pickTimeline(d.sum.timeline, 8).length;
   return `생애 연표 카드. ${b.year}–${death.year}, 연표 ${n}줄.`;
 }
@@ -165,21 +165,29 @@ function drawVerdict(p, C, ctx, d) {
   const pf = p.f(400, 28, 'sans');
   p.text(p.fit(`${L.name} (${dateDotSp(b)}생 · ${ageText(death.age, death.horizon)})`, 760, pf), 232, 330, pf, C.ink);
   p.hline(88, 992, 362, C.rule);
-  const lab = p.f(700, 30, 'serif');
-  p.text('주　　문', 540, 420, lab, C.ink2, 'center');
-  const mf = p.f(800, 54, 'serif');
-  const main = wrap(sum.verdict.main, 904, 3, p.measureWith(mf));
-  main.forEach((l, i) => p.text(l, 88, 498 + 76 * i, mf, C.ink));
-  const yl = 498 + 76 * (main.length - 1) + 84;
-  p.text('이　　유', 540, yl, lab, C.ink2, 'center');
-  let y = yl + 62;
-  const rf = p.f(400, 32, 'sans');
-  (sum.verdict.lines || []).filter(r => r && cardSafe(r)).slice(0, 2).forEach((r, i) => {
-    p.text(`${i + 1}.`, 88, y, p.f(400, 32, 'num'), C.ink);
-    const ls = wrap(r, 860, 2, p.measureWith(rf));
-    ls.forEach((l, j) => p.text(l, 132, y + 50 * j, rf, C.ink));
-    y += 50 * ls.length + 14;
-  });
+  const ep = sum.epilogue;
+  if (ep) {                                   // 회고문: 별명 + 첫 문단 발췌 + 한 줄 총평
+    const tf = p.f(800, 50, 'serif'), title = wrap(`《${ep.title}》`, 904, 2, p.measureWith(tf));
+    title.forEach((l, i) => p.text(l, 540, 440 + 68 * i, tf, C.ink, 'center'));
+    let y = 440 + 68 * (title.length - 1) + 84;
+    const bf = p.f(400, 32, 'serif');
+    wrap(ep.paragraphs[0], 904, 4, p.measureWith(bf)).forEach(l => { p.text(l, 88, y, bf, C.ink2); y += 52; });
+    const ds = sum.deathStory, cause = ds && !ds.sensitive && !S.settings?.hideSensitiveCause ? ds.causeLabel : null;
+    if (ds) {                                 // 사망 연도·직접 사인·인과 체인(자해·숨김 설정이면 연도만)
+      y += 24;
+      const df = p.f(700, 30, 'sans');
+      p.text(p.fit(`${ds.year}년, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${cause}` : ''}`, 904, df), 88, y, df, C.ink);
+      y += 46;
+      const cf2 = p.f(400, 26, 'sans');
+      if (cause && ds.steps?.length) wrap(ds.steps.join(' → '), 904, 3, p.measureWith(cf2)).forEach(l => { p.text(l, 88, y, cf2, C.ink2); y += 40; });
+    }
+    p.hline(400, 680, y + 8, C.rule);
+    const cf = p.f(700, 40, 'serif');
+    wrap(sum.verdict.main, 904, y + 124 <= 1056 ? 2 : 1, p.measureWith(cf)).forEach((l, i) => p.text(l, 540, y + 68 + 56 * i, cf, C.ink, 'center'));
+  } else {
+    const mf = p.f(800, 54, 'serif');
+    wrap(sum.verdict.main, 904, 3, p.measureWith(mf)).forEach((l, i) => p.text(l, 88, 498 + 76 * i, mf, C.ink));
+  }
   p.text(`${death.year}년`, 840, 1102, p.f(400, 28, 'num'), C.ink2, 'right');
   p.text('태어나보니 대한민국 · bornkr.click', 840, 1156, p.f(800, 38, 'serif'), C.ink, 'right');
   p.turned(920, 1124, 4, () => {

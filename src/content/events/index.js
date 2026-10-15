@@ -11,6 +11,10 @@ import rare from './rare.js';
 import catalogA from './catalog-a.js';
 import catalogB from './catalog-b.js';
 import future from './future.js';
+import decisionsMore from './decisions-more.js';
+import lifeA from './life-a.js';
+import lifeB from './life-b.js';
+import lifeC from './life-c.js';
 
 export const ERA_EVENTS = era;
-export const EVENTS = [...early, ...school, ...youth, ...mid, ...late, ...history, ...dark, ...rare, ...catalogA, ...catalogB, ...future];
+export const EVENTS = [...early, ...school, ...youth, ...mid, ...late, ...history, ...dark, ...rare, ...catalogA, ...catalogB, ...future, ...decisionsMore, ...lifeA, ...lifeB, ...lifeC];

@@ -5,6 +5,7 @@ import { pickMoveTarget, levelOf, candidates, place, SGG } from './sigungu.js';
 import { econ } from './stats.js';
 import { CLASS_CAL } from './tuning.js';
 import { spouseName } from './kin.js';
+import { regionalPrice } from '../data/housing-regional.js';
 
 export const LOAN_LABEL = { credit: '신용대출', mortgage: '주택담보대출', jeonse: '전세자금대출', student: '학자금 대출', business: '사업자 대출' };
 export const TENURE_LABEL = { own: '자가', jeonse: '전셋집', monthly: '월셋집', public: '공공임대', family: '부모님 집', dorm: '기숙사', facility: '요양시설' };
@@ -31,14 +32,21 @@ export function addCredit(L, amount) {
 // ── 주거 가격·예산 (시군구 housingTier 기준, 2025 실질 만원) ──
 const curveOf = t => t >= 4 ? 'hi' : t === 3 ? 'mid' : 'lo';
 export const tierOfL = L => SGG.get(L.home.sigungu)?.housingTier ?? ({ seoul: 4, capital: 3, metro: 3, province: 2 })[L.home.regionGroup] ?? 3;
-export const priceAt = (tier, year) => T('HOME_PRICE_TIER')[tier] * yr(T('HOME_PRICE_INDEX')[curveOf(tier)], year);
-export function homePrice(L, tier = tierOfL(L)) { return Math.round(priceAt(tier, L.year)); }
-export function rentAt(tier, year, cheap = false) {
-  const base = T('RENT_TIER')[tier], c = T('RENT_TIER').cheap, era = yr(T('ERA_INCOME_INDEX'), year);
-  return { rent: Math.max(3, Math.round(base.rent * era * (cheap ? c.rent : 1))), deposit: Math.round(base.deposit * era * (cheap ? c.deposit : 1)) };
+// 시군구 시세(R13, 84㎡ 기준·군 지역은 단독주택)가 있으면 그 값, 없으면 등급표. id = 시군구 id
+const tierPrice = (tier, year) => T('HOME_PRICE_TIER')[tier] * yr(T('HOME_PRICE_INDEX')[curveOf(tier)], year);
+export const priceAt = (tier, year, id) => regionalPrice(id, year, 'sale')?.real ?? tierPrice(tier, year);
+// 전세 보증금(84㎡ 기준): 지역 전세 시세, 없으면 매매가 × 전세가율
+const jeonseAt = (tier, year, id, rg) => regionalPrice(id, year, 'jeonse')?.real ?? priceAt(tier, year, id) * yr(T('JEONSE_RATIO')[rg], year);
+export function homePrice(L, tier = tierOfL(L)) { return Math.round(priceAt(tier, L.year, L.home.sigungu)); }
+// 월세는 소형(원룸·투룸) 기준 등급표에 지역 배율: √(지역 84㎡ 월세 × 33/84 ÷ 등급표 월세), .6~1.6
+// ponytail: 84㎡ 월세를 면적비로 줄인 근사 — 소형 월세 실측이 생기면 그 값으로 교체
+const rentMul = (tier, year, id, base) => { const m = regionalPrice(id, year, 'rentMonthly')?.real; return m ? Math.min(1.6, Math.max(0.6, Math.sqrt(m * 0.4 / base))) : 1; };
+export function rentAt(tier, year, cheap = false, id) {
+  const base = T('RENT_TIER')[tier], c = T('RENT_TIER').cheap, era = yr(T('ERA_INCOME_INDEX'), year), f = rentMul(tier, year, id, base.rent * era);
+  return { rent: Math.max(3, Math.round(base.rent * era * f * (cheap ? c.rent : 1))), deposit: Math.round(base.deposit * era * f * (cheap ? c.deposit : 1)) };
 }
 export function rentFor(L, ctx, tier = tierOfL(L), cheap = L.home.cheap) {
-  const r = rentAt(tier, L.year, cheap);
+  const r = rentAt(tier, L.year, cheap, L.home.sigungu);
   return { rent: Math.round(r.rent * (0.85 + 0.3 * ctx.rand())), deposit: r.deposit };
 }
 // 예산: 소득·가용 자산·대출 한도(연도별 DSR/DTI 상한, 연 원리금 상환 기준)
@@ -49,11 +57,11 @@ export function budgetOf(L) {
   const help = L.family.parents.father.alive || L.family.parents.mother.alive ? Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1] : 0;
   return { INC, ann, assets: Math.max(0, L.money.assets) + (L.home.deposit || 0) + (L.home.owned ? L.home.value : 0) * 0.9 - (L.home.owned ? L.money.loans.mortgage : 0) + help, loanCap: Math.max(0, yr(mb.dsr, y) * INC / ann - (L.money.debt - (L.home.owned ? L.money.loans.mortgage : 0) - L.money.loans.jeonse)), rentCap: mb.rentCap * INC, jx: mb.jeonseLoanX };
 }
-export function fits(L, b, tenure, tier, sz = 1) {
+export function fits(L, b, tenure, tier, sz = 1, id) {
   const y = L.year;
-  if (tenure === 'own') { const p = priceAt(tier, y) * sz, ltv = yr(T('LTV')[L.home.regionGroup], y); return p - Math.min(ltv * p, b.loanCap) <= b.assets + b.INC; } // INC: 신용·가족 차입 등 보완 자금
-  if (tenure === 'jeonse') { const d = priceAt(tier, y) * yr(T('JEONSE_RATIO')[L.home.regionGroup], y) * 0.55; return d - Math.min(0.8 * d, b.jx * b.INC) <= b.assets && d * 0.8 <= b.loanCap + b.assets; }
-  const r = rentAt(tier, y); return r.rent * 12 <= b.rentCap && r.deposit <= b.assets + b.INC;
+  if (tenure === 'own') { const p = priceAt(tier, y, id) * sz, ltv = yr(T('LTV')[L.home.regionGroup], y); return p - Math.min(ltv * p, b.loanCap) <= b.assets + b.INC; } // INC: 신용·가족 차입 등 보완 자금
+  if (tenure === 'jeonse') { const d = jeonseAt(tier, y, id, L.home.regionGroup) * 0.55; return d - Math.min(0.8 * d, b.jx * b.INC) <= b.assets && d * 0.8 <= b.loanCap + b.assets; }
+  const r = rentAt(tier, y, false, id); return r.rent * 12 <= b.rentCap && r.deposit <= b.assets + b.INC;
 }
 // 같은 시도 안에서 예산에 맞는 (시군구, 점유 형태) 선택. 없으면 점유 형태를 낮추고, 끝까지 없으면 최저 등급의 저가 월세.
 function chooseTarget(L, ctx, tenure, region, size) {
@@ -66,13 +74,13 @@ function chooseTarget(L, ctx, tenure, region, size) {
     return list[+ctx.weighted(Object.fromEntries(w.map((x, i) => [i, x])))].r;
   };
   for (const t of ladder) {
-    const ok = tenure === 'public' ? cs.filter(c => c.r.housingTier <= 3) : cs.filter(c => fits(L, b, t, c.r.housingTier, size));
+    const ok = tenure === 'public' ? cs.filter(c => c.r.housingTier <= 3) : cs.filter(c => fits(L, b, t, c.r.housingTier, size, c.r.id));
     if (ok.length) return { tenure: t, place: place(ctx.weighted, pick(ok), y), cheap: false };
   }
   const low = Math.min(...cs.map(c => c.r.housingTier)), lows = cs.filter(c => c.r.housingTier === low);
   return { tenure: 'monthly', place: place(ctx.weighted, pick(lows), y), cheap: tenure !== 'public' };
 }
-export const canOwn = (L, ctx, size = 0.8) => { const b = budgetOf(L); return candidates(L.home.region, L.year).some(c => fits(L, b, 'own', c.r.housingTier, size)); };
+export const canOwn = (L, ctx, size = 0.8) => { const b = budgetOf(L); return candidates(L.home.region, L.year).some(c => fits(L, b, 'own', c.r.housingTier, size, c.r.id)); };
 
 export function makeAct(L, ctx) {
   const act = {
@@ -125,7 +133,7 @@ export function makeAct(L, ctx) {
         const t = chooseTarget(L, ctx, tenure, h.region, size);
         Object.assign(h, t.place);
         tenure = t.tenure; cheap = t.cheap;
-        if (tenure === 'own') price = Math.round(priceAt(tierOfL(L), L.year) * size);
+        if (tenure === 'own') price = Math.round(homePrice(L) * size);
       }
       h.cheap = cheap;
       h.parents = tenure === 'family';
@@ -137,7 +145,7 @@ export function makeAct(L, ctx) {
         h.contractEnd = L.year + 2;
       } else if (tenure === 'jeonse') {
         const size = 0.45 + 0.2 * ctx.rand();
-        payDeposit(Math.round(homePrice(L) * yr(T('JEONSE_RATIO')[h.regionGroup], L.year) * size), 0.8);
+        payDeposit(Math.round(jeonseAt(tierOfL(L), L.year, h.sigungu, h.regionGroup) * size), 0.8);
         h.contractEnd = L.year + 2;
       } else if (tenure === 'own') {
         const p = Math.round(price ?? homePrice(L));
@@ -191,6 +199,7 @@ export function makeAct(L, ctx) {
         act.gain(amount);
         ctx.sys('sys.money.severance', { amount }, { quiet: true });
       }
+      L.flags.lastJob = { wage: j.wage, years: j.years, regular: j.regular, title: j.title, year: L.year };   // 직전 일자리(실직 뒤 선택지의 급여·실업급여 계산 근거)
       j.status = 'seeking'; j.wage = 0; j.regular = false; j.searchYears = 0; j.platform = false;
     },
     loseJob(reason = '사업 부진') {
@@ -205,7 +214,7 @@ export function makeAct(L, ctx) {
     },
     // o: 제안 직업 행(없으면 지금·직전 직업). code·major·band·ai·hazard를 그대로 가져간다(QA-S-29)
     startBusiness(title, o = L.job) {
-      const amount = 3000 + Math.round(5000 * ctx.rand());
+      const amount = o.capital ?? 3000 + Math.round(5000 * ctx.rand());
       act.borrow(amount, 'business', { silent: true });
       const t = title || L.job.title || '작은';
       act.startJob({ code: o.code, major: o.major, band: o.band, ai: o.ai, hazard: o.hazard, title: t, self: true, regular: false, firmSize: 'micro', wage: selfIncome(L, ctx), silent: true });

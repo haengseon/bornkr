@@ -5,6 +5,7 @@ import { indep, becomeIndependent, homePrice, canOwn, TENURE_LABEL } from '../ac
 import { econ } from '../stats.js';
 import { won } from '../text.js';
 import { HOUSING_CAL, CLASS_CAL } from '../tuning.js';
+import { housingPlans, asOptions, settleMove } from '../plans.js';
 
 const RENTER = new Set(['jeonse', 'monthly', 'public']);
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -62,7 +63,12 @@ export function step(L, ctx) {
       ctx.sys('sys.home.renewed', {}, { quiet: true });
     } else {
       L.tally.invol = (L.tally.invol || 0) + 1;
-      ctx.act.move(h.tenure === 'public' ? 'monthly' : h.tenure, { reason: '계약 만기', involuntary: true });
+      if (h.tenure === 'public') ctx.act.move('monthly', { reason: '계약 만기', involuntary: true });
+      else {
+        const rise = Math.max(0, (1 + houseYoy(h.regionGroup, y)) * (1 + houseYoy(h.regionGroup, y - 1)) - 1) + 0.02;
+        const plans = housingPlans(L, rise);
+        ctx.ask({ eventId: 'sys.home.expire', options: asOptions(plans), defaultId: 'same', data: { plans }, vars: { tenureLabel: TENURE_LABEL[h.tenure] } });
+      }
     }
   }
   // 전세사기(GDD §5.5)
@@ -121,7 +127,30 @@ function parentHelp(L) {
   return Math.round(Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1]);
 }
 
+// 임대 만료 뒤 선택: 계획의 보증금·월세·이사비를 그대로 정산하고, 선택이 자산·고민·인간관계에 남긴다
+function relocate(L, ctx, plan, reasonText, fx) {
+  const h = L.home, before = { D: h.deposit || 0 };
+  const s = settleMove(L, { D: before.D, newDep: plan.newDep, moveCost: plan.moveCost });
+  ctx.act.move(plan.tenure, { reason: '계약 만기', involuntary: true, silent: true });
+  if (plan.tenure !== 'family') {
+    L.money.assets = s.assets; L.money.loans.jeonse = s.loanKeep;
+    h.deposit = plan.newDep; h.rent = plan.rent; h.contractEnd = L.year + 2; h.cheap = !!plan.cheaper || h.cheap;
+    if (s.loanAdd) ctx.act.borrow(s.loanAdd, 'jeonse', { silent: true });
+  } else L.money.assets += s.cash;
+  L.flags.lastExpire = { year: L.year, opt: plan.id };
+  ctx.apply(fx, { reason: reasonText });
+}
 export const choices = {
+  'sys.home.expire'(L, ctx, opt, { plans }) {
+    const plan = plans.find(p => p.id === opt) || plans[0];
+    const fx = {
+      same: { issues: { housing: 3 }, stats: { leisure: -1 } },
+      down: { issues: { housing: 4, living: 3 }, stats: { leisure: -2, happiness: -1 } },
+      monthly: { issues: { housing: 5, living: 4 }, stats: { happiness: -1 } },
+      family: { issues: { housing: -2 }, stats: { relations: -1, leisure: -3, happiness: -2 } },
+    }[plan.id];
+    relocate(L, ctx, plan, { same: '같은 동네에서 새 계약을 맺었다', down: '집을 줄여 옮겼다', monthly: '전세 보증금을 빼 월세로 옮겼다', family: '부모님 집으로 들어갔다' }[plan.id], fx);
+  },
   'sys.home.independence'(L, ctx, opt) {
     if (opt === 'stay') return ctx.apply({ stats: { leisure: -3, relations: 2 } }, { reason: '부모 집에 머물렀다' });
     leaveHome(L, ctx, opt === 'room' ? 'monthly' : 'jeonse', '독립');

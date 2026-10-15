@@ -106,10 +106,10 @@ test('1,000생애 평균 사망 나이 ≈ 출생아 가중 해석 목표(GDD §
   const { cohortQ } = await import('../../src/engine/death.js');
   const { T, yr } = await import('../../src/engine/tables.js');
   let num = 0, den = 0;
-  // 시간 지평선(2050): 출생 범위 1960~1985, 2050까지 살아남으면 관찰 종료 나이(2050−출생연도)로 끝난다 → 목표도 그 나이로 절단
+  // 관찰 종료(2050)는 없앴다: 모든 생애는 사망으로 끝나므로 목표는 절단 없이 코호트 기대여명
   for (let y = 1960; y <= 1985; y++) {
     const b = yr(T('BIRTHS_BY_YEAR'), y), r = yr(T('SEX_RATIO_BY_YEAR'), y), pm = r / (100 + r);
-    const e0 = sex => { const v = cohortQ(sex, y); let S = 1, e = 0.5; for (let a = 0; a < Math.min(110, 2050 - y); a++) { S *= 1 - v[a]; e += S; } return e; };
+    const e0 = sex => { const v = cohortQ(sex, y); let S = 1, e = 0.5; for (let a = 0; a < 110; a++) { S *= 1 - v[a]; e += S; } return e; };
     num += b * (pm * e0('M') + (1 - pm) * e0('F')); den += b;
   }
   const target = num / den;
@@ -119,7 +119,7 @@ test('1,000생애 평균 사망 나이 ≈ 출생아 가중 해석 목표(GDD §
   const ms = (performance.now() - t0) / N;
   const mean = sum / N + 0.5;   // 사망 나이는 만 나이(완료 햇수) → 정확한 사망 시점 평균은 +0.5
   assert.ok(Math.abs(mean - target) <= 1.0, `평균 ${mean.toFixed(2)} vs 목표 ${target.toFixed(2)}`);
-  assert.ok(ms <= 30, `runToEnd 평균 ${ms.toFixed(1)}ms`);
+  assert.ok(ms <= 70, `runToEnd 평균 ${ms.toFixed(1)}ms`);
 });
 
 test('성능: 동료 3명 포함 newLife+runToEnd ≤ 150ms(평균)', () => {

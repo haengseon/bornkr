@@ -4,6 +4,7 @@ import { ISSUES } from '../engine/constants.js';
 import { NEWS_ARCHIVE } from '../content/news-archive.js';
 import { fxChips, ISSUE_SHORT } from './labels.js';
 import { esc, $, openSheet } from './dom.js';
+import { reactText } from './reaction-ui.js';
 
 // 시대별 매체명(가상). 지면 디자인은 1종으로 통일, 시대감은 마스트헤드 이름·판 표기만 다르다.
 export const MEDIA = {
@@ -20,16 +21,15 @@ const issueLabel = k => ISSUE_SHORT[k] ?? ISSUES.find(i => i.key === k)?.label ?
 const splitNews = t => { const m = String(t).match(/^(.+?[.?!])\s+(.+)$/); return m ? [m[1], m[2]] : [String(t), '']; };
 
 // 엔진 news 로그 → 신문 지면 데이터(피드 줄·팝업 공용)
-export function newsOfEntry(e, year) {
+export function newsOfEntry(e, year, L) {
   const [headline, summary] = splitNews(e.text);
   const chips = fxChips(e.effects);
-  return { year: e.year ?? year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era', effects: e.effects, scenario: !!e.scenario };
+  return { year: e.year ?? year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era', effects: e.effects, scenario: !!e.scenario, react: L ? reactText(e, L) : '' };
 }
 // 피드의 '올해의 뉴스' 줄: 신문 아이콘 + 헤드라인 한 줄 + 개인 영향 칩(사건 단위 effects 만). 누르면 신문 지면 팝업.
 const NEWS_ICO = '<svg class="newsrow__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 8h6M7 12h10M7 16h10"/></svg>';
 export function newsRowHtml(n, i) {
-  const chips = fxChips(n.effects);
-  return `<button class="newsrow" type="button" data-fn="${i}" aria-label="올해의 뉴스 열기: ${esc(n.headline)}">${NEWS_ICO}<span class="newsrow__body"><span class="newsrow__k">올해의 뉴스${n.scenario ? ' · 가상 시나리오' : ''}</span><span class="newsrow__t">${esc(n.headline)}</span><span class="newsrow__fx">${chips.length ? chips.map(c => `<span class="fx">${esc(c)}</span>`).join('') : '<span class="fx fx--none">개인 영향 없음</span>'}</span></span></button>`;
+  return `<button class="newsrow" type="button" data-fn="${i}" aria-label="뉴스 열기: ${esc(n.headline)}"><span class="newsrow__tag">${n.scenario ? '가상 뉴스' : '뉴스'}</span><span class="newsrow__t">${esc(n.headline)}</span></button>`;
 }
 
 // entries: advanceYear 가 돌려준 로그, archive: NEWS_ARCHIVE|null, seen: Set(이미 보인 해). 1년 최대 1건.
@@ -38,10 +38,10 @@ export function pickNews(L, entries = [], archive = null, seen = new Set()) {
   const e = entries.find(x => x.kind === 'news' && !x.sensitive);
   let n = null;
   if (e) {
-    n = newsOfEntry(e, L.year);
+    n = newsOfEntry(e, L.year, L);
   } else {
     const a = (archive || []).find(x => x.year === L.year);
-    if (a) n = { year: a.year, headline: a.headline, summary: a.summary || '', impact: a.impact || '', axes: a.axes || [], medium: a.medium, src: a.src, from: 'archive', scenario: !!(a.scenario || a.future) };
+    if (a) n = { year: a.year, headline: a.headline, summary: a.summary || '', impact: a.impact || '', axes: a.axes || [], medium: a.medium, src: a.src, from: 'archive', scenario: !!(a.scenario || a.future), react: reactText({ kind: 'news', id: a.id, year: a.year, text: `${a.headline} ${a.summary ?? ''}`, axes: a.axes }, L) };
   }
   if (n) seen.add(L.year);
   return n;
@@ -57,6 +57,7 @@ export function newsInner(n) {
   return `<article class="paper"><p class="paper__mast"><span class="paper__name">${esc(md.name)}</span><span class="paper__date"><span class="mono">${n.year}</span>년 ${esc(md.kind)}판</span></p>
     <h3 class="paper__head">${esc(n.headline)}</h3>
     ${n.summary ? `<p class="paper__body">${esc(n.summary)}</p>` : ''}
+    ${n.react ? `<p class="react">${esc(n.react)}</p>` : ''}
     ${n.impact ? `<p class="paper__impact"><b>삶에 준 영향</b> ${esc(n.impact)}</p>` : ''}
     ${tags ? `<p class="paper__tags">${tags}</p>` : ''}
     <p class="paper__note">게임 내 가상 신문입니다. 당시 뉴스를 참고해 다시 쓴 글이며 실제 기사가 아닙니다.${n.scenario || n.future ? ' 2027년 이후는 가상 시나리오입니다.' : ''}</p></article>`;

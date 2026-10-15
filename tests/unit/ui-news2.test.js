@@ -8,8 +8,8 @@ test('news2: 연도별 묶음은 최신 연도가 위, 같은 해 안에서도 �
   assert.deepEqual(g[1].items.map(n => n.headline), ['c', 'a']);
   assert.equal(g[0].mast, '누리 포털 뉴스');
 });
-test('news2: 피드 뉴스 줄은 개인 영향 없음 표시', () => {
-  assert.match(newsRowHtml({ year: 2000, headline: 'H', effects: null }, 0), /개인 영향 없음/);
+test('news2: 피드 뉴스 줄은 뉴스 딱지 한 줄', () => {
+  assert.match(newsRowHtml({ year: 2000, headline: 'H', effects: null }, 0), /newsrow__tag/);
 });
 test('news2: 지면은 1종(.paper), 시대별 클래스 없음·HTML 이스케이프', () => {
   const h = newsInner({ year: 1998, headline: '<b>x</b>', summary: 's', impact: 'i', axes: ['job'] });

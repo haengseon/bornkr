@@ -2,11 +2,10 @@
 import { placeLine, placeLabel } from './sigungu.js';
 import { STAGES, ISSUES, ISSUE_KEYS, STAT_KEYS } from './constants.js';
 import { T, yr, REGION } from './tables.js';
-import * as R from './rng.js';
-import { VERDICTS } from '../content/verdicts.js';
-import { text, fill, DEFAULT_VERDICT } from './text.js';
+import { epilogueOf } from './epilogue.js';
+import { deathStory } from './deathstory.js';
+import { text, fill, josa } from './text.js';
 import { closing, explain } from './explain.js';
-import { signals, plainText } from './issues.js';
 import { peers } from './peers.js';
 import { stageOf } from './clock.js';
 import { QLABEL, ORDER_L, birthLine } from './compare.js';
@@ -63,39 +62,20 @@ function pressures(L) {
   return out;
 }
 
-const CARDIO = new Set(['cancer', 'heart', 'stroke']);
 // 판정문 수치(생애 누적 압력)와 결산 관심사 수치(말년 가중)는 산식이 다르다(QA #8). 화면 수치는 같은 이름의 결산 값(issues[].value)을 쓰고, 선택에 쓴 누적 압력은 pressure로 따로 둔다.
 export const BASIS = {
   lifetime: '성인기(19세~) 평균 + 사건 가산 — 생애 누적 압력',
   'late-weighted': '성인기 평균 70% + 최근 10년 평균 30% — 말년에 가중한 관심도',
 };
-function verdict(L, opts, iss) {
-  const age = L.death?.age ?? L.age, b = L.birth;
+// 판정문 본문은 회고문(epilogue.js)이 맡는다. 여기서는 계열과 내부 수치(pressure/shown — 테스트·QA용, 화면 비노출)만 낸다.
+function verdict(L, iss) {
+  const age = L.death?.age ?? L.age;
   const pr = pressures(L);
   const [top, topV] = Object.entries(pr).sort((a, b2) => b2[1] - a[1])[0];
   const family = L.death?.sensitive ? 'neutral' : age < 19 ? 'young' : age < 40 ? 'early' : topV < 45 ? 'quiet' : top;
-  // 0세 사망엔 '{n}번의 봄' 같은 햇수 문구를 쓰지 않는다
-  let list = (VERDICTS[family] || []).filter(v => !(opts.recent || []).includes(v.text) && !(age === 0 && v.text.includes('{n}')));
-  const dxN = Object.keys(L.health.dx).length;
-  if (family === 'medical' && dxN >= 2 && CARDIO.has(L.death?.cause)) {
-    const plain = list.filter(v => v.humor === false);
-    if (plain.length) list = plain;
-  }
-  const s = R.makeRng(R.hashSeed(L.seed, 'verdict'));
-  const pick = list.length ? R.pick(s, list).text : DEFAULT_VERDICT[family];
-  const main = fill(pick, { name: L.name, n: Math.max(1, age), year: L.death?.year ?? L.year });
-  const mine = L.choices.filter(c => !c.forced);
-  const transparency = text(['end.transparency', 'sys.auto.line'], { n: mine.length, m: mine.filter(c => c.auto).length }, { pick: a => R.pick(s, a), L });
-  if (family === 'young' || family === 'neutral') {
-    return { main, family, lines: [`${b.sigungu ? placeLabel(b.region, b.sigungu, b.dong) : REGION[b.region].full}, ${QLABEL[b.quintile - 1]}에서 태어났다.`], transparency };
-  }
-  // 지배 압력의 가장 큰 사유(현재 신호 성분 → 없으면 최근 사건 사유)
-  // 결산·공유 문구에 금액·금액에서 나온 비율(%)·소득 서열(분위) 금지(QA-E-15, QA-S-20)
-  const ok = t => t && !t.includes('만 원') && !/\d\s*%/.test(t) && !t.includes('분위');
-  const comp = signals(L)[top].filter(c => c.text !== '기본' && ok(plainText(c))).sort((a, b2) => b2.v - a.v)[0];
-  const why = (comp && plainText(comp)) ?? [...(L.reasons[top] || [])].filter(r => ok(r.text)).sort((a, b2) => Math.abs(b2.delta) - Math.abs(a.delta))[0]?.text;
+  if (family === 'young' || family === 'neutral') return { family };
   const shown = iss.find(i => i.key === top)?.value ?? Math.round(topV);       // 아래 결산의 같은 이름 항목과 같은 수치
-  return { main, family, pressure: { key: top, value: Math.round(topV), basis: 'lifetime' }, shown: { key: top, value: shown, basis: 'late-weighted' }, lines: [`${ISSUE_LABEL[top]} ${shown}${why ? ` — ${why}` : ''}`, transparency] };
+  return { family, pressure: { key: top, value: Math.round(topV), basis: 'lifetime' }, shown: { key: top, value: shown, basis: 'late-weighted' } };
 }
 
 // 생애 연표(GDD §12.3)
@@ -161,6 +141,12 @@ function issueList(L) {
   }).sort((a, b) => b.value - a.value);
 }
 
+// 판정문 사망 블록: 인과 체인(deathstory.js) 끝에 사망 문장을 붙인다. 자해 사망은 체인·사인 없음.
+function deathSteps(ds) {
+  if (!ds) return null;
+  return { ...ds, steps: ds.sensitive || !ds.causeLabel ? [] : [...ds.chain, `${ds.year}년 ${ds.causeLabel}${josa(ds.causeLabel.replace(/\([^)]*\)$/, ''), '으로')} 세상을 떠났다`] };
+}
+
 export function summarize(L, opts = {}) {
   const d = L.death;
   const cl = closing(L);
@@ -168,10 +154,13 @@ export function summarize(L, opts = {}) {
   const statSrc = STAT_KEYS.flatMap(k => explain(L, k).src);
   const all = [...statSrc, ...iss.flatMap(i => i.src), ...Object.values(cl).flatMap(c => c.src)];
   const seen = new Set();
-  const v = verdict(L, opts, iss);
+  const v = verdict(L, iss);
+  const ep = epilogueOf(L, opts);
   return {
     birthCert: birthCert(L),
-    verdict: { main: v.main, lines: v.lines, family: v.family, ...(v.pressure && { pressure: v.pressure, shown: v.shown }), ...(v.transparency && v.lines.length === 1 && { transparency: v.transparency }) },
+    verdict: { main: ep.coda, title: ep.title, lines: [], family: v.family, ...(v.pressure && { pressure: v.pressure, shown: v.shown }) },   // main = 한 줄 총평(기록관·공유 카드 하위호환)
+    epilogue: ep,
+    deathStory: deathSteps(deathStory(L)),
     timeline: timeline(L),
     closing: cl,
     issues: iss,

@@ -10,6 +10,7 @@ import { jobByCode } from './systems/career.js';
 import { leanFromChoice } from './stats.js';
 import { fxEffects, fxRisk } from './milestones.js';
 import { eventFrom } from './anachro.js';
+import { variantText } from './variants.js';
 
 const LIMITED = new Set(['violence', 'abuse', 'sexual']);
 let BUCKET = null;
@@ -62,6 +63,7 @@ function basicOk(L, ev, ctx) {
   if (ev.once && L.fired[ev.id]) return false;
   if ((L.cooldown[ev.id] ?? 0) > L.year) return false;
   if (LIMITED.has(ev.sensitive) && (L.tally.sens || 0) >= 2) return false;
+  if (ev.topic && (L.decisions || []).some((d, i, a) => d.topic === ev.topic && (i >= a.length - 3 || L.year - d.year < 5))) return false;   // 같은 주제 중대 결정: 직전 3개·5년 안 반복 금지
   return !ev.when || !!ev.when(L, ctx);
 }
 function choiceBlocked(L) {
@@ -71,7 +73,7 @@ function choiceBlocked(L) {
 
 function fire(L, ctx, ev) {
   const vars = textVars(L);
-  const txt = fill(ev.text, vars, ctx);
+  const txt = fill(variantText(ev.id, L, ctx, ev.text), vars, ctx);   // 시대·성향별 변형(content/variants.js), 없으면 원문
   L.fired[ev.id] = (L.fired[ev.id] || 0) + 1;
   if (ev.cooldown) L.cooldown[ev.id] = L.year + ev.cooldown;
   if (ev.tags?.includes('dark') && L.tagYear.dark !== L.year) L.flags.darkPrev = L.tagYear.dark ?? null;   // 어두운 사건 연타 감시
@@ -85,7 +87,7 @@ function fire(L, ctx, ev) {
   if (ev.choice) {
     entry.asked = true;
     ctx.ask({
-      eventId: ev.id, prompt: fill(ev.choice.prompt, vars, ctx), defaultId: typeof ev.choice.default === 'function' ? ev.choice.default(L, ctx) : ev.choice.default, sensitive: ev.sensitive || undefined,
+      ...(ev.topic && { topic: ev.topic, major: true }), eventId: ev.id, prompt: fill(ev.choice.prompt, vars, ctx), defaultId: typeof ev.choice.default === 'function' ? ev.choice.default(L, ctx) : ev.choice.default, sensitive: ev.sensitive || undefined,
       options: ev.choice.options.map(o => ({ id: o.id, label: o.label, ...(o.hint && { hint: o.hint }), effects: fxEffects(o), risk: fxRisk(o) })),
     });
   }
@@ -143,7 +145,7 @@ export function chanceStep(L, ctx) {
     if (ev.choice && choiceBlocked(L)) continue;
     if (ev.once && L.fired[ev.id]) continue;
     if (ev.tags?.includes('rare') || (darkBlocked && ev.tags?.includes('dark'))) continue;
-    let p = pOf(ev, L, ctx) * CHANCE_SCALE[st] * (ev.choice ? CHOICE_SCALE[st] : 1);
+    let p = pOf(ev, L, ctx) * CHANCE_SCALE[st] * (ev.choice ? CHOICE_SCALE[st] : 1) * (ev.topic ? 3 : 1);   // 다양한 주제의 중대 결정이 슬롯을 채우도록 가중
     if (ev.tags?.some(t => t !== 'recovery' && L.tagYear[t] >= L.year - 2)) p *= 0.1;
     if (ev.tags?.includes('recovery') && L.flags.victim && L.year - L.flags.victim <= 3) p = Math.max(p, 0.5);
     if (ev.tags?.includes('recovery') && L.tagYear.dark >= L.year - 2) p = Math.max(p, 0.3);   // 어두운 일 뒤 회복 사건 비율 확보

@@ -26,8 +26,8 @@ routes.home = () => {
     <p class="home__formno">생애 시뮬레이션 · 1회 배속에 따라 약 7~25분 <span class="tag">19세 이상</span></p>
     <h1 class="home__title">태어나보니 대한민국</h1>
     <p class="home__sub">한 번뿐인 인생</p>
-    <p class="home__lede">대한민국 어딘가에서 무작위로 태어나, 한 번의 생을 2050년 또는 사망까지 삽니다. 태어날 곳은 고를 수 없고, 고를 수 있는 건 생각보다 적습니다.</p>
-    <dl class="facts"><div><dt>소요</dt><dd>약 7~25분</dd></div><div><dt>끝</dt><dd>2050년 또는 사망</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
+    <p class="home__lede">대한민국 어딘가에서 무작위로 태어나, 한 번의 생을 마지막 순간까지 삽니다. 태어날 곳은 고를 수 없고, 고를 수 있는 건 생각보다 적습니다.</p>
+    <dl class="facts"><div><dt>소요</dt><dd>약 10~30분</dd></div><div><dt>끝</dt><dd>사망할 때까지</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
     ${cur ? `<div class="resume"><div class="resume__text"><p class="resume__title">하던 생애가 있습니다</p><p class="cap">${esc(cur.name ?? '')} · ${cur.age}세(${cur.year ?? ''}년)</p></div><button class="btn" type="button" data-go="resume">이어 하기</button></div>
     <div class="confirm" id="confirm-new" role="group" aria-labelledby="confirm-new-text" hidden>
       <p class="confirm__text" id="confirm-new-text">새로 태어나면 하던 생애(${esc(cur.name ?? '')} · ${cur.age}세)는 이어 할 수 없습니다. 그래도 새로 태어날까요?</p>
@@ -227,7 +227,7 @@ function lifegrid(age, events) {
 }
 const lifelines = ps => { const mx = Math.max(1, ...ps.map(p => p.deathAge || 0)); return `<div class="lifelines" aria-hidden="true">${ps.map(p => `<div class="lifeline${p.self ? ' is-self' : ''}"><span class="lifeline__name">${esc(p.name)}</span><span class="lifeline__track" style="--w:${Math.round((p.deathAge || 0) / mx * 100)}"><span class="lifeline__bar"></span>${silhouetteSvg(p.deathAge || 0, { cls: 'lifeline__fig' })}</span><span class="lifeline__age">${p.deathAge ?? ''}세</span></div>`).join('')}</div>`; };
 function summaryHtml(L, sum, archive) {
-  const b = L.birth, d = sum.death ?? L.death, v = sum.verdict ?? { main: '', lines: [] };
+  const b = L.birth, d = sum.death ?? L.death, v = sum.verdict ?? { main: '' }, ep = sum.epilogue, ds = sum.deathStory;
   const cause = causeLabel({ ...L.death, ...d }, S.settings.hideSensitiveCause);
   const tl = sum.timeline || [];
   const events = new Set(tl.map(t => t.age));
@@ -244,25 +244,26 @@ function summaryHtml(L, sum, archive) {
       <h1 class="lifehead__name" id="sum-name">${esc(L.name)}</h1>
       <p class="lifehead__years">${dateDot(b)} – ${d.year} · ${ageText(d.age, d.horizon)}${d.horizon ? ' · 관찰 종료' : cause ? ' · ' + esc(cause) : ''}</p>
     </header>
-    <article class="doc verdict" aria-labelledby="verdict-title">
+    <article class="doc verdict epi" aria-labelledby="verdict-title">
       <p class="doc__formno">■ 태어나보니 대한민국 [별지 제2호서식]</p>
       <h2 class="verdict__title" id="verdict-title">인생 판정문</h2>
-      <dl class="verdict__meta"><div><dt>사건</dt><dd class="mono">${d.year}생애${mmdd(b)}</dd></div><div><dt>당사자</dt><dd>${esc(L.name)} (${dateDotSp(b)}생)</dd></div></dl>
-      <h3 class="verdict__label">주문</h3>
-      <p class="verdict__main">${esc(v.main)}</p>
-      ${(v.lines || []).filter(Boolean).length ? `<h3 class="verdict__label">이유 <small class="verdict__basis">(생애 누적 압력 기준)</small></h3><ol class="verdict__reasons">${v.lines.filter(Boolean).map(l => `<li>${esc(l)}</li>`).join('')}</ol>` : ''}
+      ${ep ? `<p class="epi__title">${esc(ep.title)}</p>
+      <p class="epi__who">${esc(L.name)} · ${b.year}–${d.year}</p>
+      <div class="epi__body">${ep.paragraphs.map((t, i) => `<p style="--i:${i}">${esc(t)}</p>`).join('')}</div>
+      <p class="verdict__main epi__coda">${esc(v.main)}</p>` : `<p class="verdict__main">${esc(v.main)}</p>`}
+      ${ds ? `<section class="epi__death" aria-label="사망 기록"><p class="epi__deathline"><span class="mono">${ds.year}년</span>, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${esc(cause)}` : ''}</p>${cause && ds.steps?.length ? `<p class="epi__chain">${ds.steps.map(esc).join('<span class="epi__arrow" aria-hidden="true"> → </span>')}</p>` : ''}</section>` : ''}
       ${sum.capNotice ? `<p class="cap verdict__cap">${esc(sum.capNotice)}</p>` : ''}
       <div class="verdict__sign"><p class="mono">${d.year}년</p><p class="verdict__org">태어나보니 대한민국</p><span class="seal seal--square" aria-hidden="true"><span>인</span><span>생</span><span>판</span><span>정</span></span></div>
     </article>
     <section class="section" aria-labelledby="sum-closing">
-      <div class="section__head"><h2 class="section__title" id="sum-closing">결산</h2><span class="section__note">0~100 · 누르면 근거 · 판정문의 ‘생애 누적 압력’과 다른 산식</span></div>
+      <div class="section__head"><h2 class="section__title" id="sum-closing">결산</h2><span class="section__note">0~100 · 누르면 근거</span></div>
       ${CLOSING_KEYS.filter(k => sum.closing?.[k]).map(k => {
         const c = sum.closing[k], body = srcList(c.src);
         return `<details class="metric"><summary class="metric__sum"><span class="metric__label">${esc(c.label ?? CLOSING_LABEL[k])}</span><span class="metric__value">${c.value}</span>${meter(c.value)}<span class="metric__reason">${esc(c.line ?? '')}</span></summary><div class="metric__body">${body || '<p class="cap">출처 없음 · 게임 계산값</p>'}</div></details>`;
       }).join('')}
     </section>
     <section class="section" aria-labelledby="sum-issues">
-      <div class="section__head"><h2 class="section__title" id="sum-issues">내가 마주한 관심사·고민</h2><span class="section__note" title="성인기 70% + 최근 10년 30% 가중 평균. 판정문의 ‘생애 누적 압력’과는 다른 산식입니다.">말년 가중 관심도 · 강한 순</span></div>
+      <div class="section__head"><h2 class="section__title" id="sum-issues">내가 마주한 관심사·고민</h2><span class="section__note" title="성인기 70% + 최근 10년 30% 가중 평균.">말년 가중 관심도 · 강한 순</span></div>
       <div class="sum-radar">${radarSvg('issue', {}, { size: 280, aria: '관심사·고민 10축 지도' })}</div>
       ${issues.map(i => `<div class="metric"><div class="metric__sum"><span class="metric__label">${esc(i.label)}</span><span class="metric__value">${i.value}</span>${meter(i.value)}<span class="metric__reason">${esc(i.lines?.[0] ?? '')}</span></div></div>`).join('')}
     </section>
@@ -285,7 +286,7 @@ function summaryHtml(L, sum, archive) {
       <h2 class="sr-only" id="sum-share">카드로 남기기</h2>
       <div class="cardpick">
         <button class="linkrow" type="button" aria-haspopup="dialog" data-card="birth"><span><span class="linkrow__title">출생 신고서</span><span class="linkrow__desc">어떤 조건에서 시작했는가</span></span></button>
-        <button class="linkrow" type="button" aria-haspopup="dialog" data-card="verdict"><span><span class="linkrow__title">인생 판정문</span><span class="linkrow__desc">한 줄로 남긴 이 생애</span></span></button>
+        <button class="linkrow" type="button" aria-haspopup="dialog" data-card="verdict"><span><span class="linkrow__title">인생 판정문</span><span class="linkrow__desc">한 편의 회고로 남긴 이 생애</span></span></button>
         <button class="linkrow" type="button" aria-haspopup="dialog" data-card="timeline"><span><span class="linkrow__title">생애 연표</span><span class="linkrow__desc">무엇을 감당했고, 무엇을 남겼는가</span></span></button>
       </div>
     </section>

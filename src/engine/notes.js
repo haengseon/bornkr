@@ -4,8 +4,15 @@ import * as R from './rng.js';
 import { NOTES } from '../content/personal-notes.js';
 import { needYear, eraSchool } from './anachro.js';
 
-export function yearNote(L) {
-  const s = R.makeRng(R.hashSeed(L.seed, 'note', L.age)), used = (L.flags.noteUsed ||= {});
+// 한 해 최대 max개(서로 다른 틀)
+export function yearNotes(L, max = 2) {
+  const out = [];
+  for (let i = 0; i < max; i++) { const x = yearNote(L, i); if (x) out.push(x); }
+  return out;
+}
+
+export function yearNote(L, salt = 0) {
+  const s = R.makeRng(R.hashSeed(L.seed, 'note', L.age, salt)), used = (L.flags.noteUsed ||= {});
   const cands = [];
   for (const [key, fn] of NOTES) {
     let t;

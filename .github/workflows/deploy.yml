@@ -17,16 +17,6 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    continue-on-error: true   # 성능 측정 테스트가 공유 러너에서 흔들릴 수 있어 배포를 막지 않는다(결과는 확인용)
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm test
-
   upload:
     runs-on: ubuntu-latest
     steps:

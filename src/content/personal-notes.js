@@ -78,4 +78,31 @@ export const NOTES = [
     if (L.stats.happiness < 35) return three('힘든 날이 많은 한 해였다.', '마음이 무거운 날이 이어졌다.', '지치는 일이 많았다.');
     return null;
   }],
+  // ── 영유아(1~6) ──
+  ['daycare', L => (['daycare', 'kinder'].includes(L.edu.stage) ? three('어린이집에서 하루를 보냈다.', '또래 아이들과 어울리기 시작했다.', '집 밖에서 보내는 시간이 늘었다.') : null)],
+  ['toddler', L => (L.age >= 2 && L.age <= 4 ? three('말이 부쩍 늘었다.', '하루가 다르게 자랐다.', '걸음이 빨라지고 말이 늘었다.') : null)],
+  ['homeplay', L => (L.age >= 1 && L.age <= 6 ? three('가족과 함께 보내는 시간이 많았다.', '집 안에서 놀며 하루를 보냈다.', '가족의 손을 잡고 동네를 오갔다.') : null)],
+  // ── 학령(7~18) ──
+  ['exam', L => (['middle', 'high'].includes(L.edu.stage) ? three('시험 기간에 공부하는 시간이 늘었다.', '시험 성적표를 받았다.', '시험 준비로 밤늦게까지 책상에 앉았다.') : null)],
+  ['tutoring', L => (L.edu.tutoring > 0 && ['elem', 'middle', 'high'].includes(L.edu.stage) ? three('학원에 다니며 저녁을 보냈다.', '학원 수업이 일과에 들어왔다.', '방과 후에는 학원에 갔다.') : null)],
+  ['schoolfriend', L => (L.age >= 7 && L.age <= 18 && L.stats.relations >= 55 ? three('같은 반 친구와 가까워졌다.', '친구들과 어울려 지내는 날이 많았다.', '쉬는 시간이 즐거운 한 해였다.') : null)],
+  ['vacation', L => (L.age >= 7 && L.age <= 18 ? three('방학에는 늦잠을 자는 날이 많았다.', '방학 동안 집에서 지냈다.', '방학이 끝나고 다시 학교에 갔다.') : null)],
+  // ── 청년·중년(일·돈) ──
+  ['colleague', L => (L.job.status === 'employed' && L.stats.relations >= 55 ? three('동료들과 점심을 자주 함께했다.', '직장 동료와 가까워졌다.', '회식과 점심 자리가 이어졌다.') : null)],
+  ['boss', L => (L.job.status === 'employed' && L.job.years >= 1 ? three('상사와 업무 방식을 맞춰 갔다.', '맡은 업무가 조금씩 늘었다.', '업무 평가를 받는 시기가 지났다.') : null)],
+  ['payday', L => (L.job.status === 'employed' && L.age >= 20 ? three('월급날에 맞춰 지출을 정리했다.', '월급이 들어오면 고정 지출부터 나갔다.', '월급으로 한 달을 꾸렸다.') : null)],
+  ['spend', L => (L.age >= 19 && L.stats.wealth < 40 ? three('지출을 줄여야 하는 달이 많았다.', '생활비를 따져 보는 날이 늘었다.', '돈 쓰는 일에 신중해졌다.') : null)],
+  ['saving', L => (L.age >= 19 && L.money.debt === 0 && L.stats.wealth >= 55 ? three('저축 목표를 하나 채웠다.', '통장에 모아 둔 돈이 늘었다.', '꾸준히 저축하며 지냈다.') : null)],
+  ['dating', L => (L.family.dating && !L.family.partner ? three('만나는 사람과 시간을 보냈다.', '연애를 이어 갔다.', '주말을 함께 보내는 사람이 생겼다.') : null)],
+  ['habit', L => (L.age >= 25 && L.stats.health < 55 ? three('체중과 식습관이 신경 쓰이는 해였다.', '잠이 부족한 날이 많았다.', '운동을 시작하려다 미뤘다.') : null)],
+  ['hospital', L => (L.age >= 45 && L.health.conditions.some(c => c.active) ? three('병원에 가는 날이 늘었다.', '정기 검사를 받으러 병원에 다녔다.', '진료 예약이 달력에 자리를 잡았다.') : null)],
+  ['holiday', L => (L.age >= 25 && (L.family.partner || L.family.parents.father?.alive || L.family.parents.mother?.alive) ? three('명절에 가족이 모였다.', '가족 행사에 참석했다.', '가족과 모이는 날을 챙겼다.') : null)],
+  ['trip', L => (L.age >= 20 && L.stats.leisure >= 55 ? three('짧은 여행을 다녀왔다.', '쉬는 날에 가까운 곳으로 나들이를 갔다.', '휴가를 챙겨 쉬었다.') : null)],
+  ['neighbor', L => (L.age >= 25 && !L.home.parents && L.stats.relations >= 50 ? three('이웃과 인사를 나누는 사이가 되었다.', '동네에 익숙해졌다.', '사는 동네에서 안부를 묻는 사람이 생겼다.') : null)],
+  ['season', L => (L.age >= 5 ? three('계절마다 달라지는 일상을 보냈다.', '더위와 추위를 지나 한 해가 갔다.', '계절이 바뀌는 것을 느끼며 지냈다.') : null)],
+  // ── 노년 ──
+  ['elder', L => (L.age >= 65 && L.stats.health >= 50 ? three('동네를 걷는 시간이 하루의 일과였다.', '이웃과 산책하며 안부를 나눴다.', '규칙적으로 하루를 보냈다.') : null)],
+  ['pensioned', L => (L.age >= 65 && L.money.pension > 0 ? three('연금으로 생활을 꾸렸다.', '연금과 저축으로 생활했다.', '매달 들어오는 연금으로 지냈다.') : null)],
+  ['grandkids', L => (L.age >= 55 && (L.family.grandchildren || 0) > 0 ? three('손주 소식이 반가웠다.', '손주와 시간을 보냈다.', '손주가 자라는 것을 지켜봤다.') : null)],
+  ['elderhealth', L => (L.age >= 70 ? three('몸의 변화를 느끼는 한 해였다.', '무리하지 않고 지냈다.', '건강을 먼저 챙기며 지냈다.') : null)],
 ];

@@ -13,6 +13,7 @@ import * as education from './systems/education.js';
 import * as military from './systems/military.js';
 import * as career from './systems/career.js';
 import * as money from './systems/money.js';
+import * as invest from './systems/invest.js';
 import * as housing from './systems/housing.js';
 import * as family from './systems/family.js';
 import * as health from './systems/health.js';
@@ -24,13 +25,15 @@ import { TENURE_LABEL, WHO_LABEL } from './act.js';
 import { HT_LABEL } from './systems/education.js';
 import { won } from './text.js';
 import { eraStep, chanceStep, resolveEventChoice, eventById } from './events.js';
-import { yearNote } from './notes.js';
+import { yearNotes } from './notes.js';
 import { driftStats, derive } from './stats.js';
 import { updateIssues } from './issues.js';
 import { compareStep } from './compare.js';
 import { deathStep, infantStep } from './death.js';
+import { jobCard } from './jobcard.js';
+import { modifier } from '../content/job-perception.js';
 
-const SYSTEMS = [education, military, career, money, housing, family, health, aging, milestones];
+const SYSTEMS = [education, military, career, money, invest, housing, family, health, aging, milestones];
 const SYS_CHOICES = Object.assign({}, ...SYSTEMS.map(s => s.choices || {}));
 
 const PHASES = [
@@ -120,6 +123,21 @@ export function apply(L, fx, meta = {}) {
   }
 }
 
+// 일자리 선택에 붙는 급여·사회 인식 카드(첫 일자리 제안·이직 제안)
+function jobInfoFor(L, req) {
+  const j = L.job;
+  if (req.eventId === 'sys.job.first_offer' && req.data?.offer) {
+    const o = req.data.offer;
+    return [jobCard(L, o, '제안'), ...(req.options.some(x => (x.id ?? x) === 'exam') ? [{ label: '공시', title: '공무원', wage: null, year: L.year, kind: '공공 부문', perception: [modifier({ public: true }, L.year)] }] : [])];
+  }
+  if (req.eventId === 'sys.job.offer' && req.data) {
+    const now = { code: j.code, title: j.title, major: j.major, wage: j.wage, regular: j.regular, firmSize: j.firmSize, public: j.public };
+    return [jobCard(L, { ...now, wage: Math.round(j.wage * req.data.mult), regular: req.data.regular }, '옮기면'), jobCard(L, now, '지금 자리')];
+  }
+  return null;
+}
+
+const NEED = new Set(['sys.home.expire', 'sys.job.lost', 'sys.money.crunch', 'sys.invest.plan', 'sys.invest.panic']);   // 생활이 걸린 불가피한 갈림길은 주제 반복 규칙으로 묻지 않고 넘기지 않는다
 // 선택 요청. 그해 1건·구간 상한(GDD §2.2). 막히면 시스템 선택은 기본값을 바로 적용(auto, forced).
 // req: { eventId, options:[id | {id,label,hint}], defaultId, vars?, data?, sensitive?, prompt? }
 export function ask(L, req, ctx) {
@@ -135,8 +153,16 @@ export function ask(L, req, ctx) {
     ...(req.data && { data: req.data }),
     ...(req.vars && { vars: req.vars }),
     ...(req.careTarget && { careTarget: req.careTarget }),
+    ...(!isSys && req.topic && { topic: req.topic, major: true, chapter: chapterOf(L.age).n, timeoutMs: 20000 }),
   };
+  const ji = jobInfoFor(L, req);
+  if (ji) full.jobInfo = ji;
   if (isSys) decorate(L, full);                       // 이정표: major·topic·chapter·options[].effects/risk(PROCESS-V2)
+  // 다양성: 이사·진로·일 결정은 직전 3개 결정과 같은 주제면 묻지 않고 기본값을 기록만 한다(사유가 약한 반복 질문 방지)
+  if (isSys && full.major && ['housing', 'career', 'job'].includes(full.topic) && !full.chain && !NEED.has(full.eventId) && (L.decisions || []).slice(-3).some(d => d.topic === full.topic)) {
+    resolveChoice(L, full, full.defaultId, { auto: true, forced: true });
+    return false;
+  }
   // 선택지가 1개뿐이면 묻지 않고 결과만 적용(QA-S-02, GDD §15.1 선택지 2~3개)
   if (options.length < 2 || L.pending || L.yr.asked || (isSys && sc.sys >= STAGE_CAP[st].sys)) {   // 이정표도 구간 시스템 상한 안(15분 예산)
     if (isSys || options.length < 2) resolveChoice(L, full, full.defaultId, { auto: true, forced: true });
@@ -162,6 +188,7 @@ function resolveChoice(L, req, optionId, { auto = false, forced = false } = {}) 
     if (before) settle(L, ctx, req, opt, entry, before);
   } else {
     resolveEventChoice(L, ctx, req, opt.id, !!auto);
+    if (req.topic) (L.decisions ||= []).push({ year: L.year, eventId: req.eventId, option: opt.id, label: opt.label, topic: req.topic, result: 'hold', execution: 'executed', risk: opt.risk ?? 'low', rippled: true, ...(opt.id === req.defaultId && { def: true }) });
   }
 }
 
@@ -323,7 +350,7 @@ function run(L, from) {
     PHASES[L.yr.phase++][1](L);
     if (L.pending || !L.alive) break;
   }
-  if (!L.pending) { endYear(L); if (L.alive && !L.yr.noted) { L.yr.noted = true; const n = yearNote(L); if (n) emit(L, { kind: 'personal', id: `personal.${n.key}`, text: n.text }); } }
+  if (!L.pending) { endYear(L); if (L.alive && !L.yr.noted) { L.yr.noted = true; for (const n of yearNotes(L, 2)) emit(L, { kind: 'personal', id: `personal.${n.key}`, text: n.text }); } }
   flushQuiet(L);
   const ch = chapterOf(L.age);
   // summary: 이정표 결정이 없는 해(빨리감기 한 줄 요약 대상, PROCESS-V2 §1)
