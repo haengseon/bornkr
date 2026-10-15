@@ -20,3 +20,8 @@ npm run build:site   # dist/site (S3·CloudFront 등 정적 호스팅용)
 ## 라이선스
 
 라이선스는 아직 지정하지 않았습니다(모든 권리 보유). 사용 조건을 정하려면 `LICENSE` 파일을 추가하세요.
+
+## 배포(GitHub Actions → S3 → CloudFront)
+
+`main`에 푸시하면 `.github/workflows/deploy.yml`이 `npm run build:site`로 만든 `dist/site`를 S3에 올리고 CloudFront 캐시를 갱신합니다.
+인증은 OIDC 역할 가정(AWS 키를 저장소에 두지 않음)이며, 저장소 변수 `AWS_ROLE_ARN`, `AWS_REGION`, `S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`를 설정해야 동작합니다(설정 전에는 배포 단계를 건너뜁니다).
