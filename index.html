@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>태어나보니 대한민국</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="google-adsense-account" content="ca-pub-5950509303749076">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1D21" media="(prefers-color-scheme: dark)">
+<meta name="description" content="대한민국 어딘가에서 무작위로 태어나 15분 동안 한 번의 생을 사는 통계 기반 생애 시뮬레이션. 19세 이상.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- 글꼴은 렌더를 막지 않는다(QA-E-12): preload 후 로드되면 스타일시트로. 늦거나 실패하면 시스템 글꼴 폴백(--font-* 스택) -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Black+Han+Sans&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Black+Han+Sans&display=swap"></noscript>
+<link rel="manifest" href="src/static/manifest.webmanifest">
+<link rel="icon" href="src/static/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="src/static/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="태어나보니 대한민국">
+<style>/* 스플래시: 번들보다 먼저 그려진다(흰 화면 깜빡임 방지). 색은 styles.css 토큰과 같은 값 */
+#splash{--sb:#FAFAF8;--si:#15181C;--si2:#4A5058;--sa:#2341A0;--sk1:#EFE6CE;--sk2:#F0D6C0;position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:max(16px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom));background:var(--sb);color:var(--si);height:100vh;height:100dvh;transition:opacity .45s ease,transform .45s cubic-bezier(.2,.7,.2,1)}
+@media (prefers-color-scheme:dark){html:not([data-theme="light"]) #splash{--sb:#1A1D21;--si:#E7E9EA;--si2:#BCC1C7;--sa:#9AAEFF;--sk1:#2A2F3A;--sk2:#3A2F33}}
+html[data-theme="dark"] #splash{--sb:#1A1D21;--si:#E7E9EA;--si2:#BCC1C7;--sa:#9AAEFF;--sk1:#2A2F3A;--sk2:#3A2F33}
+#splash.sp--out{opacity:0;transform:translateY(-28px);pointer-events:none}
+#splash svg{width:min(100%,520px);height:auto;max-height:42dvh;display:block}
+.sp__sky{fill:url(#sp-g)}.sp__ink{fill:var(--si)}.sp__line{fill:none;stroke:var(--si2);stroke-width:1.5;stroke-dasharray:3 5;stroke-linecap:round}
+.sp__ground{stroke:var(--si);stroke-width:2;stroke-linecap:round}.sp__sun{fill:var(--sa)}.sp__soft{fill:var(--si2);opacity:.28}
+.sp__win{fill:var(--sa);opacity:.85}
+.sp__t{margin:0;font-family:"Nanum Myeongjo","AppleMyungjo","Batang","바탕",serif;font-weight:800;font-size:clamp(30px,9vw,52px);line-height:1.2;text-align:center;letter-spacing:.02em}
+.sp__t span{display:inline-block;opacity:0;animation:sp-in .55s ease forwards;animation-delay:calc(.5s + var(--i)*70ms)}
+.sp__s{margin:0;font:500 15px/1.4 "Noto Sans KR","Malgun Gothic",system-ui,sans-serif;color:var(--si2);letter-spacing:.08em;opacity:0;animation:sp-in .6s ease 1.3s forwards}
+.sp__fig{opacity:0;animation:sp-in .6s ease forwards;animation-delay:calc(.3s + var(--n)*.3s)}
+.sp__orb{offset-path:path("M30 176 Q180 -34 330 176");offset-rotate:0deg;animation:sp-orb 2.2s ease-in-out .2s both}
+.sp__bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
+.sp__bar i{display:block;height:100%;background:var(--sa);transform:scaleX(0);transform-origin:left;transition:transform 1.9s cubic-bezier(.3,.6,.3,1)}
+@keyframes sp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sp-orb{from{offset-distance:0%}to{offset-distance:100%}}
+html[data-motion="reduce"] #splash .sp__t span,html[data-motion="reduce"] #splash .sp__s,html[data-motion="reduce"] #splash .sp__fig,html[data-motion="off"] #splash .sp__t span,html[data-motion="off"] #splash .sp__s,html[data-motion="off"] #splash .sp__fig{animation:none;opacity:1}
+html[data-motion="reduce"] #splash .sp__orb,html[data-motion="off"] #splash .sp__orb{animation:none;offset-distance:50%}
+html[data-motion="reduce"] #splash,html[data-motion="off"] #splash{transition:opacity .2s}
+html[data-motion="reduce"] #splash.sp--out,html[data-motion="off"] #splash.sp--out{transform:none}
+@media (prefers-reduced-motion:reduce){#splash .sp__t span,#splash .sp__s,#splash .sp__fig{animation:none;opacity:1}#splash .sp__orb{animation:none;offset-distance:50%}#splash,#splash.sp--out{transition:opacity .2s;transform:none}}
+</style>
+<link rel="stylesheet" href="styles.css">
+<script>/* 깜빡임 방지: 저장된 테마·모션을 CSS보다 먼저 */
+try { const s = JSON.parse(localStorage.getItem('hj.v1.settings') || '{}');
+  if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme;
+  if (s.reduceMotion) document.documentElement.dataset.motion = 'reduce'; } catch {}
+try { if (new URLSearchParams(location.search).get('motion') === 'off') document.documentElement.dataset.motion = 'off'; } catch {}
+</script>
+</head>
+<body>
+<div id="splash" role="img" aria-label="태어나보니 대한민국. 한 번뿐인 인생, 15분.">
+  <svg viewBox="0 0 360 250" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="sp-g" x1="0" x2="1"><stop offset="0" stop-color="var(--sk1)"/><stop offset="1" stop-color="var(--sk2)"/></linearGradient></defs>
+    <rect class="sp__sky" x="0" y="0" width="360" height="222" rx="10"/>
+    <path class="sp__line" d="M30 176 Q180 -34 330 176"/>
+    <g class="sp__soft"><path d="M14 190q4-14 22-18l10-8 10 8q18 4 22 18z"/><path d="M262 222v-52h18v52zM284 222v-70h22v70zM310 222v-44h18v44z"/></g>
+    <g class="sp__win"><rect x="266" y="178" width="4" height="5"/><rect x="288" y="160" width="4" height="5"/><rect x="296" y="176" width="4" height="5"/><rect x="314" y="186" width="4" height="5"/><circle cx="28" cy="205" r="2"/></g>
+    <circle class="sp__soft" cx="40" cy="52" r="1.6"/><circle class="sp__soft" cx="64" cy="36" r="1.2"/><circle class="sp__soft" cx="22" cy="30" r="1.2"/>
+    <g class="sp__orb"><circle class="sp__sun" r="13"/></g>
+    <line class="sp__ground" x1="14" y1="222" x2="346" y2="222"/>
+    <g class="sp__fig sp__ink" style="--n:0"><circle cx="64" cy="207" r="7"/><ellipse cx="64" cy="217" rx="10" ry="6"/></g>
+    <g class="sp__fig sp__ink" style="--n:1"><circle cx="132" cy="186" r="8"/><rect x="123" y="195" width="18" height="17" rx="5"/><rect x="125" y="210" width="5" height="12"/><rect x="134" y="210" width="5" height="12"/></g>
+    <g class="sp__fig sp__ink" style="--n:2"><circle cx="204" cy="156" r="10"/><path d="M190 168h28l3 30h-34z"/><rect x="192" y="196" width="7" height="26"/><rect x="209" y="196" width="7" height="26"/></g>
+    <g class="sp__fig sp__ink" style="--n:3"><circle cx="276" cy="164" r="9"/><path d="M264 175h22l4 24h-30z" transform="rotate(6 276 190)"/><rect x="266" y="197" width="6" height="25"/><rect x="278" y="197" width="6" height="25"/><rect x="293" y="186" width="2.6" height="36"/></g>
+  </svg>
+  <p class="sp__t" aria-hidden="true"><span style="--i:0">태</span><span style="--i:1">어</span><span style="--i:2">나</span><span style="--i:3">보</span><span style="--i:4">니</span><span style="--i:5">&nbsp;</span><span style="--i:6">대</span><span style="--i:7">한</span><span style="--i:8">민</span><span style="--i:9">국</span></p>
+  <p class="sp__s" aria-hidden="true">한 번뿐인 인생 · 15분</p>
+  <div class="sp__bar" aria-hidden="true"><i></i></div>
+</div>
+<script>
+(function () {
+  var d = document, root = d.documentElement, el = d.getElementById('splash'); if (!el) return;
+  var skip = false;
+  try { if (navigator.webdriver && !/[?&]splash=1/.test(location.search)) skip = true; if (sessionStorage.getItem('hj.splash')) skip = true; sessionStorage.setItem('hj.splash', '1'); } catch (e) {}
+  if (skip) { el.remove(); return; }
+  var reduce = !!(root.dataset.motion) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches), resume = false;
+  try { resume = !!localStorage.getItem('hj.v1.current'); } catch (e) {}
+  var min = resume ? 700 : reduce ? 800 : 1900, t0 = Date.now(), done = false, bar = el.querySelector('.sp__bar i');
+  function A() { return d.getElementById('app'); }
+  d.addEventListener('DOMContentLoaded', function () { try { if (!done) A().inert = true; } catch (e) {} });
+  bar.style.transitionDuration = min + 'ms';
+  requestAnimationFrame(function () { bar.style.transform = 'scaleX(.9)'; });
+  function finish() {
+    if (done) return; done = true;
+    bar.style.transitionDuration = '150ms'; bar.style.transform = 'scaleX(1)';
+    el.classList.add('sp--out'); try { A().inert = false; } catch (e) {}
+    d.body.classList.add('splash-out');
+    setTimeout(function () { el.remove(); d.body.classList.remove('splash-out'); var h = d.querySelector('#app h1'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }, reduce ? 220 : 520);
+  }
+  window.__splashReady = function () { var w = min - (Date.now() - t0); setTimeout(finish, Math.max(0, w)); };
+  el.addEventListener('click', finish);
+  setTimeout(finish, 8000);
+})();
+</script>
+  <div class="app" id="app"><section class="screen" data-screen="boot"><div class="screen__body"><p class="cap">불러오는 중입니다.</p></div></section></div>
+  <div id="layer"></div>
+  <p class="sr-only" id="live" role="status" aria-live="polite"></p>
+  <noscript><p class="cap">이 게임은 자바스크립트가 켜져 있어야 동작합니다.</p></noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

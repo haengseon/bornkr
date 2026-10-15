@@ -1,0 +1,19 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { groupByYear, visibleNews, newsInner } from '../../src/ui/news.js';
+
+test('news2: 연도별 묶음은 최신 연도가 위, 같은 해 안에서도 최신이 위', () => {
+  const g = groupByYear([{ year: 1990, headline: 'a' }, { year: 2001, headline: 'b' }, { year: 1990, headline: 'c' }]);
+  assert.deepEqual(g.map(x => x.year), [2001, 1990]);
+  assert.deepEqual(g[1].items.map(n => n.headline), ['c', 'a']);
+  assert.equal(g[0].mast, '누리 포털 뉴스');
+});
+test('news2: 토스트는 최대 3개, 오래된 것부터', () => {
+  assert.deepEqual(visibleNews([1, 2, 3, 4, 5]), [3, 4, 5]);
+  assert.deepEqual(visibleNews([1]), [1]);
+});
+test('news2: 지면은 1종(.paper), 시대별 클래스 없음·HTML 이스케이프', () => {
+  const h = newsInner({ year: 1998, headline: '<b>x</b>', summary: 's', impact: 'i', axes: ['job'] });
+  assert.match(h, /class="paper"/); assert.ok(!/npop--/.test(h)); assert.ok(!h.includes('<b>x'));
+  assert.match(h, /삶에 준 영향/);
+});

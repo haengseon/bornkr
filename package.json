@@ -1,0 +1,19 @@
+{
+  "name": "helljosun",
+  "version": "0.1.0",
+  "private": true,
+  "description": "태어나보니 대한민국: 한 번뿐인 인생 — 15분 완주형 한국 생애 시뮬레이션",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.mjs\"",
+    "build": "node tools/build-artifact.mjs",
+    "build:artifact": "node tools/build-artifact-files.mjs",
+    "build:site": "node tools/build-site.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "playwright-core": "^1.64.0"
+  }
+}

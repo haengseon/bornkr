@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.playwright-mcp/
+.DS_Store
+# 공개 저장소에는 소스코드와 README만 올린다(문서·리서치·QA 기록·스크린샷 등은 로컬에만 둔다)
+docs/
+tests/qa/out/
