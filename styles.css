@@ -1595,3 +1595,22 @@ a[href], .url, .mono-wrap { overflow-wrap: anywhere; }
 .verdict__sign { overflow-x: clip; }
 .verdict__sign .mono, .verdict__sign p { white-space: normal; }
 .newsrow__t { text-wrap: balance; }
+/* 900~1199px 3단: 사이드·보조 패널을 좁혀 가운데 피드 폭 확보(뉴스 줄 제목이 3~4글자씩 끊기지 않게) */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .life { grid-template-columns: 250px minmax(0, 1fr) 230px; }
+  .life__feed { padding-inline: var(--sp-3); }
+  .life__aux { padding-inline: var(--sp-2); }
+}
+@media (min-width: 900px) and (max-width: 1199px) { .life { grid-template-columns: 290px minmax(0, 1fr) 220px; } }
+.arow { flex-wrap: wrap; } .arow dt, .arow dd { min-width: 0; }
+.hud__name { white-space: normal; text-overflow: clip; }
+.pcard .prof__cell dd small { text-wrap: balance; }
+
+/* 가족 목록 · 280px 보정 */
+.pcard__family { margin: 4px 0 0; padding: 4px 0 0; list-style: none; border-top: 1px dashed var(--rule-2); font-size: 11px; line-height: 1.5; color: var(--ink-2); }
+.pcard__family[hidden] { display: none; }
+.famlist { margin: 0; padding-left: 1.1em; list-style: disc; font-size: var(--fs-cap); line-height: 1.7; }
+.entry__fam { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid var(--rule); border-radius: var(--r-pill); font-size: 12px; color: var(--ink-2); white-space: nowrap; cursor: default; }
+.doc, .doc__head, .form__row, .form__label, .form__value { min-width: 0; overflow-wrap: anywhere; }
+.doc__head { flex-wrap: wrap; }
+@media (max-width: 299px) { .newsrow__ico { display: none; } .newsrow { padding-inline: 8px; } .doc__title { letter-spacing: 0; } .doc { padding-inline: 8px; } }

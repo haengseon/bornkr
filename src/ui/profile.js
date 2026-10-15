@@ -2,6 +2,7 @@
 // 금액은 모두 만원, 2025년 물가 기준(엔진 단위). 순위·백분위·평가어는 만들지 않는다(ARCHITECTURE §15).
 import { REGIONS } from '../engine/constants.js';
 import { placeLine, vibeOf } from '../engine/sigungu.js';
+import { schoolLabel } from '../engine/index.js';
 
 const REGION = Object.fromEntries(REGIONS.map(r => [r.key, r]));
 export const TENURE_LABEL = { own: '자가', jeonse: '전세', monthly: '월세', public: '공공임대', family: '가족 집', dorm: '기숙사', facility: '시설' };
@@ -77,6 +78,15 @@ export function dwellingOf(L) {
 }
 
 // '경기 김포시 양촌읍 · 외곽(차량 필요)'
+// 가족 목록(엔진 family.spouses·gp): 이름·관계·시작/종료 연도. 현재 배우자는 '배우자', 사별·이혼은 이전 배우자.
+const END = { widowed: '사별', divorced: '이혼' };
+export function familyLines(L) {
+  const f = L?.family || {}, out = [];
+  (f.spouses || []).forEach(s => out.push({ rel: s.end ? '이전 배우자' : (f.spouses.length > 1 ? '새 배우자' : '배우자'), name: s.name || '', from: s.since, to: s.until, end: END[s.end] || '' }));
+  (f.gp || []).forEach(g => out.push({ rel: g.label, name: '', from: null, to: g.alive ? null : g.deathYear, end: g.alive ? '' : '별세' }));
+  return out;
+}
+export const familyText = x => `${x.rel}${x.name ? ' ' + x.name : ''}${x.from || x.to ? ` (${x.from ? x.from + '년~' : '~'}${x.to ? x.to + '년' : ''}${x.end ? ' ' + x.end : ''})` : x.end ? ` (${x.end})` : ''}`;
 export const homeLabel = L => { const h = L.home || {}, b = L.birth || {}; return h.sigungu ? placeLine(h.region, h.sigungu, h.dong, h.transit) : REGION[h.region ?? b.region]?.label ?? ''; };
 
 // 직업 표시: 일하는 중 = 현재 직업명, 쉬는 중 = '이전 직업: … · 무직/구직 중', 이력이 없으면 구직 중 등 고용 상태.
@@ -105,7 +115,7 @@ export function profileOf(L) {
     },
     work: {
       status: j.status ?? 'none', emp, jobLine: jobLineOf(L), jobTitle: working || j.status === 'seeking' || j.status === 'retired' ? (j.title || '') : '',
-      school: j.status === 'student' || L.age < 19 ? (SCHOOL_LABEL[L.edu?.stage] ?? '') : '',
+      school: j.status === 'student' || L.age < 19 ? (schoolLabel(L, L.edu?.stage) || SCHOOL_LABEL[L.edu?.stage] || '') : '',
       major: MAJOR_LABEL[j.major] ?? '', firmSize: working ? j.firmSize : null,
     },
     pay: working ? { annual: Math.round(j.wage || 0), label: biz ? '연 순익' : '연봉', est: !!biz } : null,

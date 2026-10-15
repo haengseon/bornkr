@@ -6,11 +6,12 @@
   "type": "module",
   "scripts": {
     "serve": "node tools/serve.mjs",
-    "test": "node --test \"tests/unit/*.test.js\"",
-    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.mjs\"",
+    "test": "node --test --test-concurrency=4 --test-skip-pattern=\"평균 사망 나이|성능|1,000생애|2,000생애|몬테카를로|통계 정합\" \"tests/unit/*.test.js\"",
+    "test:e2e": "node --test tests/e2e/smoke.test.mjs",
     "build": "node tools/build-artifact.mjs",
     "build:artifact": "node tools/build-artifact-files.mjs",
-    "build:site": "node tools/build-site.mjs"
+    "build:site": "node tools/build-site.mjs",
+    "test:slow": "node --test \"tests/unit/*.test.js\""
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

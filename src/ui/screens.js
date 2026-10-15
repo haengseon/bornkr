@@ -13,7 +13,7 @@ import { adSlotHtml, mountAd } from './ads.js';
 import { startNew } from './play.js';
 import { sceneHtml, mountScene, silhouetteSvg } from './scene.js';
 import { radarSvg, morphRadar, iconSvg } from './gauges.js';
-import { TENURE_LABEL } from './profile.js';
+import { TENURE_LABEL, familyLines, familyText } from './profile.js';
 import { ERAS, decadeBirthsAvg, pickYear, manText } from './era.js';
 
 const PRIV = '<a class="privlink" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>';
@@ -269,6 +269,7 @@ function summaryHtml(L, sum, archive) {
       <div class="sum-radar">${radarSvg('issue', {}, { size: 280, aria: '관심사·고민 10축 지도' })}</div>
       ${issues.map(i => `<div class="metric"><div class="metric__sum"><span class="metric__label">${esc(i.label)}</span><span class="metric__value">${i.value}</span>${meter(i.value)}<span class="metric__reason">${esc(i.lines?.[0] ?? '')}</span></div></div>`).join('')}
     </section>
+    ${familyLines(L).length ? `<section class="section" aria-labelledby="sum-fam"><div class="section__head"><h2 class="section__title" id="sum-fam">가족</h2><span class="section__note">이름·관계·시작/종료 연도</span></div><ul class="famlist">${familyLines(L).map(x => `<li>${esc(familyText(x))}</li>`).join('')}</ul></section>` : ''}
     <section class="section" aria-labelledby="sum-tl">
       <div class="section__head"><h2 class="section__title" id="sum-tl">생애 연표</h2><span class="section__note">1칸 = 1년</span></div>
       ${lifegrid(d.age, events)}

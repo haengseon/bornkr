@@ -6,7 +6,7 @@ import { S, $, $$, esc, show, go, announce, toast, sleep, reduced, setSetting, s
 import { saveCurrent, clearCurrent, addRecord } from './store.js';
 import { fxChips, sexLabel, regionShort, nativeAge, stageState, statLevel, josa, kindBadge } from './labels.js';
 import { openStats, gaugesHtml } from './sheets.js';
-import { profileOf } from './profile.js';
+import { profileOf, familyLines, familyText } from './profile.js';
 import { fmtWon, fmtIncome, fmtRent, nominal, money, tenureText, areaText, AREA_GUESS, deltaText } from './format.js';
 import { ringSvg, setRing, countTo, radarSvg, morphRadar, iconSvg, optionIcon } from './gauges.js';
 import { sceneHtml, mountScene, silhouetteSvg, topicSceneHtml, TOPIC_TITLE } from './scene.js';
@@ -173,7 +173,8 @@ function entryHtml(e, req) {
     cls.push('entry--death');
     body = `<p class="entry__text">${esc(e.text)}</p>`;
   } else {
-    body = `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>` + esc(e.text) + chips(e.effects) + srcLine(e.src);
+    const who = e.spouse ? `${/remarry/.test(e.id) ? '새 배우자 ' : /wedding|marry/.test(e.id) ? '배우자 ' : ''}${e.spouse.name ?? ''}(${e.spouse.since ?? e.year}년${e.spouse.end ? `~${e.year}년 ${e.spouse.end === 'widowed' ? '사별' : '이혼'}` : '~'})` : e.grandparent ? e.grandparent.label : '';
+    body = `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>` + esc(e.text) + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + chips(e.effects) + srcLine(e.src);
   }
   if (e.sensitive) cls.push('entry--sensitive');
   return `<li class="${cls.join(' ')}"${e.kind === 'compare' ? ' data-cmp' : ''}>${body}</li>`;
@@ -666,7 +667,7 @@ const ESTB = '';   // '추정' 딱지는 화면에서 제거(값·레이아웃 �
 const cell = (f, label, wide = '') => `<div class="prof__cell${wide}" data-f="${f}"><dt>${label}</dt><dd></dd></div>`;
 function cardsHtml() {
   return `<section class="pcards" aria-label="내 현재 상태">
-  <article class="pcard pcard--home" data-card="home"><h2 class="pcard__t">거주</h2><dl class="pcard__grid">${cell('home', '지역')}${cell('dwell', '주거')}</dl></article>
+  <article class="pcard pcard--home" data-card="home"><h2 class="pcard__t">거주</h2><dl class="pcard__grid">${cell('home', '지역')}${cell('dwell', '주거')}</dl><ul class="pcard__family" data-family aria-label="가족"></ul></article>
   <article class="pcard pcard--job" data-card="job"><h2 class="pcard__t">직업</h2><dl class="pcard__grid">${cell('job', '직업')}${cell('emp', '고용 형태')}${cell('pay', '연봉')}${cell('years', '연차')}${cell('rank', '직급')}${cell('bizkind', '업종')}${cell('bizyears', '업력')}${cell('sales', '월 매출')}${cell('profit', '월 순익')}</dl></article>
   <article class="pcard pcard--asset" data-card="asset"><h2 class="pcard__t">자산</h2><dl class="pcard__grid">${cell('net', '순자산')}</dl><div class="pcard__wealth" data-wealth></div></article>
   </section>
@@ -720,6 +721,7 @@ function updateProfile(L, animate = true) {
   num('bizyears', '업력', biz?.years ?? 0, n => `${Math.round(n)}년`, ESTB, !!biz);
   num('sales', '월 매출', biz?.monthlySales ?? 0, mw, ESTB, !!biz, tdy);
   num('profit', '월 순익', biz?.monthlyProfit ?? 0, mw, ESTB, !!biz, tdy);
+  { const fl = $('[data-family]', root); if (fl) { const ls = familyLines(L); fl.innerHTML = ls.map(x => `<li>${esc(familyText(x))}</li>`).join(''); fl.hidden = !ls.length; } }
   num('net', '순자산', p.wealth?.net ?? (p.money.assets - p.money.debt), mw, ESTB, true, tdy);
   $('[data-wealth]', root).innerHTML = assetRows(p.wealth, Y, mw);
   { // 나이대가 바뀌면 축이 달라진다: 축 목록이 다르면 그래프를 새로 그린다
