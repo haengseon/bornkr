@@ -23,5 +23,5 @@ npm run build:site   # dist/site (S3·CloudFront 등 정적 호스팅용)
 
 ## 배포(GitHub Actions → S3 → CloudFront)
 
-`main`에 푸시하면 `.github/workflows/deploy.yml`이 `npm run build:site`로 만든 `dist/site`를 S3에 올리고 CloudFront 캐시를 갱신합니다.
-인증은 OIDC 역할 가정(AWS 키를 저장소에 두지 않음)이며, 저장소 변수 `AWS_ROLE_ARN`, `AWS_REGION`, `S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`를 설정해야 동작합니다(설정 전에는 배포 단계를 건너뜁니다).
+`main`에 푸시하면 `.github/workflows/deploy.yml`이 `npm run build:site`로 만든 `dist/site`를 S3(`bornkr-static-resource`)에 올리고 CloudFront 캐시를 갱신합니다.
+저장소 Secrets에 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`가 있어야 배포되며(없으면 건너뜀), 선택 변수로 `S3_BUCKET`, `AWS_REGION`(기본 ap-northeast-2), `CLOUDFRONT_DISTRIBUTION_ID`를 설정할 수 있습니다.

@@ -1,21 +1,20 @@
 # main 브랜치에 푸시되면 빌드해서 S3에 올리고 CloudFront 캐시를 갱신한다.
-# 인증은 OIDC(임시 자격증명)라 저장소에 AWS 키를 두지 않는다.
-# 필요한 저장소 변수(Settings > Secrets and variables > Actions > Variables):
-#   AWS_ROLE_ARN(필수), AWS_REGION, CLOUDFRONT_DISTRIBUTION_ID, S3_BUCKET(생략 시 bornkr-static-resource)
-name: deploy
+# 인증: 저장소 Secrets 의 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (키가 없으면 배포 단계는 건너뛴다).
+# 선택 변수(Variables): S3_BUCKET(기본 bornkr-static-resource), AWS_REGION(기본 ap-northeast-2), CLOUDFRONT_DISTRIBUTION_ID
+name: S3 deploy
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  id-token: write   # OIDC 토큰 발급
-  contents: read
-
 concurrency:
   group: deploy
   cancel-in-progress: false
+
+env:
+  BUCKET: ${{ vars.S3_BUCKET || 'bornkr-static-resource' }}
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
 
 jobs:
   test:
@@ -28,31 +27,53 @@ jobs:
       - run: npm ci
       - run: npm test
 
-  deploy:
+  upload:
     runs-on: ubuntu-latest
-    if: ${{ vars.AWS_ROLE_ARN != '' }}   # 역할 ARN 변수가 설정되기 전에는 건너뜀
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm run build:site
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build:site
+
+      - name: AWS 키 설정 여부 확인
+        id: keys
+        env:
+          KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ -n "$KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::warning::AWS_ACCESS_KEY_ID Secret이 없어 배포를 건너뜁니다."; fi
+
+      - name: Configure AWS credentials
+        if: steps.keys.outputs.ok == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        if: steps.keys.outputs.ok == 'true'
+        run: aws sts get-caller-identity
 
       - name: 해시 붙은 JS·CSS 업로드(1년 캐시)
+        if: steps.keys.outputs.ok == 'true'
         run: |
-          aws s3 sync dist/site s3://${{ vars.S3_BUCKET || 'bornkr-static-resource' }} \
+          aws s3 sync dist/site s3://$BUCKET \
             --exclude "index.html" --exclude "ads.txt" --exclude "privacy.html" \
             --exclude "manifest.webmanifest" --exclude "icon*" --exclude "apple-touch-icon.png" --exclude "favicon*" \
             --cache-control "public,max-age=31536000,immutable"
 
       - name: 고정 이름 파일 업로드(올바른 콘텐츠 타입·짧은 캐시)
+        if: steps.keys.outputs.ok == 'true'
         run: |
-          B=s3://${{ vars.S3_BUCKET || 'bornkr-static-resource' }}
+          B=s3://$BUCKET
           aws s3 cp dist/site/index.html $B/index.html --cache-control "no-cache" --content-type "text/html; charset=utf-8"
           aws s3 cp dist/site/privacy.html $B/privacy.html --cache-control "public,max-age=3600" --content-type "text/html; charset=utf-8"
           aws s3 cp dist/site/ads.txt $B/ads.txt --cache-control "public,max-age=3600" --content-type "text/plain; charset=utf-8"
@@ -61,9 +82,6 @@ jobs:
           for f in dist/site/icon*.png dist/site/apple-touch-icon.png dist/site/favicon*; do [ -f "$f" ] && aws s3 cp "$f" $B/$(basename "$f") --cache-control "public,max-age=86400"; done
           true
 
-      - name: 오래된 해시 파일 정리(선택, 최근 업로드 제외)
-        run: echo "필요하면 aws s3 sync dist/site s3://${{ vars.S3_BUCKET || 'bornkr-static-resource' }} --delete 로 정리"
-
       - name: CloudFront 캐시 갱신
-        if: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        if: steps.keys.outputs.ok == 'true' && vars.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/index.html" "/privacy.html" "/ads.txt" "/manifest.webmanifest"
