@@ -19,18 +19,29 @@ export const mediumOf = (year, hint) => MEDIA[hint] ?? (year < 1990 ? MEDIA.pape
 const issueLabel = k => ISSUE_SHORT[k] ?? ISSUES.find(i => i.key === k)?.label ?? k;
 const splitNews = t => { const m = String(t).match(/^(.+?[.?!])\s+(.+)$/); return m ? [m[1], m[2]] : [String(t), '']; };
 
+// 엔진 news 로그 → 신문 지면 데이터(피드 줄·팝업 공용)
+export function newsOfEntry(e, year) {
+  const [headline, summary] = splitNews(e.text);
+  const chips = fxChips(e.effects);
+  return { year: e.year ?? year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era', effects: e.effects, scenario: !!e.scenario };
+}
+// 피드의 '올해의 뉴스' 줄: 신문 아이콘 + 헤드라인 한 줄 + 개인 영향 칩(사건 단위 effects 만). 누르면 신문 지면 팝업.
+const NEWS_ICO = '<svg class="newsrow__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 8h6M7 12h10M7 16h10"/></svg>';
+export function newsRowHtml(n, i) {
+  const chips = fxChips(n.effects);
+  return `<button class="newsrow" type="button" data-fn="${i}" aria-label="올해의 뉴스 열기: ${esc(n.headline)}">${NEWS_ICO}<span class="newsrow__body"><span class="newsrow__k">올해의 뉴스${n.scenario ? ' · 가상 시나리오' : ''}</span><span class="newsrow__t">${esc(n.headline)}</span><span class="newsrow__fx">${chips.length ? chips.map(c => `<span class="fx">${esc(c)}</span>`).join('') : '<span class="fx fx--none">개인 영향 없음</span>'}</span></span></button>`;
+}
+
 // entries: advanceYear 가 돌려준 로그, archive: NEWS_ARCHIVE|null, seen: Set(이미 보인 해). 1년 최대 1건.
 export function pickNews(L, entries = [], archive = null, seen = new Set()) {
   if (seen.has(L.year)) return null;
   const e = entries.find(x => x.kind === 'news' && !x.sensitive);
   let n = null;
   if (e) {
-    const [headline, summary] = splitNews(e.text);
-    const chips = fxChips(e.effects);
-    n = { year: e.year ?? L.year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era' };
+    n = newsOfEntry(e, L.year);
   } else {
     const a = (archive || []).find(x => x.year === L.year);
-    if (a) n = { year: a.year, headline: a.headline, summary: a.summary || '', impact: a.impact || '', axes: a.axes || [], medium: a.medium, src: a.src, from: 'archive' };
+    if (a) n = { year: a.year, headline: a.headline, summary: a.summary || '', impact: a.impact || '', axes: a.axes || [], medium: a.medium, src: a.src, from: 'archive', scenario: !!(a.scenario || a.future) };
   }
   if (n) seen.add(L.year);
   return n;
@@ -47,7 +58,8 @@ export function newsInner(n) {
     <h3 class="paper__head">${esc(n.headline)}</h3>
     ${n.summary ? `<p class="paper__body">${esc(n.summary)}</p>` : ''}
     ${n.impact ? `<p class="paper__impact"><b>삶에 준 영향</b> ${esc(n.impact)}</p>` : ''}
-    ${tags ? `<p class="paper__tags">${tags}</p>` : ''}</article>`;
+    ${tags ? `<p class="paper__tags">${tags}</p>` : ''}
+    <p class="paper__note">게임 내 가상 신문입니다. 당시 뉴스를 참고해 다시 쓴 글이며 실제 기사가 아닙니다.${n.scenario || n.future ? ' 2027년 이후는 가상 시나리오입니다.' : ''}</p></article>`;
 }
 
 // 연도별 묶음(최신이 위). 순수 함수: Node 테스트 대상.
@@ -60,18 +72,16 @@ export function groupByYear(log = []) {
 export const visibleNews = (unread, max = 3) => unread.slice(-max);
 
 // 과거 신문 목록(시트 '관심사·고민'·신문 모음·데스크톱 우측 패널 공용). bindNewsArchive 로 펼침을 연결한다.
-export function newsArchiveHtml(log) {
-  const g = groupByYear(log);
+export function newsArchiveHtml(log, { max = Infinity } = {}) {
+  const g = groupByYear(log).map(y => ({ ...y, items: y.items.filter(n => n.i >= log.length - max) })).filter(y => y.items.length);
   if (!g.length) return '<p class="empty">아직 받은 뉴스가 없습니다.</p>';
-  return `<div class="narch">${g.map(y => `<section class="narch__year"><h4 class="narch__yh"><span class="mono">${y.year}</span>년 <span class="narch__mast">${esc(y.mast)}</span></h4><ul>${y.items.map(n => `<li><button class="narch__item" type="button" aria-expanded="false" data-ni="${n.i}"><span class="narch__t">${esc(n.headline)}</span></button><div class="narch__paper" hidden>${newsInner(n)}</div></li>`).join('')}</ul></section>`).join('')}</div>`;
+  return `<div class="narch">${g.map(y => `<section class="narch__year"><h4 class="narch__yh"><span class="mono">${y.year}</span>년 <span class="narch__mast">${esc(y.mast)}</span></h4><ul>${y.items.map(n => `<li><button class="narch__item" type="button" data-ni="${n.i}"><span class="narch__t">${esc(n.headline)}</span></button></li>`).join('')}</ul></section>`).join('')}</div>`;
 }
-export function bindNewsArchive(root) {
+export function bindNewsArchive(root, getLog, open) {
   root.addEventListener('click', e => {
     const b = e.target.closest('.narch__item');
-    if (!b) return;
-    const on = b.getAttribute('aria-expanded') !== 'true';
-    b.setAttribute('aria-expanded', on);
-    b.nextElementSibling.hidden = !on;
+    const n = b && getLog()[+b.dataset.ni];
+    if (n) open(n);
   });
 }
 
@@ -82,54 +92,3 @@ export function openPaper(n, onClose) {
     html: `<div class="sheet__head"><h2 class="sheet__title">신문</h2><button class="sheet__close" type="button">닫기</button></div><div class="sheet__body">${newsInner(n)}</div>`,
   });
 }
-
-// 뉴스 토스트: 하단 바 위에 한 줄씩 쌓인다(최대 3개, 자동 소멸 없음). FOLD_MS 뒤 '뉴스 N' 배지로 접히고 누르면 펼친다.
-// 시계는 멈추지 않는다. 시트·모달이 열리면 CSS 로 가려진다(body.is-locked).
-const FOLD_MS = 9000;
-let box = null, unread = [], foldT = 0, folded = false, openCb = () => {};
-const tIcon = '<svg class="ntoast__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 8h6M7 12h10M7 16h10"/></svg>';
-const X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-function paintToasts(fresh) {
-  if (!box) return;
-  const vis = folded ? [] : visibleNews(unread);
-  box.innerHTML = (vis.length ? `<div class="ntoasts__bar"><button class="ntoasts__clear" type="button" data-nclear="1">모두 지우기</button><button class="ntoasts__x" type="button" data-nfold="1" aria-label="뉴스 닫기">${X}</button></div>` : '')
-    + vis.map(n => `<div class="ntoast-row"><button class="ntoast${n === fresh ? ' is-new' : ''}" type="button" data-nt="${unread.indexOf(n)}" aria-label="새 뉴스 열기: ${esc(n.headline)}">${tIcon}<span class="ntoast__src">${esc(mediumOf(n.year, n.medium).name)} ${n.year}</span><span class="ntoast__t">${esc(n.headline)}</span></button><button class="ntoast__x" type="button" data-nx="${unread.indexOf(n)}" aria-label="이 뉴스 치우기">${X}</button></div>`).join('')
-    + (folded && unread.length ? `<div class="ntoasts__badgerow"><button class="ntoasts__badge" type="button" data-nbadge="1">${tIcon}뉴스 ${unread.length}</button><button class="ntoast__x" type="button" data-nclear="1" aria-label="뉴스 모두 지우기">${X}</button></div>` : '');
-  box.hidden = !box.innerHTML;
-}
-const armFold = () => { clearTimeout(foldT); foldT = setTimeout(() => { folded = true; paintToasts(); }, FOLD_MS); };
-const dismiss = i => { unread.splice(i, 1); paintToasts(); };
-let escBound = false;
-export function pushNewsToast(n, onOpen) {
-  openCb = onOpen;
-  if (!escBound) {   // PC: Esc 로 펼친 스택 접기(시트가 열려 있으면 시트 우선)
-    escBound = true;
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && box && !folded && unread.length && !document.querySelector('.sheet')) { folded = true; clearTimeout(foldT); paintToasts(); } });
-  }
-  if (!box || !box.isConnected) {
-    box = document.createElement('div');
-    box.className = 'ntoasts'; box.setAttribute('role', 'log'); box.setAttribute('aria-label', '새 뉴스');
-    let sx = null, dx = 0, row = null, moved = false;   // 옆으로 밀어 치우기
-    box.addEventListener('pointerdown', e => { const t = e.target.closest('.ntoast'); if (!t) return; row = t.parentElement; sx = e.clientX; dx = 0; moved = false; });
-    box.addEventListener('pointermove', e => { if (sx == null) return; dx = e.clientX - sx; if (Math.abs(dx) > 8) { moved = true; row.style.transition = 'none'; row.style.transform = `translateX(${dx}px)`; row.style.opacity = String(1 - Math.min(1, Math.abs(dx) / 220)); } });
-    const end = () => { if (sx == null) return; const r = row, d = dx; sx = null; if (!moved) return; if (Math.abs(d) > 80) dismiss(+r.querySelector('[data-nx]').dataset.nx); else { r.style.transition = 'transform .15s, opacity .15s'; r.style.transform = ''; r.style.opacity = ''; } };
-    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
-    box.addEventListener('click', e => {
-      if (moved) { moved = false; return; }
-      const g = k => e.target.closest(`[${k}]`);
-      if (g('data-nclear')) { unread = []; clearTimeout(foldT); paintToasts(); return; }
-      if (g('data-nfold')) { folded = true; clearTimeout(foldT); paintToasts(); return; }
-      if (g('data-nbadge')) { folded = false; paintToasts(); armFold(); return; }
-      const x = g('data-nx'); if (x) return dismiss(+x.dataset.nx);
-      const t = g('data-nt');
-      if (!t) return;
-      const [item] = unread.splice(+t.dataset.nt, 1);
-      paintToasts();
-      if (item) openCb(item);
-    });
-    $('#layer').append(box);
-  }
-  unread.push(n); folded = false;
-  paintToasts(n); armFold();
-}
-export function closeNewsToasts() { clearTimeout(foldT); unread = []; folded = false; box?.remove(); box = null; }

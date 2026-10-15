@@ -73,8 +73,9 @@ export const setRing = (btn, v) => btn.querySelector('.ring6__lv')?.style.setPro
 // ───────── 레이더 ─────────
 const SHORT = Object.fromEntries([...ISSUES.map(i => [i.key, ISSUE_SHORT[i.key] ?? i.label]), ...TRAITS.map(t => [t.key, t.label.replace('정서 ', '')])]);
 // kind: 'issue'(10축) | 'trait'(5축, 50 기준 점선)
-export function radarSvg(kind, values, { size = 190, aria = '' } = {}) {
-  const keys = (kind === 'trait' ? TRAITS : ISSUES).map(x => x.key);
+export function radarSvg(kind, values, { size = 190, aria = '', axes = null } = {}) {
+  const keys = (axes ?? (kind === 'trait' ? TRAITS : ISSUES)).map(x => x.key);
+  const short = k => { const l = axes?.find(x => x.key === k)?.label; return l ? (l.length > 6 ? l.slice(0, 5) + '…' : l) : SHORT[k]; };
   const vals = keys.map(k => values?.[k] ?? 0);
   const cx = size / 2, cy = size / 2, r = size / 2 - (kind === 'trait' ? 40 : 30);
   const ring = f => pts(radarPoints(keys.map(() => 100 * f), cx, cy, r));
@@ -83,7 +84,7 @@ export function radarSvg(kind, values, { size = 190, aria = '' } = {}) {
 <polygon class="radar__grid" points="${ring(1)}"/><polygon class="radar__grid${kind === 'trait' ? ' radar__grid--mid' : ''}" points="${ring(.5)}"/>
 ${radarPoints(keys.map(() => 100), cx, cy, r).map(p => `<line class="radar__axis" x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}"/>`).join('')}
 <polygon class="radar__shape" points="${pts(radarPoints(vals, cx, cy, r))}"/>
-${lab.map((p, i) => `<text class="radar__lab" x="${p[0]}" y="${p[1]}" text-anchor="${p[0] < cx - 4 ? 'end' : p[0] > cx + 4 ? 'start' : 'middle'}" dominant-baseline="middle">${SHORT[keys[i]]}</text>`).join('')}</svg>`;
+${lab.map((p, i) => `<text class="radar__lab" x="${p[0]}" y="${p[1]}" text-anchor="${p[0] < cx - 4 ? 'end' : p[0] > cx + 4 ? 'start' : 'middle'}" dominant-baseline="middle">${short(keys[i])}</text>`).join('')}</svg>`;
 }
 
 // ───────── 애니메이션 ─────────

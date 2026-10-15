@@ -1,6 +1,7 @@
 // localStorage 저장(ARCHITECTURE §14, §19). 모든 접근 try/catch — 실패해도 게임은 메모리 값으로 동작.
 const K = { records: 'hj.v1.records', settings: 'hj.v1.settings', current: 'hj.v1.current' };
 export const MAX_RECORDS = 30;
+import { SPEEDS } from '../engine/constants.js';
 export const DEFAULTS = { speed: 1, auto: false, theme: 'system', seen19: false, reduceMotion: false, hideSensitiveCause: false };
 
 function get(key, fallback) {
@@ -12,7 +13,7 @@ function put(key, v) {
 
 export const loadSettings = () => {
   const s = { ...DEFAULTS, ...get(K.settings, {}) };
-  if (![1, 2, 4].includes(s.speed)) s.speed = 4;   // 예전 10배속 저장값 등 허용 범위 밖은 최대 배속으로
+  if (!SPEEDS.includes(s.speed)) s.speed = SPEEDS.at(-1);   // 예전 저장값 등 허용 범위 밖은 최대 배속으로
   return s;
 };
 export const saveSettings = s => put(K.settings, s);

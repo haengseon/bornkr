@@ -44,9 +44,9 @@ export default {
   'sys.fam.parent_death': ['{parentLabel|이} 돌아가셨다. {pAge}세.', '{parentLabel|이} 세상을 떠나셨다. 향년 {pAge}세였다.', '{parentLabel|이} 돌아가셨다. 장례 사흘이 흐릿하게 지나갔다.'],
   'sys.fam.parent_care': {
     prompt: ['{parentLabel|을} 누가 돌볼지 정해야 했다.', '{parentLabel}의 돌봄을 어떻게 할지 이야기해야 했다.'],
-    options: { home: '내가 모신다', facility: '요양시설', share: '형제와 나눈다' },
+    options: { home: '{parentLabel|을} 모신다', facility: '{parentLabel} 요양시설', share: '형제와 나눈다' },
   },
-  'sys.fam.care_end': ['{who} 돌봄이 끝났다.', '{who} 돌봄이 끝났다. 하루가 갑자기 비었다.', '{who} 돌봄을 마쳤다. 알람을 처음으로 껐다.'],
+  'sys.fam.care_end': ['{who}{because} 돌봄이 종료됐다.', '{who}{because} 돌봄이 끝났다.'],
   'sys.fam.widowed': ['배우자가 세상을 떠났다.', '배우자가 세상을 떠났다. 집에 말소리가 줄었다.', '배우자와 마지막 인사를 나눴다. 짧은 인사였다.'],
   'sys.fam.child_school': ['{childLabel|이} {schoolLabel}에 들어갔다.', '{childLabel|이} {schoolLabel} 교문을 처음 지났다.', '{childLabel}의 {schoolLabel} 입학식에 다녀왔다.'],
   'sys.fam.child_leave': ['{childLabel|이} 집을 나갔다.', '{childLabel|이} 짐을 싸서 독립했다. 방이 하나 비었다.', '{childLabel|이} 집을 나가 따로 살기 시작했다.'],
@@ -56,8 +56,8 @@ export default {
 
   // ── 선택 결과 한 줄(선택 지점 3곳 × 옵션) ──
   'sys.fam.parent_care.home': ['{parentLabel|을} 직접 모시기로 했다.', '방 하나를 {parentLabel}의 방으로 바꾸기로 했다.'],
-  'sys.fam.parent_care.facility': ['요양시설을 알아봤다.', '요양시설 몇 곳을 둘러보고 대기를 걸어 두었다.'],
-  'sys.fam.parent_care.share': ['형제들과 돌봄을 나누기로 했다.', '형제들과 요일을 나눠 돌봄 달력을 짰다.'],
+  'sys.fam.parent_care.facility': ['{parentLabel} 요양시설을 알아봤다.', '{parentLabel} 요양시설 몇 곳을 둘러보고 대기를 걸어 두었다.'],
+  'sys.fam.parent_care.share': ['형제들과 {parentLabel} 돌봄을 나누기로 했다.', '형제들과 요일을 나눠 {parentLabel} 돌봄 달력을 짰다.'],
   'sys.age.grandcare.yes': ['손주를 맡아 주기로 했다.', '손주 하원 시간에 맞춰 하루를 짜기로 했다.'],
   'sys.age.grandcare.some': ['일주일에 며칠만 봐 주기로 했다.', '주 2~3일, 손주를 돌보기로 했다.'],
   'sys.age.grandcare.no': ['어렵다고 말했다.', '몸이 예전 같지 않다고 솔직히 말했다.'],

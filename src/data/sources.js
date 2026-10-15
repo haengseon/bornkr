@@ -168,3 +168,9 @@ export const SOURCES = {
 SOURCES['R10.S1'] = { org: '통계청(현 국가데이터처)', title: '인구주택총조사 1966~1990 시도별 인구밀도(국가기록원 인구정책 통계 인용)·1960~90 전국·서울 인구', year: 2025, url: 'https://theme.archives.go.kr/next/populationPolicy/statisticsPopup_04.do', kind: 'official' };
 SOURCES['R10.S2'] = { org: '서울신문(통계청 1990 인구주택총조사 보도)', title: '시부 인구 비중 65.4%(1985)→74.4%(1990), 수도권 39.1%→42.7%', year: 1991, url: 'https://www.seoul.co.kr/news/1991/04/13/19910413001002', kind: 'secondary' };
 SOURCES['R10.S3'] = { org: '게임 추정', title: '시군구 상대 가중(2020 인구센서스 시군구 인구 미확인 — 유형·개발연혁 보정)', year: 2026, url: 'https://kosis.kr', kind: 'game' };
+
+// ── R11 생애 단계별 고민(concerns) ──
+SOURCES['R11.S1'] = { org: '과학기술정보통신부·한국지능정보사회진흥원', title: '2023 스마트폰 과의존 실태조사 — 10~19세 위험군 40.1%(2011 11.4%) (R03 §9.2 인용)', year: 2023, url: 'https://www.nia.or.kr', kind: 'official' };
+SOURCES['R11.S2'] = { org: '국가데이터처', title: '2024 생활시간조사 — 10~19세 학습·개인유지 시간(R03 §9.2 인용)', year: 2025, url: 'https://kosis.kr', kind: 'official' };
+SOURCES['R11.S3'] = { org: '법제처(일반지식, 재확인 권장)', title: '영유아보육법 — 어린이집 CCTV 설치 의무화(2015)·어린이 보호구역(1995 도입)', year: 2026, url: 'https://www.law.go.kr', kind: 'secondary' };
+SOURCES['R11.S4'] = { org: '법제처(일반지식, 재확인 권장)', title: '연명의료결정법(2016 제정, 2018-02 시행)', year: 2026, url: 'https://www.law.go.kr', kind: 'secondary' };

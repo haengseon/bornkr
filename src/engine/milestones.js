@@ -146,7 +146,7 @@ export const choices = {
     else if (opt === 'close' && L.job.status === 'self') ctx.act.closeBusiness();
     else if (opt === 'cut') { ctx.act.repay(L.money.assets * 0.5); nudge(L, 'wealth', 0.4); ctx.apply({ stats: { leisure: -3 } }, { reason: '허리띠를 졸랐다' }); }
     else if (opt === 'learn') { ctx.act.spend(300 * yr(T('ERA_INCOME_INDEX'), y)); nudge(L, 'intellect', 0.4); fl.learnUntil = y + 3; }
-    else if (opt === 'buy') { ctx.act.move('own', { reason: '매수', price: Math.round(homePrice(L) * 0.7), silent: true }); ctx.sys('sys.home.bought', { regionLabel: REGION[L.home.region]?.label, loan: Math.round(L.money.loans.mortgage) }); }
+    else if (opt === 'buy') { ctx.act.move('own', { reason: '매수', price: Math.round(homePrice(L) * 0.7), silent: true }); if (L.home.owned) ctx.sys('sys.home.bought', { regionLabel: REGION[L.home.region]?.label, loan: Math.round(L.money.loans.mortgage) }); }
   },
   'sys.chain.biz_crisis'(L, ctx, opt) {
     if (opt === 'push') { ctx.act.borrow(2000 * yr(T('ERA_INCOME_INDEX'), L.year), 'business', { silent: true }); L.flags.bizPush = L.year + 3; }

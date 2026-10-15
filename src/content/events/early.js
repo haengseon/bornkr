@@ -84,7 +84,7 @@ export default [
     choice: {
       prompt: '어떻게 할까?',
       options: [
-        { id: 'rebuild', label: '다시 쌓는다', fx: { stats: { intellect: 3, leisure: -2, happiness: -1 }, traits: { consc: 2 } }, result: '탑은 아까보다 한 칸 낮았고, 더 단단했다.', hint: '흔한 행동' },
+        { id: 'rebuild', label: '다시 쌓는다', fx: { stats: { intellect: 3, leisure: -2, happiness: -1 }, traits: { consc: 2 } }, result: '블록을 다시 쌓았다.', hint: '흔한 행동' },
         { id: 'ask', label: '돌려 달라고 한다', fx: { stats: { happiness: 3, relations: -1, leisure: 1 }, traits: { extra: 1 } }, result: '그 애는 블록을 내밀었고, 우리는 말이 없었다.' },
         { id: 'share', label: '같이 쌓자고 한다', fx: { stats: { relations: 3, happiness: 1, leisure: -1 }, traits: { agree: 2 } }, result: '탑은 둘이 쌓은 만큼 삐뚤빼뚤했다.' },
       ],

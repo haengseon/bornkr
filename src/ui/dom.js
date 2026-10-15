@@ -52,6 +52,7 @@ export function show(name, html, { focus = true } = {}) {
   document.body.dataset.screen = name;
   enterScreen(app.firstElementChild, name);
   scrollTo(0, 0);
+  requestAnimationFrame(() => { if (document.body.dataset.screen === name) scrollTo(0, 0); });
   // 하단 바 높이만큼 본문 여백(QA-E-07): 바가 줄바꿈으로 커져도 내용을 가리지 않는다
   const bar = $('.actionbar', app), sec = app.firstElementChild;
   if (bar && globalThis.ResizeObserver) new ResizeObserver(() => { if (bar.isConnected) sec.style.setProperty('--actionbar-h', Math.ceil(bar.offsetHeight) + 'px'); }).observe(bar);

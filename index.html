@@ -5,10 +5,13 @@
 <title>태어나보니 대한민국</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google-adsense-account" content="ca-pub-5950509303749076">
+<!-- AdSense 사이트 확인용 코드(Google 안내). 광고 게재는 결과 화면의 광고 단위만 사용하며 자동 광고는 AdSense 관리 화면에서 꺼 둔다. -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5950509303749076"
+     crossorigin="anonymous"></script>
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1A1D21" media="(prefers-color-scheme: dark)">
-<meta name="description" content="대한민국 어딘가에서 무작위로 태어나 15분 동안 한 번의 생을 사는 통계 기반 생애 시뮬레이션. 19세 이상.">
+<meta name="description" content="대한민국 어딘가에서 무작위로 태어나 한 번의 생을 사는 통계 기반 생애 시뮬레이션. 19세 이상.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- 글꼴은 렌더를 막지 않는다(QA-E-12): preload 후 로드되면 스타일시트로. 늦거나 실패하면 시스템 글꼴 폴백(--font-* 스택) -->
@@ -16,6 +19,8 @@
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Black+Han+Sans&display=swap"></noscript>
 <link rel="manifest" href="src/static/manifest.webmanifest">
 <link rel="icon" href="src/static/icon.svg" type="image/svg+xml">
+<link rel="icon" href="src/static/icon-192.png" type="image/png" sizes="192x192">
+<link rel="shortcut icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="src/static/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -36,8 +41,12 @@ html[data-theme="dark"] #splash{--sb:#1A1D21;--si:#E7E9EA;--si2:#BCC1C7;--sa:#9A
 .sp__orb{offset-path:path("M30 176 Q180 -34 330 176");offset-rotate:0deg;animation:sp-orb 2.2s ease-in-out .2s both}
 .sp__bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
 .sp__bar i{display:block;height:100%;background:var(--sa);transform:scaleX(0);transform-origin:left;transition:transform 1.9s cubic-bezier(.3,.6,.3,1)}
+.sp__hint{margin:6px 0 0;font:500 14px/1.4 "Noto Sans KR","Malgun Gothic",system-ui,sans-serif;color:var(--si2);letter-spacing:.06em;opacity:0;animation:sp-in .6s ease 2.2s forwards,sp-blink 1.8s ease-in-out 2.9s infinite}
+@keyframes sp-blink{0%,100%{opacity:.95}50%{opacity:.35}}
+#splash{cursor:pointer}
 @keyframes sp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes sp-orb{from{offset-distance:0%}to{offset-distance:100%}}
+html[data-motion="reduce"] #splash .sp__hint,html[data-motion="off"] #splash .sp__hint{animation:none;opacity:1}
 html[data-motion="reduce"] #splash .sp__t span,html[data-motion="reduce"] #splash .sp__s,html[data-motion="reduce"] #splash .sp__fig,html[data-motion="off"] #splash .sp__t span,html[data-motion="off"] #splash .sp__s,html[data-motion="off"] #splash .sp__fig{animation:none;opacity:1}
 html[data-motion="reduce"] #splash .sp__orb,html[data-motion="off"] #splash .sp__orb{animation:none;offset-distance:50%}
 html[data-motion="reduce"] #splash,html[data-motion="off"] #splash{transition:opacity .2s}
@@ -53,7 +62,7 @@ try { if (new URLSearchParams(location.search).get('motion') === 'off') document
 </script>
 </head>
 <body>
-<div id="splash" role="img" aria-label="태어나보니 대한민국. 한 번뿐인 인생, 15분.">
+<div id="splash" role="img" aria-label="태어나보니 대한민국. 한 번뿐인 인생.">
   <svg viewBox="0 0 360 250" aria-hidden="true" focusable="false">
     <defs><linearGradient id="sp-g" x1="0" x2="1"><stop offset="0" stop-color="var(--sk1)"/><stop offset="1" stop-color="var(--sk2)"/></linearGradient></defs>
     <rect class="sp__sky" x="0" y="0" width="360" height="222" rx="10"/>
@@ -69,7 +78,8 @@ try { if (new URLSearchParams(location.search).get('motion') === 'off') document
     <g class="sp__fig sp__ink" style="--n:3"><circle cx="276" cy="164" r="9"/><path d="M264 175h22l4 24h-30z" transform="rotate(6 276 190)"/><rect x="266" y="197" width="6" height="25"/><rect x="278" y="197" width="6" height="25"/><rect x="293" y="186" width="2.6" height="36"/></g>
   </svg>
   <p class="sp__t" aria-hidden="true"><span style="--i:0">태</span><span style="--i:1">어</span><span style="--i:2">나</span><span style="--i:3">보</span><span style="--i:4">니</span><span style="--i:5">&nbsp;</span><span style="--i:6">대</span><span style="--i:7">한</span><span style="--i:8">민</span><span style="--i:9">국</span></p>
-  <p class="sp__s" aria-hidden="true">한 번뿐인 인생 · 15분</p>
+  <p class="sp__s" aria-hidden="true">한 번뿐인 인생 · 약 10~40분</p>
+  <p class="sp__hint" aria-hidden="true">화면을 터치해 시작하세요</p>
   <div class="sp__bar" aria-hidden="true"><i></i></div>
 </div>
 <script>
@@ -80,21 +90,22 @@ try { if (new URLSearchParams(location.search).get('motion') === 'off') document
   if (skip) { el.remove(); return; }
   var reduce = !!(root.dataset.motion) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches), resume = false;
   try { resume = !!localStorage.getItem('hj.v1.current'); } catch (e) {}
-  var min = resume ? 700 : reduce ? 800 : 1900, t0 = Date.now(), done = false, bar = el.querySelector('.sp__bar i');
+  var done = false, bar = el.querySelector('.sp__bar i');
   function A() { return d.getElementById('app'); }
   d.addEventListener('DOMContentLoaded', function () { try { if (!done) A().inert = true; } catch (e) {} });
-  bar.style.transitionDuration = min + 'ms';
-  requestAnimationFrame(function () { bar.style.transform = 'scaleX(.9)'; });
+  bar.style.transitionDuration = '1800ms';
+  requestAnimationFrame(function () { bar.style.transform = 'scaleX(1)'; });
   function finish() {
     if (done) return; done = true;
-    bar.style.transitionDuration = '150ms'; bar.style.transform = 'scaleX(1)';
     el.classList.add('sp--out'); try { A().inert = false; } catch (e) {}
     d.body.classList.add('splash-out');
     setTimeout(function () { el.remove(); d.body.classList.remove('splash-out'); var h = d.querySelector('#app h1'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }, reduce ? 220 : 520);
   }
-  window.__splashReady = function () { var w = min - (Date.now() - t0); setTimeout(finish, Math.max(0, w)); };
+  // 자동으로 넘어가지 않는다: 화면을 터치(클릭)하거나 Enter/Space를 눌러야 시작.
+  window.__splashReady = function () {};
   el.addEventListener('click', finish);
-  setTimeout(finish, 8000);
+  el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); finish(); } });
+  try { el.focus({ preventScroll: true }); } catch (e) {}
 })();
 </script>
   <div class="app" id="app"><section class="screen" data-screen="boot"><div class="screen__body"><p class="cap">불러오는 중입니다.</p></div></section></div>

@@ -6,6 +6,7 @@ import { indep, WHO_LABEL, becomeIndependent, homePrice } from '../act.js';
 import { assignJob, wageFor, askChildcare } from './career.js';
 import { econ, leanOdds } from '../stats.js';
 import { sensFields } from '../safety.js';
+import { makeGrandparents } from '../kin.js';
 
 const ORD = ['첫째', '둘째', '셋째', '넷째', '다섯째'];
 const SCHOOL = { 7: '초등학교', 13: '중학교', 16: '고등학교' };
@@ -25,7 +26,7 @@ export function pre(L, ctx) {
     const q = qx(who === 'father' ? 'M' : 'F', p.age, y) * T('MORT_Q')[L.birth.quintile] * (p.care ? 1.5 : 1);
     if (ctx.chance(q)) {
       p.alive = false; p.deathYear = y;
-      if (f.caringFor === who) ctx.act.endCare();
+      if (f.caringFor === who) ctx.act.endCare('death');
       ctx.sys('sys.fam.parent_death', { parentLabel: WHO_LABEL[who], pAge: p.age }, sensFields(L, 'death'));
       const orphan = !f.parents.father.alive && !f.parents.mother.alive;
       const atHome = orphan && a >= 19 && L.home.parents;
@@ -49,7 +50,7 @@ export function pre(L, ctx) {
       p.care = true;
       if (a >= 19 && !f.caringFor) {
         const defaultId = y < 2008 ? 'home' : L.stats.wealth >= 40 ? 'facility' : f.siblings > 0 ? 'share' : 'home';
-        ctx.ask({ eventId: 'sys.fam.parent_care', options: ['home', 'facility', ...(f.siblings > 0 ? ['share'] : [])], defaultId, data: { who }, vars: { parentLabel: WHO_LABEL[who] } });
+        ctx.ask({ eventId: 'sys.fam.parent_care', options: ['home', 'facility', ...(f.siblings > 0 ? ['share'] : [])], defaultId, data: { who }, vars: { parentLabel: WHO_LABEL[who], who: WHO_LABEL[who] }, careTarget: WHO_LABEL[who] });
       }
     }
   }
@@ -61,8 +62,11 @@ export function pre(L, ctx) {
     ctx.sys('sys.fam.parents_divorce');
   }
   if (f.grandparents > 0 && a <= 35 && ctx.chance(0.05 * f.grandparents)) {
-    f.grandparents--;
-    ctx.sys('sys.fam.grandparent_death', { gpLabel: ctx.chance(0.55) ? '할머니' : '할아버지' }, { quiet: a > 20 });
+    const gp = (f.gp ||= makeGrandparents(L.seed, f.grandparents));
+    const alive = gp.filter(g => g.alive), g = alive[Math.floor(ctx.rand() * alive.length)];   // 개체 하나가 한 번만 죽는다(QA #7)
+    g.alive = false; g.deathYear = y;
+    f.grandparents = gp.filter(x => x.alive).length;
+    ctx.sys('sys.fam.grandparent_death', { gpLabel: g.label }, { quiet: a > 20, grandparent: { id: g.id, side: g.side, label: g.label } });
   }
   if (a >= 13 && a <= 18 && !fl.youngCarer && ctx.chance(0.008)) {
     fl.youngCarer = y; L.tally.youngCarer = 1;
@@ -76,7 +80,7 @@ export function pre(L, ctx) {
     if (sp.income && sp.age >= 65) sp.income = 0;
     else if (sp.income) sp.income = Math.round(sp.income * 1.01);
     if (ctx.chance(qx(sp.sex, sp.age, y) * (sp.ltc ? 1.5 : 1))) {
-      if (f.caringFor === 'spouse') ctx.act.endCare();
+      if (f.caringFor === 'spouse') ctx.act.endCare('death');
       ctx.act.loseSpouse();
     }
   }
@@ -144,8 +148,8 @@ export function step(L, ctx) {
   if (!f.partner && a >= 18 && L.mil.status !== 'serving') {
     if (f.divorced || f.widowed) {
       if (ctx.chance(a < 60 ? 0.03 : a < 70 ? 0.01 : 0.002)) {   // QA-S-11: 70세+ 재혼 드묾
-        ctx.sys('sys.fam.remarry');
-        ctx.act.marry(makePartner(L, ctx), { silent: true });
+        ctx.act.marry(makePartner(L, ctx), { silent: true });       // 상태를 먼저 바꿔 사건 impact가 변화를 잡게 한다
+        ctx.sys('sys.fam.remarry', {}, { spouse: { no: f.partner.no, name: f.partner.name, since: f.partner.since } });
       }
     } else {
       const s = L.sex, b = band5(a);

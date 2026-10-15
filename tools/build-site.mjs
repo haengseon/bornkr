@@ -33,6 +33,7 @@ await Promise.all([
   writeFile(path.join(out, cssName), css),
   writeFile(path.join(out, 'ads.txt'), 'google.com, pub-5950509303749076, DIRECT, f08c47fec0942fa0\n', 'utf8'),
   writeFile(path.join(out, 'privacy.html'), await read('src/static/privacy.html')),
+  writeFile(path.join(out, 'favicon.ico'), await readFile(path.join(root, 'src/static/icon-192.png'))),   // /favicon.ico 403 방지(PNG 데이터, 브라우저는 내용으로 판별)
   ...STATIC.map(async f => writeFile(path.join(out, f), await readFile(path.join(root, 'src/static', f)))),
 ]);
 console.log(`dist/site: index.html, ads.txt, privacy.html, ${jsName} (${(js.length / 1024).toFixed(0)}KB), ${cssName}`);

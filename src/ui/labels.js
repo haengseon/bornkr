@@ -64,7 +64,7 @@ export const dateKo = b => `${b.year}년 ${b.month}월 ${b.day}일`;
 export const dateDot = b => `${b.year}.${b.month}.${b.day}`;
 export const dateDotSp = b => `${b.year}. ${b.month}. ${b.day}.`;
 export const receiptNo = (b, seed) => `${b.year}-${mmdd(b)}-${String(seed ?? '').replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
-export const ageText = (a, horizon) => (horizon ? `${a}세` : a < 1 ? '첫해' : `향년 ${a}세`);
+export const ageText = (a, horizon) => (horizon ? `${a}세까지 관찰` : a < 1 ? '첫해' : `향년 ${a}세`);
 
 // 사인 문구: 민감 원인은 UI 어디에도 쓰지 않고, 설정 '숨기기'면 모든 원인을 숨긴다(UI-SPEC S09 ②).
 export function causeLabel(death, hide) {
@@ -72,7 +72,7 @@ export function causeLabel(death, hide) {
   return death.causeLabel;
 }
 export const deathLine = (death, hide) => {
-  if (death?.horizon) return '이야기는 여기서 멈춥니다. 삶은 계속됩니다.';   // 시간 지평선(2050)
+  if (death?.horizon) return `${death.age != null ? death.age + '세까지 관찰한 기록' : '관찰한 기록'}입니다. 사망이 아니라 2050년에서 기록을 멈춘 것입니다.`;   // 시간 지평선(2050)
   const c = causeLabel(death, hide);
   return c ? `${josa(c, '으로')} 세상을 떠났습니다.` : '세상을 떠났습니다.';
 };

@@ -1,7 +1,7 @@
 {
   "name": "태어나보니 대한민국",
   "short_name": "태어나보니",
-  "description": "한 번뿐인 인생 · 15분. 한국 생애 시뮬레이션",
+  "description": "한 번뿐인 인생 · 약 10~40분. 한국 생애 시뮬레이션",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",

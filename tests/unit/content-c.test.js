@@ -299,7 +299,7 @@ test('system-text-c: GDD §9.3 배정 키 29개 + 선택 결과 9개, 변형 2�
   assert.deepEqual(Object.keys(TEXT).sort(), [...KEYS, ...RESULT].sort());
   for (const k of RESULT) assert.ok(TEXT[k.replace(/\.\w+$/, '')], `${k}: 선택 지점 키가 있어야 한다`);
   const CHOICE = { 'sys.age.grandcare': ['yes', 'some', 'no'], 'sys.age.residence': ['home', 'facility', 'child'], 'sys.fam.parent_care': ['home', 'facility', 'share'] };
-  const VARS = { condLabel: '고혈압', cancerLabel: '암', amount: '48', grade: '3', parentLabel: '어머니', pAge: '84', who: '배우자', childLabel: '첫째', schoolLabel: '중학교' };
+  const VARS = { condLabel: '고혈압', cancerLabel: '암', amount: '48', grade: '3', parentLabel: '어머니', pAge: '84', who: '배우자', because: ' 사망으로', childLabel: '첫째', schoolLabel: '중학교' };
   const sample = s => s.replace(/\{(\w+)(?:\|([^}]+))?\}/g, (_, k, j) => {
     assert.ok(k in VARS, `알 수 없는 변수 ${k}`);
     assert.ok(!j || ['은', '는', '이', '가', '을', '를', '과', '와', '아', '야', '으로', '로'].includes(j), `조사 ${j}`);
@@ -316,7 +316,7 @@ test('system-text-c: GDD §9.3 배정 키 29개 + 선택 결과 9개, 변형 2�
     assert.match(k, /^sys\./);
     if (CHOICE[k]) {
       assert.deepEqual(Object.keys(t.options), CHOICE[k], `${k}: 선택지 id`);
-      assert.ok(Object.values(t.options).every(l => l.length <= 14), `${k}: label 길이`);
+      assert.ok(Object.values(t.options).every(l => l.replace(/{[^}]*}/g, '어머니').length <= 14), `${k}: label 길이`);
       const ps = [].concat(t.prompt);
       assert.ok(ps.length >= 1 && ps.every(p => typeof p === 'string'), `${k}: prompt`);
       for (const p of ps) { assert.ok(sample(p).length <= 40, `${k}: prompt 길이 "${p}"`); assert.ok(!/…/.test(p)); }

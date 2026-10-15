@@ -41,10 +41,10 @@ test('shareText: 사인·금액 없이 서명으로 끝남', () => {
   const cert = { regionLabel: '경상남도 · 도시', homeLine: '전세.' };
   for (const k of ['birth', 'verdict', 'timeline']) {
     const s = shareText(k, { L, sum, cert });
-    assert.ok(s.endsWith('— 태어나보니 대한민국'), k);
+    assert.ok(s.endsWith('— 태어나보니 대한민국 · bornkr.click'), k);
     assert.ok(!s.includes('폐렴') && cardSafe(s), k);
   }
-  assert.equal(shareText('birth', { L, sum, cert }), '1987년 경상남도에서 태어났다. 전세. 어떤 삶이 될까.\n— 태어나보니 대한민국');
+  assert.equal(shareText('birth', { L, sum, cert }), '1987년 경상남도에서 태어났다. 전세. 어떤 삶이 될까.\n— 태어나보니 대한민국 · bornkr.click');
 });
 
 test('labels: 조사·고유어 나이·칩·구간·사인 문구', () => {

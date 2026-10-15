@@ -5,7 +5,7 @@ import { STAT_LABEL, ISSUE_SHORT } from './labels.js';
 import { fmtWon, nominal, fmtIncome } from './format.js';
 
 const RULES = [
-  [/^sys\.fam\.(marry|wedding)$/, 'marriage'],
+  [/^sys\.fam\.(marry|wedding|remarry)$/, 'marriage'],
   [/^sys\.fam\.(child_born|child)$/, 'child'],
   [/^sys\.fam\.dating$/, 'love'],
   [/^sys\.fam\.(widowed|parent_death|divorce|divorced|breakup|grandparent_death)$/, 'loss'],
@@ -62,6 +62,20 @@ export function effectsOf(src) {
     const arrows = (e.dir > 0 ? '▲' : '▼').repeat(e.size);
     return { ...e, kind, label, arrows, tone: toneOf(kind, e.dir), text: `${label} ${e.size === 2 ? '크게 ' : ''}${e.dir > 0 ? '오름' : '내림'}` };
   });
+}
+// 사건 단위 변화만(entry.impact·effects). 없으면 비어 있다 — 연간 합산(lastDeltas)을 이 일의 결과로 대입하지 않는다.
+// 사별·진단 같은 상실 사건에는 좋은 방향(지표 ▲·관심사 ▼)으로 읽히는 칩을 붙이지 않는다.
+const SOFT_TOPICS = new Set(['loss', 'care', 'bereave']);
+export function eventImpact(e) {
+  const fx = e?.effects || {}, im = e?.impact;
+  const toObj = a => Array.isArray(a) ? Object.fromEntries(a.map(x => [x.key, x.delta])) : null;
+  const soft = SOFT_TOPICS.has(topicOf(e));
+  const pick = (kind, o, min) => Object.entries(o || {}).filter(([, d]) => Math.abs(d) >= min && !(soft && toneOf(kind, d) === 'good'));
+  return {
+    stats: pick('stat', toObj(im?.stats) ?? fx.stats, 1),
+    issues: pick('issue', toObj(im?.issues) ?? fx.issues, 2),
+    profile: Array.isArray(im?.profile) ? im.profile.map(x => x.text).filter(Boolean) : [],
+  };
 }
 export const ISSUE_KEYS_ALL = ISSUES.map(i => i.key);
 

@@ -2,13 +2,13 @@
 // 필드는 news-archive.js와 같다. 수치는 장래인구추계(2022~2072 중위, 통계청 2023-12), 국민연금 개혁(복지부 2025-03), 국회예산정책처 전망에서만 인용.
 const POP = 'https://kosis.kr/visual/populationKorea/PopulationPyramidDetail.do';
 const PEN = 'https://www.mohw.go.kr/board.es?mid=a10503000000&bid=0027&act=view&list_no=1485039';
-const N = (id, year, section, headline, summary, impact, axes, src) => ({ id: `nf${id}`, year, section, headline, summary, impact, axes, sensitive: null, future: true, src: [src] });
+const N = (id, year, section, headline, summary, impact, axes, src) => ({ id: `nf${id}`, year, section, headline, summary, impact, axes, sensitive: null, future: true, scenario: true, src: [src] });
 
 export const NEWS_FUTURE = [
   N('2028-boomer', 2028, 'society', '전망: 베이비붐 세대 65세 진입', '1950년대 중반~1960년대 초반생이 2020년대 후반까지 65세에 들어선다. 노인 인구 증가의 큰 축이다.', '연금·의료·돌봄 이용자가 늘어나는 시기로, 시점은 추계상 전망이다.', ['care', 'medical'], POP),
   N('2029-rate', 2029, 'economy', '연금 보험료율 11.5% 예정', '2025년 개정법은 보험료율을 매년 0.5%p씩 올려 2033년 13%로 맞춘다. 2029년은 11.5%다(법정 일정).', '현역 세대의 보험료 부담이 해마다 조금씩 커지는 구간이다.', ['fairness', 'living'], PEN),
   N('2031-pop', 2031, 'society', '추계: 총인구 5,100만 명 안팎', '통계청 2023년 추계(중위)는 2030년 총인구를 약 5,131만 명으로 본다. 전망이며 예측이 아니다.', '2025년과 큰 차이는 없지만 연령 구성이 빠르게 바뀐다고 추계된다.', ['region', 'care'], POP),
-  N('2036-dep', 2036, 'society', '추계: 노인 비중 30%대', '통계청 2023년 추계(중위)는 2036년 65세 이상 비중을 30.9%, 노년부양비를 50.1로 본다.', '일하는 사람 100명이 노인 약 50명을 부양하는 구조라는 전망이다.', ['care', 'fairness'], POP),
+  N('2036-dep', 2036, 'society', '추계: 노인 비중 30%대', '통계청 2023년 추계(중위)는 2036년 65세 이상 비중을 30.9%, 노년부양비를 50.1로 본다.', '생산연령인구(15~64세) 100명당 65세 이상이 약 50명이라는 전망이다.', ['care', 'fairness'], POP),
   N('2038-ltc', 2038, 'life', '전망: 장기요양 수요 확대', '65세 이상 인구가 늘면서 장기요양 이용자도 늘어난다는 것이 공식 전망의 공통된 방향이다. 규모는 가정에 따른다.', '돌봄 인력과 재정 확보가 제도 유지의 쟁점이 된다.', ['care', 'medical'], POP),
   N('2040-age', 2040, 'society', '추계: 65세 이상 34.3%', '통계청 2023년 추계(중위)는 2040년 65세 이상 비중을 34.3%로 본다. 65세 이상 가구주 가구는 43.1%다.', '주택·교통·의료의 쓰임이 노인 중심으로 옮겨 갈 수 있다는 전망이다.', ['care', 'housing'], POP),
   N('2040-school', 2040, 'society', '추계: 18세 인구 26만 명', '통계청 2023년 추계(중위)는 18세 인구가 2025년 46만 명에서 2040년 26만 명으로 줄어든다고 본다.', '학교 통폐합과 대학 정원 조정 논의가 커질 수 있다. 출산율 가정에 따라 달라진다.', ['edu', 'region'], POP),

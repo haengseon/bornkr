@@ -4,6 +4,7 @@ import { T, D, yr, REGION, isCapital, regionGroup } from './tables.js';
 import { REGIONS, BIRTH_YEAR_RANGE, STAT_KEYS, ISSUE_KEYS, TRAIT_KEYS, STAGES } from './constants.js';
 import { SURNAMES, GIVEN_NAMES } from '../content/names.js';
 import { signalValue } from './issues.js';
+import { makeGrandparents } from './kin.js';
 import { pickSigungu, place, quintileAdjust, bias, TRANSIT_ACCESS, placeLabel } from './sigungu.js';
 import { REGION_SHARE_BY_YEAR } from '../data/region-share.js';
 
@@ -167,6 +168,7 @@ export function newLife({ seed, forced = {} } = {}) {
     yr: { phase: 0, asked: false, start: 0, mark: 0, oop: 0, compare: null },
   };
   // 이슈 초기값: 전 축 10, 지역·생활비는 신호의 50%(GDD §3.4)
+  L.family.gp = makeGrandparents(seed, L.family.grandparents);      // 조부모 개체(친가/외가·성별). 숫자 grandparents는 생존 수로 유지
   L.issues.region = Math.round(signalValue(L, 'region') * 0.5);
   L.issues.living = Math.round(signalValue(L, 'living') * 0.5);
   L.hist[0] = { s: STAT_KEYS.map(k => L.stats[k]), i: ISSUE_KEYS.map(k => L.issues[k]) };

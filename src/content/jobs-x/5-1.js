@@ -58,7 +58,7 @@ export default [
         ['give', '넉넉히 챙겨 준다', 'relations+2 wealth-1', '샘플을 넉넉히 드렸다. 손님은 웃었고 재고 수량이 맞지 않았다.'],
         ['limit', '규정대로 드린다', 'relations-1 happiness+1', '규정 수량만 드렸다. 손님 표정이 조금 식었다.'],
       ], 'limit', '샘플 응대'),
-      ev('52122', 'skin_ask', [20, 55], 0.12, '피부 고민을 오래 들어 준 손님이 기초 라인을 한꺼번에 사 갔다.', 'happiness+2 relations+1 intellect+1', '맞춤 상담'),
+      ev('52122', 'skin_ask', [20, 55], 0.12, '단골 고객의 구매가 늘었다.', 'happiness+2 relations+1 intellect+1', '맞춤 상담'),
     ],
     burnout: 0.06,
   }),

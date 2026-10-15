@@ -141,8 +141,8 @@ function exitMain(L, ctx, reasonKey) {
   j.mainTenure = j.years;
   L.flags.mainExited = L.year;
   if (reasonKey === 'bankrupt') L.flags.bankruptLoss = L.year;
+  ctx.act.endJob(REASON[reasonKey]);                    // 상태를 먼저 바꿔 사건 impact가 변화를 잡게 한다(QA #4)
   ctx.sys('sys.job.exit_main', { years: j.years, reasonLabel: REASON[reasonKey] });
-  ctx.act.endJob(REASON[reasonKey]);
   if (L.age >= 55) ctx.ask({ eventId: 'sys.job.after_main', options: ['work', 'rest', 'shop'], defaultId: L.stats.wealth < 45 ? 'work' : 'rest' });
 }
 

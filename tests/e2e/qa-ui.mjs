@@ -3,8 +3,9 @@
 // 결과: docs/impl/qa-ui-<label>.json, 스크린샷 docs/impl/shots/qa-ui-<label>-*.png
 import fs from 'node:fs';
 import path from 'node:path';
-import { launch, startServer, openPage, toBirth, startLife, ROOT, seedInit } from './helpers.mjs';
+import { launch, startServer, openPage, toBirth, startLife, ROOT, seedInit, presetInit } from './helpers.mjs';
 
+const log = (...a) => fs.appendFileSync(process.env.QALOG || path.join(ROOT, 'docs', 'impl', 'qa-ui.log'), a.join(' ') + '\n');
 const label = process.argv[2] || 'after';
 const SIZES = (process.env.SIZES || "360x640,360x800,390x844,430x932,768x1024,1366x768,1920x1080").split(",").map(s => s.split("x").map(Number));
 const SHOT = ['360x800', '768x1024'];
@@ -17,7 +18,7 @@ const out = (n) => path.join(ROOT, 'docs', 'impl', 'shots', n);
 // 선택 결과 가시성 측정(페이지 안)
 const measure = () => {
   const sheet = document.querySelector('.sheet.choice');
-  const resEl = document.querySelector('.choice__result, .reveal__front p');
+  const resEl = (document.querySelector('.choice__rtext, .reveal__text') || document.querySelector('.choice__result, .reveal__front p'));
   const ok = document.querySelector('.choice__ok');
   if (!sheet || !resEl) return { err: 'no result el' };
   const tn = []; const w = document.createTreeWalker(resEl, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) if (n.textContent.trim()) tn.push(n);
@@ -33,27 +34,30 @@ const measure = () => {
 
 for (const [w, h] of SIZES) {
   const key = `${w}x${h}`, r = res[key] = {};
-  const page = await openPage(browser, srv.url, { w, h, clock: true, noAutoMajor: true, url: '?motion=off', init: seedInit(42) });
+  const page = await openPage(browser, srv.url, { w, h, clock: true, noAutoMajor: true, url: '?motion=off', init: seedInit(1) + presetInit({ speed: 5, auto: false, seen19: true }) });
   await toBirth(page); await page.clock.runFor(1500); await startLife(page); await page.clock.runFor(2000);
-  const seen = new Set();
+  log(key, 'start'); const seen = new Set();
   for (let guard = 0; guard < 60 && seen.size < 2; guard++) {
-    for (let t = 0; t < 14 * 60_000 && !(await page.evaluate(() => document.querySelector('.sheet.choice .option'))); t += 500) {
-      if (await page.evaluate(() => document.querySelector('.major__ok'))) await page.click('.major__ok').catch(() => {});
-      await page.clock.runFor(500);
+    for (let t = 0; t < 14 * 60_000 && !(await page.evaluate(() => document.querySelector('.sheet.choice .option'))); t += 1500) {
+      if (await page.evaluate(() => document.body.dataset.screen !== 'life')) break;
+      if (await page.evaluate(() => document.querySelector('.major__ok'))) await page.evaluate(() => document.querySelector('.major__ok')?.click());
+      await page.clock.runFor(1500);
     }
+    if (await page.evaluate(() => document.body.dataset.screen !== 'life')) break;
     await page.clock.runFor(900);
+    log(w, 'guard', guard, new Date().toISOString().slice(14,19));
     const kind = await page.evaluate(() => document.querySelector('.sheet.choice--major') ? 'major' : 'plain');
     if (seen.has(kind)) {
-      await page.click('.sheet.choice .option'); await page.clock.runFor(900);
-      for (let i = 0; i < 6 && await page.evaluate(() => document.querySelector('.choice__ok, .major__ok')); i++) { await page.click('.choice__ok, .major__ok').catch(() => {}); await page.clock.runFor(500); }
+      await page.click('.sheet.choice .option.is-default'); await page.clock.runFor(900);
+      for (let i = 0; i < 6 && await page.evaluate(() => document.querySelector('.choice__ok, .major__ok')); i++) { await page.evaluate(() => document.querySelector('.choice__ok, .major__ok')?.click()); await page.clock.runFor(500); }
       continue;
     }
-    seen.add(kind); console.log(w, 'found', kind);
+    seen.add(kind); log(w, 'found', kind);
     await page.evaluate(t => { document.querySelectorAll('.sheet.choice .option__label').forEach(e => { e.textContent = t; }); }, LONG_OPT);
     const before = await page.evaluate(() => { const b = document.querySelector('.sheet.choice .sheet__body'); const o = [...document.querySelectorAll('.sheet.choice .option')].at(-1).getBoundingClientRect(); return { lastOptionBottom: Math.round(o.bottom), vh: innerHeight, bodyScrolls: b.scrollHeight > b.clientHeight + 1 }; });
     if (SHOT.includes(key)) await page.screenshot({ path: out(`qa-ui-${label}-${key}-${kind}-pick.png`) });
-    await page.click('.sheet.choice .option'); await page.clock.runFor(900);
-    await page.evaluate(t => { const e = document.querySelector('.choice__result, .reveal__front p'); if (e) { const tag = e.querySelector('.tag'); e.textContent = t; if (tag) e.prepend(tag); } }, LONG_RES);
+    await page.click('.sheet.choice .option.is-default'); await page.clock.runFor(900);
+    await page.evaluate(t => { const e = (document.querySelector('.choice__rtext, .reveal__text') || document.querySelector('.choice__result, .reveal__front p')); if (e) { const tag = e.querySelector('.tag'); e.textContent = t; if (tag) e.prepend(tag); } }, LONG_RES);
     await page.clock.runFor(300);
     const m = await page.evaluate(measure);
     // 내부 스크롤로도 마지막 줄까지 닿는지(본문 끝으로 스크롤 뒤 재측정)
@@ -63,8 +67,8 @@ for (const [w, h] of SIZES) {
     const bodyLock = await page.evaluate(() => document.body.classList.contains('is-locked'));
     if (SHOT.includes(key)) await page.screenshot({ path: out(`qa-ui-${label}-${key}-${kind}-result.png`) });
     r[kind] = { before, result: m, resultAfterScrollEnd: m2, focus, bodyLock };
-    await page.click('.choice__ok').catch(() => {}); await page.clock.runFor(600);
-    for (let i = 0; i < 4 && await page.evaluate(() => document.querySelector('.major__ok')); i++) { await page.click('.major__ok').catch(() => {}); await page.clock.runFor(500); }
+    await page.evaluate(() => document.querySelector('.choice__ok')?.click()); await page.clock.runFor(600);
+    for (let i = 0; i < 4 && await page.evaluate(() => document.querySelector('.major__ok')); i++) { await page.evaluate(() => document.querySelector('.major__ok')?.click()); await page.clock.runFor(500); }
   }
   // 도감 0건 필터 · 홈 복귀 스크롤
   const p2 = await openPage(browser, srv.url, { w, h, clock: true, url: '?motion=off' });
@@ -82,7 +86,7 @@ for (const [w, h] of SIZES) {
   r.homeScrollY = await p2.evaluate(() => scrollY) + '/' + await p2.evaluate(() => document.body.dataset.screen);
   await p2.ctx.close();
   await page.ctx.close();
-  console.log(key, JSON.stringify(r));
+  log(key, JSON.stringify(r));
 }
 fs.writeFileSync(path.join(ROOT, 'docs', 'impl', `qa-ui-${label}.json`), JSON.stringify(res, null, 1));
 srv.stop(); await browser.close();

@@ -6,7 +6,7 @@ import * as R from './rng.js';
 import { VERDICTS } from '../content/verdicts.js';
 import { text, fill, DEFAULT_VERDICT } from './text.js';
 import { closing, explain } from './explain.js';
-import { signals } from './issues.js';
+import { signals, plainText } from './issues.js';
 import { peers } from './peers.js';
 import { stageOf } from './clock.js';
 import { QLABEL, ORDER_L, birthLine } from './compare.js';
@@ -64,7 +64,12 @@ function pressures(L) {
 }
 
 const CARDIO = new Set(['cancer', 'heart', 'stroke']);
-function verdict(L, opts) {
+// 판정문 수치(생애 누적 압력)와 결산 관심사 수치(말년 가중)는 산식이 다르다(QA #8). 화면 수치는 같은 이름의 결산 값(issues[].value)을 쓰고, 선택에 쓴 누적 압력은 pressure로 따로 둔다.
+export const BASIS = {
+  lifetime: '성인기(19세~) 평균 + 사건 가산 — 생애 누적 압력',
+  'late-weighted': '성인기 평균 70% + 최근 10년 평균 30% — 말년에 가중한 관심도',
+};
+function verdict(L, opts, iss) {
   const age = L.death?.age ?? L.age, b = L.birth;
   const pr = pressures(L);
   const [top, topV] = Object.entries(pr).sort((a, b2) => b2[1] - a[1])[0];
@@ -87,9 +92,10 @@ function verdict(L, opts) {
   // 지배 압력의 가장 큰 사유(현재 신호 성분 → 없으면 최근 사건 사유)
   // 결산·공유 문구에 금액·금액에서 나온 비율(%)·소득 서열(분위) 금지(QA-E-15, QA-S-20)
   const ok = t => t && !t.includes('만 원') && !/\d\s*%/.test(t) && !t.includes('분위');
-  const comp = signals(L)[top].filter(c => c.text !== '기본' && ok(c.text)).sort((a, b2) => b2.v - a.v)[0]?.text
-    ?? [...(L.reasons[top] || [])].filter(r => ok(r.text)).sort((a, b2) => Math.abs(b2.delta) - Math.abs(a.delta))[0]?.text;
-  return { main, family, lines: [`${ISSUE_LABEL[top]} ${Math.round(topV)}${comp ? ` — ${comp}` : ''}`, transparency] };
+  const comp = signals(L)[top].filter(c => c.text !== '기본' && ok(plainText(c))).sort((a, b2) => b2.v - a.v)[0];
+  const why = (comp && plainText(comp)) ?? [...(L.reasons[top] || [])].filter(r => ok(r.text)).sort((a, b2) => Math.abs(b2.delta) - Math.abs(a.delta))[0]?.text;
+  const shown = iss.find(i => i.key === top)?.value ?? Math.round(topV);       // 아래 결산의 같은 이름 항목과 같은 수치
+  return { main, family, pressure: { key: top, value: Math.round(topV), basis: 'lifetime' }, shown: { key: top, value: shown, basis: 'late-weighted' }, lines: [`${ISSUE_LABEL[top]} ${shown}${why ? ` — ${why}` : ''}`, transparency] };
 }
 
 // 생애 연표(GDD §12.3)
@@ -151,7 +157,7 @@ function issueList(L) {
       if (a > end - 10) last.push(h.i[i]);
     }
     const ex = explain(L, k);
-    return { key: k, label: ISSUE_LABEL[k], value: Math.round(0.7 * mean(adult) + 0.3 * mean(last)), lines: ex.lines.slice(1, 3), src: ex.src };
+    return { key: k, label: ISSUE_LABEL[k], value: Math.round(0.7 * mean(adult) + 0.3 * mean(last)), basis: 'late-weighted', lines: ex.lines.slice(1, 3), src: ex.src, ...(ex.srcNotes && { srcNotes: ex.srcNotes }) };
   }).sort((a, b) => b.value - a.value);
 }
 
@@ -162,13 +168,14 @@ export function summarize(L, opts = {}) {
   const statSrc = STAT_KEYS.flatMap(k => explain(L, k).src);
   const all = [...statSrc, ...iss.flatMap(i => i.src), ...Object.values(cl).flatMap(c => c.src)];
   const seen = new Set();
-  const v = verdict(L, opts);
+  const v = verdict(L, opts, iss);
   return {
     birthCert: birthCert(L),
-    verdict: { main: v.main, lines: v.lines, family: v.family, ...(v.transparency && v.lines.length === 1 && { transparency: v.transparency }) },
+    verdict: { main: v.main, lines: v.lines, family: v.family, ...(v.pressure && { pressure: v.pressure, shown: v.shown }), ...(v.transparency && v.lines.length === 1 && { transparency: v.transparency }) },
     timeline: timeline(L),
     closing: cl,
     issues: iss,
+    basisNotes: BASIS,
     death: d ? { age: d.age, year: d.year, causeLabel: opts.hideSensitiveCause && d.sensitive ? null : d.causeLabel, sensitive: !!d.sensitive, ...(d.horizon && { horizon: true }) } : null,
     peers: opts.peers === false ? [] : peers(L).map(P => ({
       name: P.name, sex: P.sex, regionLabel: P.regionLabel, deathAge: P.deathAge, ...(P.horizon && { horizon: true }), order: P.order, birthLine: P.birthLine,

@@ -17,7 +17,8 @@ const ERA_JOB = { 1998: 15, 2009: 8, 2020: 8 };
 export function signals(L) {
   const kid = L.age < 15, half = kid ? 0.5 : 1, e = econ(L), h = L.home, j = L.job, f = L.family, fl = L.flags, y = L.year;
   const out = {};
-  const ad = (k, v, text, src) => { if (v) (out[k] ||= []).push({ v, text, ...(src && { src }) }); };
+  // late: 사건 발생 해보다 나중에 발표·기준인 자료 → 인물 화면에는 plain 문장만 쓰고 원문 수치는 srcNote로 분리(QA #5)
+  const ad = (k, v, text, src, late) => { if (v) (out[k] ||= []).push({ v, text, ...(src && { src }), ...(late && { late }) }); };
   for (const k of ISSUE_KEYS) out[k] = [];
 
   // housing
@@ -48,7 +49,7 @@ export function signals(L) {
   if (within(fl.contractEnd, L, 1)) ad('job', 20, '계약 만료', 'R04.S4');
   const churn = j.history.filter(x => x.to != null && x.to > y - 5).length;
   if (churn) ad('job', 5 * churn, `이직·실직 ${churn}회(최근 5년)`);
-  if (j.status === 'employed' && j.regular && L.age >= 50 && L.age < 60) ad('job', 8, '주된 일자리 퇴직 평균 53.0세', 'R04.S7');
+  if (j.status === 'employed' && j.regular && L.age >= 50 && L.age < 60) ad('job', 8, '주된 일자리 퇴직 평균 53.0세', 'R04.S7', y < 2025 && { ref: 2025, plain: '주된 일자리를 떠날 나이가 가까움' });
   if (ERA_JOB[y] && L.age >= 15) ad('job', ERA_JOB[y], `${y}년 고용 충격`, 'R04.S8');
 
   // edu
@@ -57,7 +58,7 @@ export function signals(L) {
   if (L.age <= 25) ad('edu', 8 * Math.max(0, 3 - q), '가구 형편과 학습 기회', 'R03.S1');
   if (!L.birth.urban && L.age <= 25) ad('edu', 10, '농촌 학교', 'R03.S1');
   if (L.age >= 7 && L.age <= 18) {
-    if (L.edu.tutoring === 0 && T('TUTOR_PART')[3] * yr(T('TUTOR_ERA'), y) > 0.7) ad('edu', 12, '사교육 참여율 소득 300만 원 미만 52.8% vs 800만 원 이상 84.9%(2025)', 'R03.S1');
+    if (L.edu.tutoring === 0 && T('TUTOR_PART')[3] * yr(T('TUTOR_ERA'), y) > 0.7) ad('edu', 12, '사교육 참여율 소득 300만 원 미만 52.8% vs 800만 원 이상 84.9%(2025)', 'R03.S1', y < 2025 && { ref: 2025, plain: '학원·과외를 하지 않는 집' });
     if (L.edu.tutoring === 3) ad('edu', 8, '사교육 월 70만 원 이상', 'R03.S1');
   }
   if (L.money.loans.student > 0) ad('edu', 10, `학자금 대출 ${won(L.money.loans.student)}만 원`, 'R03.S21');
@@ -73,7 +74,7 @@ export function signals(L) {
   const pre = kidsAt(L, 0, 6);
   if (pre) ad('care', 30 * Math.min(2, pre), `미취학 자녀 ${pre}명`, 'R06.S32');
   if (sk) ad('care', 13 * sk, `학령기 자녀 ${sk}명`);
-  if (fl.youngCarer) ad('care', 15, '가족돌봄청년 주당 평균 21.6시간(2022)', 'R06.S33');
+  if (fl.youngCarer) ad('care', 15, '가족돌봄청년 주당 평균 21.6시간(2022)', 'R06.S33', y < 2022 && { ref: 2022, plain: '가족을 돌보는 청소년' });
   const par = f.parents, old = [par.father, par.mother].some(p => p.alive && p.age >= 75);
   if (old && L.age >= 19 && (f.siblings || 0) <= 1) ad('care', f.siblings ? 8 : 20, f.siblings ? '75세 넘은 부모, 형제 한 명' : '75세 넘은 부모, 형제 없음');
   if (fl.supportUntil >= y) ad('care', 12, '부모 생활비 송금', 'R06.S37');
@@ -106,13 +107,13 @@ export function signals(L) {
   if (y >= 2026 && y <= 2033 && (j.status === 'employed' || j.status === 'self')) ad('fairness', 5, '보험료율 9%→13%(2026~2033)', 'R08.S01');
   if (L.age >= 15) {
     const c = classMob(y);
-    ad('fairness', (c.low - 50) * 0.3, `본인 세대 계층 상승 가능성 '높다' ${c.high.toFixed(1)}%(${c.y})`, 'R08.S01');
+    ad('fairness', (c.low - 50) * 0.3, `본인 세대 계층 상승 가능성 '높다' ${c.high.toFixed(1)}%(${c.y})`, 'R08.S01', c.y > y && { ref: c.y, plain: '본인 세대의 계층 상승 가능성에 대한 인식' });
   }
 
   // region
   ad('region', 10, '기본');
   const ext = extinction(L.home.region, y);
-  if (ext) ad('region', ext.v, ext.text, 'R08.S13');
+  if (ext) ad('region', ext.v, ext.text, 'R08.S13', y < 2025 && { ref: 2025, plain: '사는 지역의 인구 감소' });
   if (!L.birth.urban && !isCapital(h.region)) ad('region', 15, '농촌·소도시');
   if (within(fl.schoolClosed, L, 5)) ad('region', 10, '고향 학교 폐교');
   if (within(fl.toCapital, L, 5) && L.age >= 19) ad('region', 8, '일자리 찾아 수도권으로', 'R08.S16');
@@ -121,7 +122,7 @@ export function signals(L) {
   ad('tech', 10, '기본');
   if ((j.status === 'employed' || j.status === 'self') && j.ai && y >= 2000) {
     const w = (j.ai === 'high' ? 45 : j.ai === 'mid' ? 30 : 0) * (y >= 2023 ? 1 : 0.6);
-    if (w) ad('tech', w, `${j.title} AI 노출 '${j.ai === 'high' ? '높음' : '중간'}'(BOK 2025 분류)`, 'R09.S4');
+    if (w) ad('tech', w, `${j.title} AI 노출 '${j.ai === 'high' ? '높음' : '중간'}'(BOK 2025 분류)`, 'R09.S4', y < 2025 && { ref: 2025, plain: `${j.title} 일의 자동화 영향` });
   }
   if (L.age >= 70 && y >= 2015) ad('tech', 15, '키오스크·앱 예약 장벽', 'R08.S01');
   if (within(fl.aiLoss, L, 5)) ad('tech', 10, '자동화로 줄어든 일');
@@ -132,7 +133,7 @@ export function signals(L) {
   // conflict
   ad('conflict', 25, '기본');
   if (L.age >= 15) {
-    ad('conflict', 0.7 * conflictEra(y), `사회 갈등 인식(${Math.min(Math.max(y, 2022), 2025)})`, 'R08.S08');
+    ad('conflict', 0.7 * conflictEra(y), `사회 갈등 인식(${Math.min(Math.max(y, 2022), 2025)})`, 'R08.S08', y < 2022 && { ref: 2022, plain: '사회 갈등 인식' });
   }
   if (within(fl.divorceYear, L, 3)) ad('conflict', 8, '이혼');
   // 개인 성분(QA-S-10): 사는 곳·형편·일·출신·성향에 따라 갈등을 체감하는 정도가 다르다
@@ -152,7 +153,7 @@ export function signals(L) {
   if (indep(L) && L.money.livingRatio > 0.7) ad('living', 30 * (L.money.livingRatio - 0.7), '생활비가 가처분소득의 대부분', 'R05.S3');
   const cpi = cpiPct(y);
   if (cpi > 2) ad('living', Math.min(30, 4 * (cpi - 2)) * half, `소비자물가 +${cpi.toFixed(1)}%(${y})`, 'R05.S8');
-  if (y === 2022 || y === 2023) ad('living', 10 * half, '전기·가스·수도 +20.2%(2023)', 'R08.S30');
+  if (y === 2022 || y === 2023) ad('living', 10 * half, '전기·가스·수도 +20.2%(2023)', 'R08.S30', y < 2023 && { ref: 2023, plain: '공공요금 인상' });
   const heat = y >= 1990 ? heatDays(y) : 0;
   if (heat) {
     ad('living', heat / 11 * 5, `폭염일수 ${Math.round(heat)}일(${Math.min(y, 2025)})`, 'R08.S25');
@@ -189,6 +190,10 @@ function extinction(region, y) {
   return { v: Math.max(0, 60 - idx * 0.5) * era, text: `${REGION[region]?.label ?? region} 지방소멸위험지수 ${idx}(2025.6)` };
 }
 
+// 인물 화면용 문장(후대 자료는 plain) / 후대 자료 표기
+export const plainText = c => (c.late ? c.late.plain : c.text);
+export const lateNote = c => (c.late ? `후대 자료(${c.late.ref}년 기준)를 이용한 게임 추정: ${c.text}` : null);
+
 export const signalValue = (L, k, sig = signals(L)) => clamp(sig[k].reduce((a, c) => a + c.v, 0));
 
 // 5단계: 이슈 갱신. 크게 움직인 축은 상위 성분을 reason으로 남긴다.
@@ -199,8 +204,9 @@ export function updateIssues(L) {
     const nv = clamp(Math.round(old + ISSUE_D * (S - old)));
     L.issues[k] = nv;
     if (Math.abs(nv - old) >= 3) {
-      const top = sig[k].filter(c => c.text !== '기본').sort((a, b) => b.v - a.v)[0];
-      if (top) pushReason(L, k, { year: L.year, age: L.age, text: top.text, delta: nv - old, ...(top.src && { src: [top.src] }) });
+      const cand = sig[k].filter(c => c.text !== '기본').sort((a, b) => b.v - a.v);
+      const top = cand.find(c => !c.late && c.v >= 0.6 * cand[0].v) ?? cand[0];     // 그 시점에 있던 사실 기반 사유를 우선
+      if (top) pushReason(L, k, { year: L.year, age: L.age, text: plainText(top), delta: nv - old, ...(top.src && { src: [top.src] }), ...(top.late && { srcNote: lateNote(top) }) });
     }
   }
 }

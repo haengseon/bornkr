@@ -3,7 +3,7 @@
 import { STATS, ISSUES, STAT_KEYS, ISSUE_KEYS, KINDS } from './constants.js';
 import { D, REGION } from './tables.js';
 import { econ, healthParts, leisureParts, relationsParts, issueMean } from './stats.js';
-import { signals } from './issues.js';
+import { signals, plainText, lateNote } from './issues.js';
 import { COND_LABEL } from './act.js';
 import { text, won } from './text.js';
 
@@ -89,12 +89,13 @@ function explainIssue(L, key) {
   const value = L.issues[key], comp = signals(L)[key].filter(c => c.text !== '기본').sort((a, b) => b.v - a.v);
   const lines = [
     trend(L, key, value),
-    ...comp.slice(0, 3).map(c => c.text),
+    ...comp.slice(0, 3).map(plainText),
     ...topReasons(L, key, 2, r => `${r.year} ${r.text}`),
     '이 축은 순위가 아니라 이 삶이 겪은 강도입니다',
   ];
   const src = uniq([...comp.filter(c => c.src).map(c => srcMeta(c.src)), ...reasonSrc(L, key)]);
-  return { key, label: LABEL[key], value, lines, src: src.length ? src : [srcMeta('GDD.E')] };
+  const srcNotes = comp.slice(0, 3).map(lateNote).filter(Boolean);     // 후대 자료를 쓴 줄의 원문(QA #5)
+  return { key, label: LABEL[key], value, lines, src: src.length ? src : [srcMeta('GDD.E')], ...(srcNotes.length && { srcNotes }) };
 }
 
 // ── 결산 5지표(GDD §12.1) ──

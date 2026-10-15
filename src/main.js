@@ -2,6 +2,7 @@
 import { S, routes, go, applySettings, toast, nav, pushScreen, SUBS, PARENT } from './ui/dom.js';
 import { loadCurrent, clearCurrent } from './ui/store.js';
 import { startResume, persist } from './ui/play.js';
+import { qaTrace } from './engine/index.js';
 import './ui/screens.js';
 
 applySettings();
@@ -18,6 +19,7 @@ routes.resume = () => {
 };
 
 // 화면 이력(QA-E-11): 기록관·도감·설정은 이력 한 칸을 쌓고, 뒤로 가기(popstate)는 앱 안 이전 화면으로
+try { history.scrollRestoration = 'manual'; } catch {}   // 화면 전환 시 위치는 show()가 맨 위로 되돌린다(뒤로 가기 때 브라우저가 옛 위치를 덮어쓰지 않게)
 try { history.replaceState({ hj: 'home', d: 0 }, ''); } catch {}
 for (const name of SUBS) {
   const render = routes[name];
@@ -53,3 +55,4 @@ try {
 if (!(hot?.data?.seed != null && tryResume(hot.data))) go('home');
 try { hot?.ready?.(); } catch {}
 try { window.__splashReady?.(); } catch {}   // 스플래시: 앱 준비 완료 알림(index.html 인라인)
+try { window.__hjQa = () => qaTrace(S.L); } catch {}   // QA 재현 로그(시드·선택 경로·사건 ID)

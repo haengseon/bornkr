@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fmtWon, fmtIncome, fmtRent, nominal, cpiMult, money, deltaText, areaText, tenureText } from '../../src/ui/format.js';
+import * as F from '../../src/ui/format.js';
+import { nominal, cpiMult, deltaText, tenureText } from '../../src/ui/format.js';
+// 화면 금액은 줄바꿈 방지용 NBSP 를 쓴다: 비교는 일반 공백으로 정규화
+const nb = f => (...a) => { const r = f(...a); return typeof r === 'string' ? r.replace(/ /g, ' ') : r && typeof r === 'object' ? { ...r, nominal: r.nominal?.replace(/ /g, ' '), today: r.today?.replace(/ /g, ' ') ?? r.today } : r; };
+const fmtWon = nb(F.fmtWon), fmtIncome = nb(F.fmtIncome), fmtRent = nb(F.fmtRent), money = nb(F.money), areaText = nb(F.areaText);
 import { profileOf, rankOf, bizOf, employmentOf, fmtMan } from '../../src/ui/profile.js';
 import { radarPoints, waveY, optionIcon } from '../../src/ui/gauges.js';
 import { sceneModel, layerKeys, placeOf } from '../../src/ui/scene.js';

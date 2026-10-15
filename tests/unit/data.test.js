@@ -20,7 +20,7 @@ const leaves = function* (o) { if (typeof o === 'number') yield o; else if (o &&
 
 test('SOURCES 항목은 { org, title, year, url, kind } 형식이고 ID는 R0x.Sy 또는 GDD.E', () => {
   for (const [id, s] of Object.entries(SOURCES)) {
-    assert.ok(/^(R0[1-9]\.S\d{1,2}|R10\.S\d{1,2}|GDD\.E|EXT\.H\d{2})$/.test(id), `출처 ID 형식: ${id}`);
+    assert.ok(/^(R0[1-9]\.S\d{1,2}|R1[01]\.S\d{1,2}|GDD\.E|EXT\.H\d{2})$/.test(id), `출처 ID 형식: ${id}`);
     for (const k of ['org', 'title', 'url']) assert.ok(typeof s[k] === 'string' && s[k].length > 0, `${id}.${k}`);
     assert.ok(Number.isInteger(s.year), `${id}.year`);
     assert.ok(SRC_KINDS.includes(s.kind), `${id}.kind`);

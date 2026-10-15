@@ -46,5 +46,5 @@ export default {
   'sys.fam.grandparent_death': ['{gpLabel|이} 돌아가셨다.', '{gpLabel|이} 돌아가셨다. 어른들이 우는 모습을 처음 보았다.', '{gpLabel|이} 돌아가셨다. 집에 향 냄새가 며칠 남았다.'],
   'sys.health.lbw': ['작게 태어나 한동안 병원을 오갔다.', '조금 일찍, 조금 작게 태어났다. 퇴원은 몇 주 뒤였다.', '작게 태어난 몸은 한동안 병원 저울 위에 있었다.'],
   'sys.health.disability': ['{disabilityLabel} 진단을 받았다. 치료실 대기는 {n}개월이었다.', '{disabilityLabel|이} 진단서에 적혔다. 대기 명단은 {n}개월짜리였다.', '진단은 {disabilityLabel}. 치료실 자리가 나기까지 {n}개월이 걸렸다.'],
-  'sys.home.family_move': ['집이 이사를 했다({toLabel}).', '이삿짐 트럭이 {toLabel|으로} 떠났다. 나도 그 안에 있었다.', '우리 집이 {toLabel|으로} 옮겨 갔다. 방 구조가 모두 달라졌다.', '어른들이 짐을 쌌고, 우리는 {toLabel|으로} 옮겼다.', '새 집은 {toLabel}이었다. 내 방 벽지가 낯설었다.', '이사 날, 빈 방에 내 키 눈금만 남았다. 새 집은 {toLabel}.'],
+  'sys.home.family_move': ['집이 이사를 했다({toLabel}).', '이삿짐 트럭이 {toLabel|으로} 떠났다. 나도 그 안에 있었다.', '우리 집이 {toLabel|으로} 옮겨 갔다. 방 구조가 모두 달라졌다.', '어른들이 짐을 쌌고, 우리는 {toLabel|으로} 옮겼다.', '새 집은 {toLabel}이었다. 내 방 벽지가 낯설었다.', '{toLabel|으로} 이사했다.'],
 };

@@ -89,18 +89,17 @@ test('동료 3명: 결정적, 같은 날 출생, 출생 시각 순', () => {
   for (let i = 1; i < 3; i++) assert.ok(a[i - 1].order <= a[i].order);
 });
 
-test('시계: 가짜 now로 15분 상한(overCap), 일시정지 시간 제외', () => {
+test('시계: 1년=1배속 30초 고정, 배속 1~5로만 나눔, 일시정지 시간 제외, 시간 상한 없음', () => {
   let t = 0;
   const c = E.createClock({ now: () => t });
   c.start();
   t = 5 * 60_000; c.pause(); t = 20 * 60_000; c.resume();
   assert.equal(c.elapsed(), 5 * 60_000);
-  assert.equal(c.overCap(), false);
-  t += 10 * 60_000;
-  assert.equal(c.overCap(), true);
+  t += 60 * 60_000;
+  assert.equal(c.overCap(), false);            // 1년=30초 정책: 15분 상한 없음
   const L = E.newLife({ seed: 1 });
-  const d = c.yearDelay(L, 1);
-  assert.ok(d >= 1500 && d <= 18000);
+  const want = { 1: 30000, 2: 15000, 3: 10000, 4: 7500, 5: 6000 };
+  for (const [sp, ms] of Object.entries(want)) assert.equal(c.yearDelay(L, Number(sp)), ms);
 });
 
 test('1,000생애 평균 사망 나이 ≈ 출생아 가중 해석 목표(GDD §6.5 ±1.0)', async () => {

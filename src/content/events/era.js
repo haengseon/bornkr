@@ -28,17 +28,17 @@ const RAW = [
   {
     id: 'era.1974.equalize', years: [1974, 1979], weight: 2,
     tiers: {
-      child: '고등학교를 추첨으로 간다는 말이 집에 돌았다.',
-      teen: '곧 고등학교를 추첨으로 가게 된다고 했다.',
-      adult: '고교평준화로 학교를 추첨으로 배정받기 시작했다.',
+      child: '고교 배정이 추첨으로 바뀐 지역이 있었다.',
+      teen: '고교 배정이 추첨으로 바뀐 지역이 있었다.',
+      adult: '고교평준화 적용 지역에서 학교를 추첨으로 배정받았다.',
     },
     fx: { issues: { edu: -2 } }, reason: '고교평준화 추첨 배정', src: ['R03.S25'],
   },
   {
-    id: 'era.1980.oil', years: [1979, 1981], weight: 3,
+    id: 'era.1980.oil', years: [1980, 1981], weight: 3,
     tiers: {
-      child: '물건값이 올라 부모님이 장바구니를 오래 들여다봤다.',
-      teen: '또 한 번 물가가 뛰어 집안이 허리띠를 졸랐다.',
+      child: '물가가 올라 생활비가 늘었다.',
+      teen: '물가가 다시 올라 집안이 지출을 줄였다.',
       adult: '2차 석유파동. 물가는 많게는 28.7%까지 뛰었다.',
     },
     fx: { issues: { living: 10 } }, reason: '2차 석유파동 물가 급등', src: ['R05.S8'],
@@ -74,7 +74,7 @@ const RAW = [
     id: 'era.1987.june', years: [1987, 1987], weight: 4,
     tiers: {
       child: '어른들이 텔레비전 앞에서 오래 이야기했다.',
-      teen: '거리에 사람이 모였다는 뉴스가 연일 나왔다.',
+      teen: '6월 민주항쟁 뉴스가 연일 나왔다.',
       adult: '6월에 직선제 개헌 요구 시위가 이어졌다. 10월 개헌이 이뤄졌다.',
     },
     fx: { issues: { conflict: 8 } }, reason: '6월 항쟁·직선제 개헌', src: ['R08.S70'],
@@ -287,13 +287,22 @@ const RAW = [
     fx: { issues: { medical: 4 } }, reason: '메르스 유행', src: ['R08.S70'],
   },
   {
-    id: 'era.2016.candle', years: [2016, 2017], weight: 4,
+    id: 'era.2016.candle', years: [2016, 2016], weight: 4,
     tiers: {
       child: '어른들이 뉴스를 보며 크게 이야기하는 날이 많았다.',
-      teen: '광장에 사람들이 모였다는 뉴스가 매일 나왔다.',
-      adult: '광장 집회가 이어졌고 탄핵 결정과 대선까지 치러졌다.',
+      teen: '촛불집회 뉴스가 매일 나왔다.',
+      adult: '광장 집회가 이어졌고 12월 9일 국회가 탄핵소추안을 가결했다.',
     },
-    fx: { issues: { conflict: 8 } }, reason: '촛불집회·탄핵·대선', src: ['R08.S70'],
+    fx: { issues: { conflict: 6 } }, reason: '촛불집회·탄핵소추', src: ['R08.S70'],
+  },
+  {
+    id: 'era.2017.impeach', years: [2017, 2017], weight: 4,
+    tiers: {
+      child: '어른들이 뉴스를 보며 크게 이야기하는 날이 많았다.',
+      teen: '새 대통령을 뽑는 선거가 앞당겨져 열렸다.',
+      adult: '3월 10일 헌재가 탄핵을 결정했고 5월 9일 조기 대선이 치러졌다.',
+    },
+    fx: { issues: { conflict: 6 } }, reason: '탄핵 결정·조기 대선', src: ['R08.S70'],
   },
   {
     id: 'era.2020.covid', shock: true, impact: '그 무렵 사람들은 마스크를 쓰고 가게 문과 교실 문이 닫히는 것을 지켜보았다.', years: [2020, 2022], weight: 5,
@@ -341,7 +350,7 @@ const RAW = [
     fx: { issues: { conflict: 2 } }, reason: '이태원 참사 뉴스', src: ['R08.S70'],
   },
   {
-    id: 'era.2023.jeonse.fraud', years: [2022, 2024], weight: 4, when: tenant,
+    id: 'era.2023.jeonse.fraud', years: [2023, 2024], weight: 4, when: tenant,
     tiers: {
       child: '이사 갈 집 이야기를 하며 부모님이 걱정했다.',
       teen: '전세 보증금 뉴스에 집안 어른들이 귀를 기울였다.',
@@ -359,7 +368,7 @@ const RAW = [
     fx: { issues: { living: 8 } }, reason: '전기·가스 요금 급등', src: ['R08.S30'],
   },
   {
-    id: 'era.2024.medical', shock: true, impact: '그 무렵 사람들은 진료 일정이 밀려 병원 대기 문자를 기다렸다.', years: [2024, 2025], weight: 3,
+    id: 'era.2024.medical', shock: true, impact: '그 무렵 사람들은 진료 일정이 밀려 병원 대기 문자를 기다렸다.', years: [2024, 2025], weight: 4,
     tiers: {
       child: '아플 때 갈 병원 걱정이 어른들 말에 섞였다.',
       teen: '의사 선생님들이 병원을 떠난 일이 뉴스에 이어졌다.',
@@ -368,13 +377,22 @@ const RAW = [
     fx: { issues: { medical: 8 } }, reason: '의정 갈등·진료 공백', src: ['R08.S38'],
   },
   {
-    id: 'era.2024.martial', years: [2024, 2025], weight: 4,
+    id: 'era.2024.martial', years: [2024, 2024], weight: 4,
     tiers: {
       child: '어른들이 밤늦게까지 뉴스를 켜 두었다.',
       teen: '뉴스가 연일 한 가지 이야기로 채워졌다.',
-      adult: '비상계엄 선포와 해제, 탄핵 심판, 대선이 차례로 이어졌다.',
+      adult: '12월 3일 비상계엄이 선포됐다 해제됐고 14일 탄핵소추안이 가결됐다.',
     },
-    fx: { issues: { conflict: 10 } }, reason: '비상계엄·탄핵·대선', src: ['R08.S43'],
+    fx: { issues: { conflict: 6 } }, reason: '비상계엄·탄핵소추', src: ['R08.S43'],
+  },
+  {
+    id: 'era.2025.impeach', years: [2025, 2025], weight: 4,
+    tiers: {
+      child: '어른들이 뉴스를 보며 크게 이야기하는 날이 많았다.',
+      teen: '새 대통령을 뽑는 선거가 앞당겨져 열렸다.',
+      adult: '4월 4일 헌재가 파면을 결정했고 6월 3일 조기 대선이 치러졌다.',
+    },
+    fx: { issues: { conflict: 6 } }, reason: '파면 결정·조기 대선', src: ['R08.S43'],
   },
   {
     id: 'era.2025.pension', years: [2025, 2026], weight: 3, ages: [0, 59],
@@ -395,7 +413,7 @@ const RAW = [
     fx: { issues: { fairness: -2 } }, reason: '국민연금 개혁', src: ['R07.S06'],
   },
   {
-    id: 'era.2026.heat', years: [2024, 2026], weight: 2,
+    id: 'era.2026.heat', years: [2024, 2026], weight: 3,
     tiers: {
       child: '더워서 밖에서 노는 시간이 줄었다.',
       teen: '더위와 열대야로 잠을 설치는 날이 많았다.',
@@ -416,9 +434,10 @@ const RAW = [
     id: 'era.2036.aging', years: [2036, 2036], weight: 2, kind: 'projected',
     tiers: {
       child: '(전망) 아이는 줄고 어르신은 늘어난 나라에서 자란다.',
-      teen: '(전망) 일하는 사람이 줄어 연금 걱정이 커진다.',
-      adult: '(전망) 65세 이상 30.9%. 일하는 100명당 노인 50명.',
+      teen: '(전망) 생산연령인구가 줄어 연금 걱정이 커진다.',
+      adult: '(전망) 65세 이상 30.9%. 생산연령인구 100명당 노인 50명.',
     },
+    when: L => !L?.fired?.['future.2035.dependency'],        // 같은 전망을 뉴스와 개인 사건으로 두 번 적용하지 않는다(QA #6)
     fx: { issues: { fairness: 3 } }, reason: '고령화 전망(노년부양비 50.1)', src: ['R07.S12'],
   },
   {
@@ -426,8 +445,9 @@ const RAW = [
     tiers: {
       child: '(전망) 어르신이 열 명 중 네 명인 나라에서 자란다.',
       teen: '(전망) 노인을 돌볼 사람이 부족해진다는 이야기가 나온다.',
-      adult: '(전망) 65세 이상 40.1%. 일하는 100명당 노인 77명.',
+      adult: '(전망) 65세 이상 40.1%. 생산연령인구 100명당 노인 77명.',
     },
+    when: L => !L?.fired?.['future.2050.dependency'],
     fx: { issues: { care: 3 } }, reason: '고령화 전망(노년부양비 77.3)', src: ['R07.S12'],
   },
 ];

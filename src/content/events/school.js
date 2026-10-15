@@ -139,7 +139,7 @@ export default [
     choice: {
       prompt: '어떻게 할까?',
       options: [
-        { id: 'save', label: '모은다', fx: { stats: { wealth: 3, happiness: -2, leisure: -1 }, traits: { consc: 1 } }, result: '봉투는 서랍 깊이 들어갔고, 숫자만 조금씩 늘었다.' },
+        { id: 'save', label: '모은다', fx: { stats: { wealth: 3, happiness: -2, leisure: -1 }, traits: { consc: 1 } }, result: '봉투는 서랍에 넣어 두었고, 저축액이 조금씩 늘었다.' },
         { id: 'spend', label: '문구점에서 쓴다', fx: { stats: { happiness: 3, leisure: 1, wealth: -1 } }, result: '문구점에서 지우개와 스티커를 한 움큼 샀다.' },
         { id: 'share', label: '친구와 나눠 쓴다', fx: { stats: { relations: 3, wealth: -2 } }, result: '떡볶이 값을 번갈아 내자 주머니가 금방 비었다.' },
       ],
@@ -175,7 +175,7 @@ export default [
       options: [
         { id: 'teacher', label: '선생님께 말한다', fx: { stats: { happiness: 2, relations: -1 } }, result: '담임이 양쪽을 따로 불렀고, 자리가 바뀌었다.' },
         { id: 'family', label: '가족에게 말한다', fx: { stats: { happiness: 3, relations: 2, leisure: -1 } }, result: '가족이 오래 들어 주었고, 다음 날 함께 학교에 갔다.', hint: '가장 많이 알리는 곳' },
-        { id: 'friend', label: '친구에게 말한다', fx: { stats: { relations: 2, happiness: 1 } }, result: '단짝이 점심을 같이 먹어 주었지만 복도는 그대로였다.' },
+        { id: 'friend', label: '친구에게 말한다', fx: { stats: { relations: 2, happiness: 1 } }, result: '단짝과 점심을 같이 먹었다.' },
       ],
       default: 'family',
     },
@@ -310,7 +310,7 @@ export default [
   },
   {
     id: 'school.night.study', ages: [16, 18], p: 0.2, once: true, years: [1976, 2010],
-    text: ['야간자율학습은 이름만 자율이었다. 밤 열 시에야 교문이 열렸다.', '야자가 끝난 교문 앞은 학원 버스와 부모님 차로 붐볐다.'],
+    text: ['야간자율학습은 오후 10시에 끝났다.', '야자가 끝난 교문 앞은 학원 버스와 부모님 차로 붐볐다.'],
     fx: { stats: { intellect: 1, health: -2, leisure: -3, happiness: -1 } },
     reason: '야간자율학습',
   },

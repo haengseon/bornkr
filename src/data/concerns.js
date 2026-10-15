@@ -1,0 +1,136 @@
+// 생애 단계별 고민(R11). 단계 × 시대(years·eraVariants) 정의 + 통계 기준값. 계산은 engine/concerns.js.
+// years=[from,to] 해당 연도에만 항목 존재. eraVariants: 연도 범위별 label/desc 덮어쓰기(첫 일치). 시점에 없던 기술·제도는 years로 막는다.
+// kind: measured(통계 직접) | estimated(게임 추정). note는 basis용(인물 reason에는 쓰지 않는다).
+export const CONCERN_STAGES = [
+  { id: 'infant', label: '영유아기(0~5세)', from: 0, to: 5 },
+  { id: 'child', label: '어린이(6~12세)', from: 6, to: 12 },
+  { id: 'teen', label: '청소년(13~18세)', from: 13, to: 18 },
+  { id: 'youngAdult', label: '20대(19~29세)', from: 19, to: 29 },
+  { id: 'adult30', label: '30대', from: 30, to: 39 },
+  { id: 'adult40', label: '40대', from: 40, to: 49 },
+  { id: 'adult50', label: '50대', from: 50, to: 59 },
+  { id: 'senior60', label: '60~74세', from: 60, to: 74 },
+  { id: 'elder75', label: '75세 이상', from: 75, to: 200 },
+];
+
+// 학교폭력 피해응답률(%) 1차 전수조사(R03 §8, S13): [초, 중, 고]. 2018 미만은 2018 값을 추정 대용.
+export const BULLY_RATE = {
+  2018: [2.8, 0.7, 0.4], 2019: [3.6, 0.8, 0.4], 2020: [1.8, 0.5, 0.24], 2021: [2.5, 0.4, 0.18], 2022: [3.8, 0.9, 0.3],
+  2023: [3.9, 1.3, 0.4], 2024: [4.2, 1.6, 0.5], 2025: [5.0, 2.1, 0.7], 2026: [5.7, 2.3, 0.8],
+};
+// 청소년건강행태조사 스트레스 인지율(%) (R03 §9.1, S16). 값 없는 해는 직전 조사값.
+export const STRESS_RATE = { 2005: 45.6, 2006: 46.5, 2008: 43.7, 2010: 43.8, 2012: 41.9, 2014: 37.0, 2015: 35.4, 2016: 37.4, 2018: 40.4, 2019: 39.9, 2020: 34.2, 2021: 38.8, 2022: 41.3, 2023: 37.3, 2024: 42.3 };
+
+const ALL = [1900, 2200];
+const E = (a, b, label, desc) => ({ years: [a, b], ...(label && { label }), ...(desc && { desc }) });
+
+export const CONCERN_ITEMS = {
+  infant: [
+    { key: 'apart', label: '부모와 떨어지는 시간', desc: '맞벌이·한부모·낮 시간 돌봄 공백으로 부모 곁을 떠나 있는 시간', years: ALL, adultKey: 'care', src: 'R01.S6', kind: 'estimated',
+      note: '어린이집 이용률 1~2세 91.6·95.2%(2025), 0세 26.2%(R01 §9-1). 맞벌이·조부모 돌봄 비율의 전국 공식 수치는 미확인(R01 §9-3).',
+      eraVariants: [E(1960, 1989, '엄마 아빠가 바쁜 낮', '농사·장사·공장 일로 부모가 바쁘고, 조부모·형제·동네가 아이를 함께 보던 때'), E(2013, 2200, null, '0~5세 전 계층 무상보육 이후, 부모가 일하는 동안 기관에서 보내는 하루')] },
+    { key: 'facility', label: '보육시설 적응·안전', desc: '어린이집·유치원 같은 기관에서 낯선 사람·또래와 보내는 하루의 적응과 안전', years: [1991, 2200], src: 'R01.S6', kind: 'estimated',
+      note: '아동학대 중 어린이집 비중 등 판정 통계는 이번 조사에서 미확인. 개인·가정 탓이 아닌 시설 관리·인력 제도의 문제로만 다룬다. CCTV 의무화 2015는 일반지식(R11.S3).',
+      eraVariants: [E(1991, 2014, null, '탁아·어린이집이 제도화된 뒤 기관에서 보내는 하루'), E(2015, 2200, null, 'CCTV 설치가 의무화된 뒤의 기관 생활. 시설 관리·인력 기준에 달린 안전')] },
+    { key: 'sick', label: '아플 때 곁에 있어 줄 사람', desc: '열이 나는 날 부모가 쉬기 어렵고 병원이 먼 환경', years: ALL, adultKey: 'medical', src: 'R02.S10', kind: 'estimated',
+      note: '시도별 간이생명표·의료 접근(R02.S10), 전국민 의료보험 1989 확대(R08 §10). 부모 결근 가능 비율은 미확인.',
+      eraVariants: [E(1960, 1988, '아플 때 병원에 갈 수 있을까', '전국민 의료보험이 되기 전, 병원비와 거리가 걸림돌인 집'), E(1989, 2200, null, '부모가 일터에서 빠지기 어려운 날의 돌봄과 병원 접근')] },
+    { key: 'home', label: '집 환경', desc: '이사·좁은 집·월세 같은 사는 곳의 안정', years: ALL, adultKey: 'housing', src: 'R05.S1', kind: 'estimated', note: '이사·주거 점유형태·최저주거기준(R05.S1).',
+      eraVariants: [E(1960, 1979, '살던 집·동네', '대가족이 좁은 집에서 함께 살던 시기의 집·동네')] },
+    { key: 'safety', label: '사고·안전', desc: '걸음마·놀이 중 다치는 일과 집 안팎의 안전', years: ALL, src: 'R02.S6', kind: 'estimated', note: '0~9세 외인사 비중은 사망원인통계(R02.S6)에서 재확인 필요 — 미확인. 어린이 보호구역 1995 도입은 일반지식(R11.S3).' },
+  ],
+  child: [
+    { key: 'adapt', label: '학교 적응·친구 관계', desc: '새 학교·새 반에서 친구를 사귀고 적응하는 일', years: ALL, adultKey: 'conflict', src: 'GDD.E', kind: 'estimated', note: '초등 적응 직접 통계는 미확인. 이사·성향 등으로 추정.' },
+    { key: 'violence', label: '학교폭력', desc: '따돌림·괴롭힘·싸움을 겪거나 곁에서 보는 일', years: ALL, src: 'R03.S13', kind: 'measured',
+      note: '초등 피해응답률 2018 2.8 → 2026 5.7%(1차 전수조사). 2018 이전 초등 값은 미확인(추정 대용).',
+      eraVariants: [E(1960, 2011, '친구들 사이 따돌림·싸움', '학교에서 또래 사이에 생기는 괴롭힘과 싸움'), E(2012, 2200, null, '학교폭력 실태조사로 집계되는 괴롭힘·따돌림')] },
+    { key: 'edu', label: '학원·사교육 시간', desc: '방과 후 학원·과외에 쓰는 시간과 성적 비교', years: ALL, adultKey: 'edu', src: 'R03.S1', kind: 'measured',
+      note: '사교육 참여율 75.7%(2025, 초중고 전체), 소득 300만 원 미만 52.8% vs 800만 원 이상 84.9%.',
+      eraVariants: [E(1960, 1979, '과외·학원', '입시 경쟁 속 과외·학원'), E(1980, 1999, '학원·보충수업', '과외 금지 시기, 학원·학교 보충수업 중심의 방과 후'), E(2000, 2200, '학원·사교육 시간', '과외 금지 위헌 결정 뒤 넓어진 사교육')] },
+    { key: 'alone', label: '방과 후 혼자 있는 시간', desc: '수업이 끝난 뒤 집에 어른이 없는 시간', years: ALL, adultKey: 'care', src: 'R06.S32', kind: 'estimated', note: '맞벌이 가구 초등 방과 후 돌봄 공백의 공식 비율은 이번 조사에서 미확인. 부모 가사·돌봄 시간(R06.S32)과 가구 유형으로 추정.',
+      eraVariants: [E(1960, 1989, '부모가 없는 오후', '일하러 나간 부모 대신 형제·동네 친구와 보내는 오후')] },
+    { key: 'screen', label: '스마트폰·게임', desc: '화면과 게임에 쓰는 시간', years: ALL, adultKey: 'tech', src: 'R11.S1', kind: 'measured', note: '10~19세 스마트폰 과의존 위험군 2011 11.4% → 2023 40.1%. 2010년 이전은 해당 없음(추정 대용).',
+      eraVariants: [E(1960, 1979, 'TV·만화방', '텔레비전과 만화방, 놀이는 주로 골목과 동네에서'), E(1980, 1998, 'TV·오락실·비디오게임', '텔레비전과 오락실·비디오게임'), E(1999, 2009, 'PC방·온라인 게임', '초고속인터넷이 보급된 뒤의 PC·온라인 게임'), E(2010, 2200, '스마트폰·게임', '스마트폰과 모바일 게임에 쓰는 시간')] },
+    { key: 'home', label: '집안 형편·가정 환경', desc: '이사·월세·형편이 아이 생활에 미치는 영향', years: ALL, adultKey: 'housing', src: 'R05.S1', kind: 'estimated', note: '가구 소득 분위·주거 점유형태·이사(R05.S1).' },
+  ],
+  teen: [
+    { key: 'exam', label: '입시 압박·수면 부족', desc: '대입을 향한 공부 부담과 줄어드는 잠', years: ALL, adultKey: 'edu', src: 'R11.S2', kind: 'measured', note: '고등학생 하루 학습 6시간 37분(2024), 9~24세 평균 수면 주중 8시간 12분(2023, 여가부). 청소년건강행태 수면충분률은 미확인.',
+      eraVariants: [E(1960, 1981, '대입 예비고사·본고사', '예비고사와 대학별 본고사를 준비하는 입시'), E(1982, 1993, '학력고사 입시', '학력고사 한 번의 점수로 갈리는 입시. 과외 금지 시기'), E(1994, 2200, '수능·내신 입시', '수능과 내신을 함께 준비하는 입시')] },
+    { key: 'peers', label: '또래 관계·학교폭력', desc: '친구 사이의 갈등과 따돌림', years: ALL, adultKey: 'conflict', src: 'R03.S13', kind: 'measured', note: '피해응답률 중학 2.3%, 고교 0.8%(2026 1차). 2018 이전 값은 미확인(추정 대용).',
+      eraVariants: [E(1960, 2011, '또래 관계·따돌림', '친구 사이의 서열·따돌림·싸움')] },
+    { key: 'cyber', label: '사이버폭력·SNS', desc: '온라인 대화방·SNS에서 겪는 비방과 따돌림', years: [2000, 2200], adultKey: 'tech', src: 'R11.S1', kind: 'estimated', note: '사이버폭력 피해 통계는 이번 조사에서 미확인. 청소년 스마트폰 과의존 위험군 40.1%(2023)로 노출 정도를 추정.',
+      eraVariants: [E(2000, 2009, '인터넷 채팅·게시판', '인터넷 채팅·카페·게시판에서 생기는 비방과 따돌림')] },
+    { key: 'body', label: '외모·SNS 비교', desc: 'SNS 속 또래와 자신을 견주는 마음', years: [2010, 2200], src: 'GDD.E', kind: 'estimated', note: '청소년 외모 불만·SNS 비교 통계는 이번 조사에서 미확인(게임 추정).' },
+    { key: 'job', label: '진로 불안', desc: '졸업 뒤 무엇을 할지 정해야 하는 압박', years: ALL, adultKey: 'job', src: 'R03.S12', kind: 'estimated', note: '고교 유형·학업중단(R03.S12)과 시대 일자리 충격(R08 §10).',
+      eraVariants: [E(1960, 1979, '진학이냐 취업이냐', '상급 학교에 갈지 일터로 나갈지의 갈림길'), E(1980, 1996, '대학이냐 취업이냐', '대학 진학과 취업 사이'), E(1997, 2007, '졸업 뒤 일자리', '외환위기 이후 좁아진 일자리 앞'), E(2008, 2200, '진로·취업 불안', '졸업 뒤 일자리와 진로의 불확실성')] },
+    { key: 'edu', label: '집안 형편에 따른 기회 격차', desc: '형편에 따라 갈리는 학습 기회', years: ALL, adultKey: 'fairness', src: 'R03.S1', kind: 'measured', note: '사교육 참여율 소득 300만 원 미만 52.8% vs 800만 원 이상 84.9%(2025).' },
+    { key: 'mind', label: '우울·스트레스', desc: '스트레스·우울을 느끼는 정도', years: [2005, 2200], src: 'R03.S16', kind: 'measured', note: '중·고생 스트레스 인지율 42.3%, 우울감 경험률 27.7%(2024).' },
+  ],
+  youngAdult: [
+    { key: 'job', label: '취업 준비·첫 일자리', desc: '첫 직장을 구하고 자리 잡는 일', years: ALL, adultKey: 'job', src: 'R04.S3', kind: 'measured', note: '청년층 부가조사(R04.S3)·시대 고용 충격(R08 §10).',
+      eraVariants: [E(1960, 1996, '취직·첫 직장', '공장·사무직 입사와 첫 일자리'), E(1997, 1999, '외환위기와 취업문', '구조조정으로 좁아진 신입 채용'), E(2000, 2007, '신용카드·비정규직', '카드 대출과 비정규직으로 시작하는 사회생활'), E(2008, 2019, '스펙·취업난', '인턴·스펙을 쌓으며 버티는 취업 준비'), E(2020, 2200, '불안정한 첫 일자리·AI 전환', '코로나 이후 불안정한 일자리와 AI 도입')] },
+    { key: 'edu', label: '등록금·학자금', desc: '대학 등록금과 생활비 마련', years: ALL, adultKey: 'edu', src: 'R03.S21', kind: 'measured', note: '학자금 대출·대학 등록금(R03.S20·S21).',
+      eraVariants: [E(1960, 2004, '등록금·생활비 마련', '등록금과 생활비를 아르바이트·휴학으로 마련'), E(2005, 2200, '학자금 대출', '등록금과 학자금 대출 상환')] },
+    { key: 'housing', label: '주거 독립', desc: '부모 집에서 나와 집을 구하는 일', years: ALL, adultKey: 'housing', src: 'R05.S1', kind: 'measured', note: '월세·전세·주거비 부담(R05.S1).',
+      eraVariants: [E(1960, 1989, '하숙·자취·셋방', '하숙·자취방·셋방으로 독립'), E(1990, 2009, '자취·월세 독립', '자취와 월세로 시작하는 독립'), E(2010, 2019, '전세난·청년 월세', '전세난 속 월세·고시원 독립'), E(2020, 2200, '집값·영끌·청년 월세', '집값 급등과 높은 금리 속 독립')] },
+    { key: 'love', label: '연애·결혼 압박', desc: '결혼 시기와 상대를 둘러싼 부담', years: ALL, src: 'R06.S8', kind: 'estimated', note: '평균 초혼연령 1990 남 27.8·여 24.8 → 2020 남 33.2·여 30.8(R06 §1-2).',
+      eraVariants: [E(1960, 1989, '결혼 적령기', '20대 중반을 결혼 적령기로 보던 때')] },
+    { key: 'living', label: '생활비·물가', desc: '월급 대비 생활비 부담', years: ALL, adultKey: 'living', src: 'R05.S3', kind: 'measured', note: '소비자물가·가계 지출(R05.S3, R08.S30).' },
+    { key: 'fairness', label: '공정성 감각', desc: '내 몫이 공정한지에 대한 체감', years: ALL, adultKey: 'fairness', src: 'R08.S01', kind: 'measured', note: '계층 이동 가능성 인식(R08 §1).' },
+  ],
+  adult30: [
+    { key: 'child', label: '출산 결정', desc: '아이를 낳을지, 언제 낳을지', years: ALL, src: 'R06.S21', kind: 'estimated', note: '합계출산율 1983 2.1 아래로 하락 → 2023 0.72 → 2025 0.80(R01·R08 §10).',
+      eraVariants: [E(1960, 1989, '자녀 수와 양육', '가족계획 속에서 낳을 자녀 수'), E(1990, 2004, '출산·보육', '출산과 보육 선택'), E(2005, 2200, '저출산 시대의 출산 결정', '비용과 일·가정 사이에서 하는 출산 결정')] },
+    { key: 'workcare', label: '육아와 일 병행', desc: '어린 자녀를 키우며 일을 이어 가는 부담', years: ALL, adultKey: 'care', src: 'R06.S26', kind: 'measured', note: '육아휴직 사용률·가사돌봄 시간(R06.S26·S32).',
+      eraVariants: [E(1960, 1989, '자녀 양육과 살림', '자녀를 키우고 집안일을 도맡는 일'), E(1990, 2200, null, '일과 아이 돌봄을 함께 하는 하루')] },
+    { key: 'housing', label: '내 집 마련', desc: '집을 사거나 전세를 이어 가는 일', years: ALL, adultKey: 'housing', src: 'R05.S2', kind: 'measured', note: '집값·전세·주택담보대출(R05.S2).',
+      eraVariants: [E(1960, 1989, '내 집 마련·셋방살이', '셋방을 벗어나 내 집을 마련하는 일'), E(1990, 2004, '집값·전세 자금', '전세 자금과 집값'), E(2005, 2019, '집값 급등·전세 대출', '집값 급등과 전세 대출'), E(2020, 2200, '집값·영끌·금리', '집값·대출 금리와 영끌')] },
+    { key: 'job', label: '이직·고용 불안', desc: '직장을 옮기거나 지키는 일', years: ALL, adultKey: 'job', src: 'R04.S4', kind: 'measured', note: '비정규직·이직(R04.S4).',
+      eraVariants: [E(1997, 1999, '외환위기 구조조정', '구조조정 속에서 일자리를 지키는 일')] },
+    { key: 'living', label: '대출 이자·생활비', desc: '빚과 생활비를 감당하는 일', years: ALL, adultKey: 'living', src: 'R05.S3', kind: 'measured', note: '가계 지출·물가(R05.S3).' },
+  ],
+  adult40: [
+    { key: 'edu', label: '자녀 교육비', desc: '학령기 자녀의 학원·학비', years: ALL, adultKey: 'edu', src: 'R03.S1', kind: 'measured', note: '사교육비·참여율(R03.S1).',
+      eraVariants: [E(1960, 1999, '자녀 학비·과외비', '자녀의 학비와 학원·과외비')] },
+    { key: 'care', label: '부모 부양·돌봄 시작', desc: '나이 든 부모의 생활과 돌봄', years: ALL, adultKey: 'care', src: 'R06.S33', kind: 'measured', note: '부모 돌봄·부양(R06.S33·S37).' },
+    { key: 'job', label: '구조조정 불안', desc: '직장에서 밀려나지 않을까', years: ALL, adultKey: 'job', src: 'R04.S4', kind: 'measured', note: '비정규·이직·퇴직 연령(R04).',
+      eraVariants: [E(1997, 2002, '외환위기 구조조정', '대규모 구조조정이 이어지는 일터'), E(2008, 2010, '금융위기 구조조정', '금융위기 뒤 줄어든 일자리')] },
+    { key: 'medical', label: '건강검진·만성질환', desc: '검진에서 나오는 이상과 만성질환', years: ALL, adultKey: 'medical', src: 'R02.S12', kind: 'measured', note: '만성질환 유병(R02.S12).' },
+    { key: 'housing', label: '주택 대출·집값', desc: '집과 대출 상환', years: ALL, adultKey: 'housing', src: 'R05.S2', kind: 'measured', note: '집값·원리금 부담(R05.S2).',
+      eraVariants: [E(1960, 1989, '내 집·셋방', '셋방과 내 집 사이'), E(2020, 2200, '집값·영끌·금리', '집값·대출 금리')] },
+    { key: 'living', label: '대출·생활비', desc: '가계 지출 부담', years: ALL, adultKey: 'living', src: 'R05.S3', kind: 'measured', note: '가계 지출·물가(R05.S3).' },
+    { key: 'tech', label: '기술 변화에 밀리지 않을까', desc: '일하는 방식이 바뀌는 데 대한 불안', years: [1995, 2200], adultKey: 'tech', src: 'R09.S4', kind: 'estimated', note: 'AI 노출 직업 분류(한국은행 2023, R09).',
+      eraVariants: [E(1995, 2022, '컴퓨터·전산화', '업무가 컴퓨터로 옮겨 가는 변화'), E(2023, 2200, '생성형 AI와 일자리', '생성형 AI가 일을 바꾸는 변화')] },
+  ],
+  adult50: [
+    { key: 'job', label: '퇴직 준비', desc: '주된 일자리를 떠날 시기와 그 뒤', years: ALL, adultKey: 'job', src: 'R04.S7', kind: 'measured', note: '주된 일자리 퇴직 평균 53.0세(R04.S7).',
+      eraVariants: [E(1960, 1997, '정년·퇴직', '정년과 퇴직 준비'), E(1998, 2015, '명예퇴직·권고사직', '명예퇴직·권고사직이 잦은 일터'), E(2016, 2200, '60세 정년과 그 전의 퇴직', '정년 60세 의무화 이후에도 앞당겨지는 퇴직')] },
+    { key: 'care', label: '부모 간병·부양', desc: '나이 든 부모의 간병과 부양', years: ALL, adultKey: 'care', src: 'R06.S33', kind: 'measured', note: '부모 돌봄(R06.S33)·장기요양보험 2008(R08 §10).' },
+    { key: 'kidcost', label: '자녀 독립·결혼 비용', desc: '다 큰 자녀의 학비·독립·결혼에 드는 돈', years: ALL, src: 'GDD.E', kind: 'estimated', note: '자녀 독립 비용 통계는 미확인(게임 추정).' },
+    { key: 'pensionfund', label: '노후 자금·연금', desc: '일을 그만둔 뒤 쓸 돈', years: ALL, src: 'R07.S28', kind: 'measured', note: '국민연금 가입·수급(R07.S28). 2025 연금개혁 보험료율 9→13%.',
+      eraVariants: [E(1960, 1987, '노후 자금', '연금 제도가 없던 때의 노후 대비'), E(1988, 2200, '노후 자금·국민연금', '국민연금과 저축으로 마련하는 노후')] },
+    { key: 'medical', label: '건강 이상·치료', desc: '만성질환과 큰 병의 위험', years: ALL, adultKey: 'medical', src: 'R02.S12', kind: 'measured', note: '만성질환·암(R02.S12·S14).' },
+    { key: 'housing', label: '주거·대출 상환', desc: '집과 남은 대출', years: ALL, adultKey: 'housing', src: 'R05.S2', kind: 'measured', note: '원리금 부담(R05.S2).' },
+  ],
+  senior60: [
+    { key: 'pension', label: '연금·생활비', desc: '연금과 생활비가 맞는지', years: ALL, adultKey: 'living', src: 'R07.S12', kind: 'measured', note: '노인 가구 소득·연금 수급(R07.S12, 2026 고령자 통계).',
+      eraVariants: [E(1960, 2013, '노후 생활비', '연금과 저축으로 꾸리는 생활비'), E(2014, 2200, '연금·기초연금', '국민연금·기초연금으로 꾸리는 생활비')] },
+    { key: 'job', label: '재취업·노후 일자리', desc: '정년 이후 일을 이어 가는 일', years: ALL, adultKey: 'job', src: 'R07.S19', kind: 'measured', note: '노인일자리 사업(R07.S19).',
+      eraVariants: [E(2016, 2200, '60세 정년 뒤 재취업', '정년 뒤 새 일자리를 찾는 일')] },
+    { key: 'medical', label: '건강·만성질환', desc: '만성질환과 병원비', years: ALL, adultKey: 'medical', src: 'R07.S12', kind: 'measured', note: '고령자 만성질환·의료비(R07.S12).' },
+    { key: 'spouse', label: '배우자와 나', desc: '배우자의 건강·사별·홀로 지내는 일', years: ALL, src: 'R07.S12', kind: 'measured', note: '고령자 가구 형태(R07.S12).' },
+    { key: 'care', label: '손주·부모 돌봄', desc: '손주나 부모를 돌보는 일', years: ALL, adultKey: 'care', src: 'R01.S6', kind: 'estimated', note: '조부모 돌봄자 주 26.8시간·53.3% 비자발(R01 §9-3, 2차 자료).' },
+    { key: 'housing', label: '주거', desc: '살던 집을 지킬 수 있는지', years: ALL, adultKey: 'housing', src: 'R05.S2', kind: 'measured', note: '주거비·점유형태(R05).' },
+    { key: 'tech', label: '디지털 기기 문턱', desc: '앱·키오스크 사용의 어려움', years: [2010, 2200], adultKey: 'tech', src: 'R08.S01', kind: 'estimated', note: '디지털 정보격차 공식 수치는 미확인(R08 §6-2).' },
+  ],
+  elder75: [
+    { key: 'dementia', label: '치매·인지 저하', desc: '기억과 판단이 흐려지는 일', years: ALL, src: 'R02.S14', kind: 'estimated', note: '65세 이상 추정 유병률 9.15%(중앙치매센터, R02 §6-4). 연령별 발생률은 추정.' },
+    { key: 'care', label: '돌봄·요양', desc: '일상을 도와줄 사람과 요양', years: ALL, adultKey: 'care', src: 'R07.S12', kind: 'measured', note: '장기요양 등급·재가·시설(R07.S12).',
+      eraVariants: [E(1960, 2007, '가족 돌봄 의존', '요양보험이 없던 때, 가족에게 의지하는 돌봄'), E(2008, 2200, null, '노인장기요양보험으로 받는 돌봄')] },
+    { key: 'isolation', label: '고립·외로움', desc: '찾아오는 사람이 줄고 혼자 지내는 일', years: ALL, src: 'R07.S17', kind: 'measured', note: '고독사 실태조사 2024(R07.S17), 노인실태조사 2023(R07.S18).' },
+    { key: 'dignity', label: '존엄한 마지막', desc: '마지막 시기를 어떻게 보낼지', years: ALL, src: 'R11.S4', kind: 'estimated', note: '연명의료결정제도 2018-02 시행(일반지식, 재확인 권장).',
+      eraVariants: [E(1960, 2017, '마지막 준비', '임종과 장례를 가족에게 맡기는 준비'), E(2018, 2200, '연명의료·존엄한 마지막', '연명의료 결정을 미리 밝혀 두는 일')] },
+    { key: 'medical', label: '병원비·약값', desc: '의료비와 통원', years: ALL, adultKey: 'medical', src: 'R07.S12', kind: 'measured', note: '본인부담 의료비(R07.S12).' },
+    { key: 'tech', label: '키오스크·앱 장벽', desc: '예약·결제가 기기로 옮겨 가는 불편', years: [2015, 2200], adultKey: 'tech', src: 'R08.S01', kind: 'estimated', note: '디지털 정보격차 수치는 미확인(R08 §6-2).' },
+  ],
+};

@@ -116,7 +116,7 @@ export default [
       prompt: '해 볼까?',
       options: [
         { id: 'do', label: '해 본다', fx: { stats: { wealth: 3, leisure: -4, health: -1 }, money: { assets: 300 } }, result: '월 몇십만 원이 더 들어왔고, 저녁은 짧아졌다.' },
-        { id: 'skip', label: '안 한다', fx: { stats: { leisure: 2, health: 1 } }, result: '저녁 시간을 지켰고, 통장 숫자는 그대로였다.' },
+        { id: 'skip', label: '안 한다', fx: { stats: { leisure: 2, health: 1 } }, result: '저녁 시간을 지켰고, 잔액은 그대로였다.' },
       ],
       default: 'skip',
     },
@@ -192,7 +192,7 @@ export default [
   {
     id: 'mid.child.tuition', ages: [44, 54], p: 0.3, cooldown: 4, src: ['R03.S20', 'R03.S21'],
     when: L => kids(L, 19, 23) > 0,
-    text: ['자녀 등록금 고지서가 나왔다. 한 학기 금액이 컸다.', '자녀 등록금 납부 기간이 다가왔다. 통장을 먼저 열어 보았다.', '등록금 고지서의 숫자를 한참 보았다.'],
+    text: ['자녀 등록금 고지서가 나왔다. 한 학기 금액이 컸다.', '자녀 등록금 납부 기간이 다가왔다. 통장을 먼저 열어 보았다.', '등록금 고지서를 확인했다.'],
     reason: '자녀 등록금',
     choice: {
       prompt: '어떻게 낼까?',

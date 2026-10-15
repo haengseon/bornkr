@@ -1,13 +1,15 @@
 // 주거(GDD §5.5). home = { tenure, region, regionGroup, parents, moves, rentBurden, owned, value, deposit, rent, contractEnd }
 import { bias } from '../sigungu.js';
 import { T, D, yr, ag, isCapital, REGION, houseYoy } from '../tables.js';
-import { indep, becomeIndependent, homePrice, TENURE_LABEL } from '../act.js';
+import { indep, becomeIndependent, homePrice, canOwn, TENURE_LABEL } from '../act.js';
 import { econ } from '../stats.js';
 import { won } from '../text.js';
 import { HOUSING_CAL, CLASS_CAL } from '../tuning.js';
 
 const RENTER = new Set(['jeonse', 'monthly', 'public']);
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+// 최근 2년 안에 이사했으면 자발적 이사 확률을 크게 낮춘다(자가는 더)
+const recent = L => { const m = L.home.moves, last = m[m.length - 1]; return last && L.year - last.year <= 2 ? T('MOVE_RATE')[L.home.owned ? 'recentOwn' : 'recent'] : 1; };
 
 function leaveHome(L, ctx, tenure, reason) {
   becomeIndependent(L, ctx);
@@ -25,7 +27,7 @@ export function step(L, ctx) {
   // 부모 집에 사는 동안: 가구 이사, 독립 판정
   if (h.parents) {
     const renter = RENTER.has(h.tenure) || h.tenure === 'family';
-    if (ctx.chance(renter ? 0.27 : 0.085) && (a < 19 || ctx.chance(0.5))) {
+    if (ctx.chance((renter ? T('MOVE_RATE').familyRenter : T('MOVE_RATE').familyOwn) * recent(L)) && (a < 19 || ctx.chance(0.5))) {
       if (renter && ctx.chance(0.12)) h.tenure = 'own';
       h.moves.push({ year: y, to: h.tenure, reason: '가구 이사' });
       fl.familyMove = y;
@@ -47,7 +49,9 @@ export function step(L, ctx) {
 
   // 임차 계약 만기(2년)
   if (RENTER.has(h.tenure) && h.contractEnd != null && y >= h.contractEnd) {
-    if (ctx.chance(yr(T('RENEWAL'), y))) {
+    // 35세+ 임차인은 같은 집에 오래 머문다(거주기간 R05: 임차 3.6년 평균, 중장년 더 길다)
+    const stable = a >= 55 ? 0.3 : a >= 35 ? 0.5 : 1;
+    if (ctx.chance(1 - (1 - yr(T('RENEWAL'), y)) * stable)) {
       const rise = Math.max(0, (1 + houseYoy(h.regionGroup, y)) * (1 + houseYoy(h.regionGroup, y - 1)) - 1) + 0.02;
       h.contractEnd = y + 2;
       if (h.tenure === 'jeonse' && h.deposit * rise >= 300) {
@@ -70,24 +74,24 @@ export function step(L, ctx) {
   }
   // 주택 구입 기회
   if (!h.owned && a >= 25 && a <= 64) {
-    const price = Math.round(homePrice(L) * (0.5 + 0.6 * ctx.rand()));
+    const sz = 0.5 + 0.6 * ctx.rand(), price = Math.round(homePrice(L) * sz);
     const ltv = ltvOf(L);
     const afford = clamp((L.money.assets + (h.deposit || 0) + parentHelp(L) + ltv * price) / price, 0, 1.5);
     const cf = D.OWN_TRANSITION.cohortFactor, hc = HOUSING_CAL;
     // OWN_TRANSITION은 실측 전이율이므로 afford는 평균 근처(ref)에서 1이 되는 상대 배수로만 쓴다(QA-S-05)
     const lam = ag(T('OWN_TRANSITION'), a) * ag(hc.own, a) * (L.birth.year >= cf.fromBirthYear ? cf.mult * hc.cohortAdj : 1) * clamp(afford / hc.affordRef, 0.25, 1.5) * (fl.buyWait ? 0.8 : 1) * bias(L, 'tenureBias', 'own', 0.85, 1.15);
-    if (ctx.chance(lam)) return ctx.ask({ eventId: 'sys.home.buy', options: ['buy', 'wait'], defaultId: afford < hc.buyMin ? 'wait' : 'buy', data: { price } });
+    if (canOwn(L, ctx, sz) && ctx.chance(lam * recent(L))) return ctx.ask({ eventId: 'sys.home.buy', options: ['buy', 'wait'], defaultId: afford < hc.buyMin ? 'wait' : 'buy', data: { price } });
   }
   // 공공임대
-  if (h.tenure === 'monthly' && L.birth.quintile <= 2 && y >= 1989 && ctx.chance(0.03)) {
+  if (h.tenure === 'monthly' && L.birth.quintile <= 2 && y >= 1989 && ctx.chance(0.03 * recent(L))) {
     ctx.act.move('public', { reason: '공공임대', silent: true });
     ctx.sys('sys.home.public_rental');
   }
   // 지역 이동: 비수도권 출생 청년의 수도권행, 40세+ 서울 임차의 경기행
-  if (!isCapital(h.region) && a >= 19 && a <= 29 && ctx.chance(0.04)) {
+  if (!isCapital(h.region) && a >= 19 && a <= 29 && ctx.chance(0.03 * recent(L))) {
     ctx.act.moveRegion(ctx.chance(0.4) ? 'seoul' : 'gyeonggi');
     if (RENTER.has(h.tenure)) ctx.act.move('monthly', { reason: '일자리', silent: true });
-  } else if (h.region === 'seoul' && a >= 40 && RENTER.has(h.tenure) && ctx.chance(0.05)) {
+  } else if (h.region === 'seoul' && a >= 40 && RENTER.has(h.tenure) && (h.rentBurden || 0) > 0.25 && ctx.chance(0.05 * recent(L))) {
     ctx.act.moveRegion('gyeonggi', { silent: true });
     ctx.act.move(h.tenure === 'public' ? 'monthly' : h.tenure, { reason: '집값', involuntary: true });
   }
@@ -146,6 +150,6 @@ export const choices = {
     const help = parentHelp(L);
     if (help) { L.household.netWorth -= help; L.money.assets += help; }
     ctx.act.move('own', { reason: '매수', price, silent: true });
-    ctx.sys('sys.home.bought', { regionLabel: REGION[L.home.region]?.label, loan: Math.round(L.money.loans.mortgage) });
+    if (L.home.owned) ctx.sys('sys.home.bought', { regionLabel: REGION[L.home.region]?.label, loan: Math.round(L.money.loans.mortgage) });
   },
 };

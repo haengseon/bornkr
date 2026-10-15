@@ -21,28 +21,29 @@ export function fmtWon(man) {
   let n = Number(man) || 0;
   const sg = n < 0 ? '−' : '';
   n = Math.abs(n);
+  const NB = ' ';    // 금액은 줄 중간에서 갈라지지 않게 숫자·단위 사이를 붙인다
   if (n < 1) return `${sg}${comma(Math.round(n * 10000))}원`;
   n = Math.round(n);
   const eok = Math.floor(n / 10000), rest = n % 10000;
-  if (!eok) return `${sg}${comma(rest)}만 원`;
-  return `${sg}${eok}억${rest ? ` ${comma(rest)}만` : ''} 원`;
+  if (!eok) return `${sg}${comma(rest)}만${NB}원`;
+  return `${sg}${eok}억${rest ? `${NB}${comma(rest)}만` : ''}${NB}원`;
 }
 // 한 번에 두 값: { nominal: 그해 금액 문자열, today: '2026년 환산 약 …'(2025년 이후엔 null), nomMan, estimated }
 // fmt: 금액 → 문자열 함수(연봉·월 등 접두를 붙일 때). 기본 fmtWon
 export function money(realMan, year, fmt = fmtWon) {
   const nomMan = nominal(realMan, year), c = cpiMult(year);
   const nearNow = year >= TODAY - 1;
-  return { nominal: fmt(nomMan), today: nearNow ? null : `2026년 환산 약 ${fmt(today(realMan))}`, nomMan, estimated: c.est };
+  return { nominal: fmt(nomMan), today: nearNow ? null : `2026년 환산 약 ${fmt(today(realMan))}`, nomMan, estimated: c.est };
 }
-export const fmtMonthly = man => `월 ${fmtWon(man)}`;
-export const fmtDaily = man => `일당 약 ${fmtWon(man)}`;
+export const fmtMonthly = man => `월 ${fmtWon(man)}`;
+export const fmtDaily = man => `일당 약 ${fmtWon(man)}`;
 // 소득 표기: 직업에 맞게 연봉·월급·일당. wage = 연 소득(만원)
 export function fmtIncome(wage, { daily = false, monthly = false } = {}) {
   if (daily) return fmtDaily(wage / 220);
-  if (monthly) return `월급 ${fmtWon(wage / 12)}`;
-  return `연봉 ${fmtWon(wage)}`;
+  if (monthly) return `월급 ${fmtWon(wage / 12)}`;
+  return `연봉 ${fmtWon(wage)}`;
 }
-export const fmtRent = (deposit, rent) => `보증금 ${fmtWon(deposit)} / 월 ${fmtWon(rent)}`;
+export const fmtRent = (deposit, rent) => `보증금 ${fmtWon(deposit)} / 월 ${fmtWon(rent)}`;
 export const fmtPct = r => `${Math.round(r * 100)}%`;
 export const fmtRate = r => `연 ${Math.round(r * 1000) / 10}%`;
 
@@ -54,6 +55,6 @@ export function tenureText(years) {
   return y < 1 ? '1년 미만' : `${y}년`;
 }
 // 전용면적 ㎡ → '전용 59㎡(약 18평)'
-export const areaText = m2 => `전용 ${Math.round(m2)}㎡(약 ${Math.round(m2 / 3.3058)}평)`;
+export const areaText = m2 => `전용 ${Math.round(m2)}㎡(약 ${Math.round(m2 / 3.3058)}평)`;
 // 주거 형태별 흔한 전용면적(추정)
 export const AREA_GUESS = { apt: 84, house: 99, family: 99, jeonse: 59, monthly: 33, basement: 26, public: 39, facility: 20, own: 84 };

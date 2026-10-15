@@ -328,16 +328,16 @@ export default [
       prompt: '어떻게 할까?',
       options: [
         { id: 'go', label: '다녀온다', fx: { stats: { happiness: 3, leisure: 2, wealth: -3 }, money: { assets: -300 } }, result: '가방을 싸는 일부터 즐거웠다.' },
-        { id: 'save', label: '아낀다', fx: { stats: { wealth: 1, happiness: -1, leisure: -1 } }, result: '다음에 가자고 했고, 통장 숫자는 그대로였다.' },
+        { id: 'save', label: '아낀다', fx: { stats: { wealth: 1, happiness: -1, leisure: -1 } }, result: '다음에 가자고 했고, 지출은 없었다.' },
       ],
       default: 'save',
     },
   },
   {
     id: 'late.album', ages: [70, 95], p: 0.08, once: true,
-    text: '낡은 앨범을 정리했다. 이름을 아는 얼굴이 절반이었다.',
+    text: '옛 사진을 정리했다.',
     fx: { stats: { happiness: 1, relations: 1 } },
-    reason: '앨범 정리',
+    reason: '옛 사진 정리',
   },
   {
     id: 'late.garden', ages: [60, 85], p: 0.1, once: true,

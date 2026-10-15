@@ -108,7 +108,7 @@ export function profileOf(L) {
       school: j.status === 'student' || L.age < 19 ? (SCHOOL_LABEL[L.edu?.stage] ?? '') : '',
       major: MAJOR_LABEL[j.major] ?? '', firmSize: working ? j.firmSize : null,
     },
-    pay: working ? { annual: Math.round(j.wage || 0), label: biz ? '연 순익(추정)' : '연봉', est: !!biz } : null,
+    pay: working ? { annual: Math.round(j.wage || 0), label: biz ? '연 순익' : '연봉', est: !!biz } : null,
     years: working ? { n: (j.years || 0) + 1 } : null,
     rank, biz,
     money: { assets: Math.round(assets), debt: Math.round(mo.debt || 0), net: Math.round(assets - (mo.debt || 0)) },

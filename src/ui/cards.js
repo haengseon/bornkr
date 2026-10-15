@@ -5,7 +5,7 @@ import { sexLabel, mmdd, dateKo, dateDot, dateDotSp, receiptNo, ageText } from '
 
 const W = 1080, H = 1350;
 const PUNCT = '.,!?)」』·…%';
-const SIGN = '— 태어나보니 대한민국';
+const SIGN = '— 태어나보니 대한민국 · bornkr.click';
 
 // 줄바꿈(§8.1): 어절 단위 탐욕 → 긴 어절은 글자 단위 → 문장부호로 시작하는 줄은 앞 줄에 붙임 → 넘치면 "…"
 export function wrap(text, maxW, maxLines, measure) {
@@ -116,8 +116,8 @@ function frame(p, C, no) {
   p.box(52.5, 52.5, 975, 1245, C.ink, 1);
   p.text(`■ 태어나보니 대한민국 [별지 제${no}호서식]`, 88, 112, p.f(400, 22, 'sans'), C.ink3);
   p.hline(88, 992, 1206, C.rule);
-  p.text('실측·전망·게임 추정이 섞인 시뮬레이션 · 2025년 물가 기준', 88, 1252, p.f(400, 22, 'sans'), C.ink3);
-  p.text('태어나보니 대한민국', 992, 1252, p.f(700, 24, 'sans'), C.ink, 'right');
+  p.text('통계를 참고한 가상 인생 시뮬레이션 · 2025년 물가 기준', 88, 1252, p.f(400, 22, 'sans'), C.ink3);
+  p.text('태어나보니 대한민국 · bornkr.click', 992, 1252, p.f(700, 24, 'sans'), C.ink, 'right');
 }
 
 function drawBirth(p, C, ctx, d) {
@@ -181,7 +181,7 @@ function drawVerdict(p, C, ctx, d) {
     y += 50 * ls.length + 14;
   });
   p.text(`${death.year}년`, 840, 1102, p.f(400, 28, 'num'), C.ink2, 'right');
-  p.text('태어나보니 대한민국', 840, 1156, p.f(800, 38, 'serif'), C.ink, 'right');
+  p.text('태어나보니 대한민국 · bornkr.click', 840, 1156, p.f(800, 38, 'serif'), C.ink, 'right');
   p.turned(920, 1124, 4, () => {
     ctx.strokeStyle = C.seal; ctx.lineWidth = 6; ctx.strokeRect(-64, -64, 128, 128);
     const sf = p.f(800, 46, 'serif');

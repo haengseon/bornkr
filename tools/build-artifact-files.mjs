@@ -17,6 +17,8 @@ await writeFile(path.join(root, 'dist', 'app.css'), await read('styles.css'));
 await writeFile(path.join(root, 'dist', 'privacy.html'), await read('src/static/privacy.html'));
 for (const f of ['manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png']) await writeFile(path.join(root, 'dist', f), await readFile(path.join(root, 'src/static', f)));
 
+await writeFile(path.join(root, 'dist', 'favicon.ico'), await readFile(path.join(root, 'src/static/icon-192.png')));
+
 const html = (await read('index.html'))
   .replaceAll('src/static/', '')
   .replace(/<!doctype html>\s*/i, '')

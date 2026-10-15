@@ -215,7 +215,7 @@ export default [
       ev('33201', 'cleaning', [21, 60], 0.14, '입력된 자료에서 이상값을 걸러 내며 사흘을 보냈다.', 'leisure-2 intellect+1', '자료 정리'),
       ch('33201', 'wrong_number', [23, 60], 0.11, '보고서가 나간 뒤 표의 수치가 다르다는 것을 발견했다.', '어떻게 할까?', [
         ['tell', '바로 보고하고 정정한다', 'happiness-1 relations-1 fairness+1 intellect+1', '정정 공문을 돌렸다. 질책이 있었지만 기록은 바로잡혔다.'],
-        ['quiet', '다음 호에 반영한다', 'happiness-1 fairness-2', '다음 호에 반영하기로 했다. 한동안 숫자가 머릿속에 남았다.'],
+        ['quiet', '다음 호에 반영한다', 'happiness-1 fairness-2', '다음 호에 반영하기로 했다. 한동안 그 금액이 기억에 남았다.'],
       ], 'tell', '수치 오류 발견'),
       ev('33201', 'auto_tool', [24, 60], 0.11, '표 작성과 검증을 자동으로 해 주는 도구가 들어와 하던 일이 줄었다.', 'intellect+1 job+3 tech+3', '통계 자동화', { dark: true, years: [2018, 2100], once: true }),
       ev('33201', 'report_cite', [24, 60], 0.08, '정리한 통계표가 정책 보고서에 인용됐다는 소식을 들었다.', 'happiness+2 intellect+1', '통계표 인용'),

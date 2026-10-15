@@ -1,8 +1,10 @@
 // 구조 변화 동작(ARCHITECTURE §7 act). 시스템과 사건의 do(L, act)가 이걸로만 큰 변화를 만든다.
 import { T, yr, regionGroup, regionLabel, isCapital } from './tables.js';
 import { sensFields } from './safety.js';
-import { pickMoveTarget, levelOf } from './sigungu.js';
+import { pickMoveTarget, levelOf, candidates, place, SGG } from './sigungu.js';
+import { econ } from './stats.js';
 import { CLASS_CAL } from './tuning.js';
+import { spouseName } from './kin.js';
 
 export const LOAN_LABEL = { credit: '신용대출', mortgage: '주택담보대출', jeonse: '전세자금대출', student: '학자금 대출', business: '사업자 대출' };
 export const TENURE_LABEL = { own: '자가', jeonse: '전셋집', monthly: '월셋집', public: '공공임대', family: '부모님 집', dorm: '기숙사', facility: '요양시설' };
@@ -26,15 +28,51 @@ export function addCredit(L, amount) {
   refreshDebt(L);
 }
 
-// 2025 실질 지역 임대 시세(월세·보증금)를 연도 소득 지수로 환산
-export function rentFor(L, ctx, group = L.home.regionGroup) {
-  const base = T('RENT_BASE')[group];
-  const era = yr(T('ERA_INCOME_INDEX'), L.year);
-  return { rent: Math.round(base.rent * era * (0.8 + 0.4 * ctx.rand())), deposit: Math.round(base.deposit * era) };
+// ── 주거 가격·예산 (시군구 housingTier 기준, 2025 실질 만원) ──
+const curveOf = t => t >= 4 ? 'hi' : t === 3 ? 'mid' : 'lo';
+export const tierOfL = L => SGG.get(L.home.sigungu)?.housingTier ?? ({ seoul: 4, capital: 3, metro: 3, province: 2 })[L.home.regionGroup] ?? 3;
+export const priceAt = (tier, year) => T('HOME_PRICE_TIER')[tier] * yr(T('HOME_PRICE_INDEX')[curveOf(tier)], year);
+export function homePrice(L, tier = tierOfL(L)) { return Math.round(priceAt(tier, L.year)); }
+export function rentAt(tier, year, cheap = false) {
+  const base = T('RENT_TIER')[tier], c = T('RENT_TIER').cheap, era = yr(T('ERA_INCOME_INDEX'), year);
+  return { rent: Math.max(3, Math.round(base.rent * era * (cheap ? c.rent : 1))), deposit: Math.round(base.deposit * era * (cheap ? c.deposit : 1)) };
 }
-export function homePrice(L, group = L.home.regionGroup) {
-  return yr(T('HOME_PRICE')[group], L.year);
+export function rentFor(L, ctx, tier = tierOfL(L), cheap = L.home.cheap) {
+  const r = rentAt(tier, L.year, cheap);
+  return { rent: Math.round(r.rent * (0.85 + 0.3 * ctx.rand())), deposit: r.deposit };
 }
+// 예산: 소득·가용 자산·대출 한도(연도별 DSR/DTI 상한, 연 원리금 상환 기준)
+export function budgetOf(L) {
+  const mb = T('MOVE_BUDGET'), y = L.year, INC = Math.max(0, econ(L).INC);
+  const r = (yr(T('BASE_RATE'), y) ?? 0.05) + 0.02, n = mb.term;
+  const ann = r / (1 - (1 + r) ** -n);
+  const help = L.family.parents.father.alive || L.family.parents.mother.alive ? Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1] : 0;
+  return { INC, ann, assets: Math.max(0, L.money.assets) + (L.home.deposit || 0) + (L.home.owned ? L.home.value : 0) * 0.9 - (L.home.owned ? L.money.loans.mortgage : 0) + help, loanCap: Math.max(0, yr(mb.dsr, y) * INC / ann - (L.money.debt - (L.home.owned ? L.money.loans.mortgage : 0) - L.money.loans.jeonse)), rentCap: mb.rentCap * INC, jx: mb.jeonseLoanX };
+}
+export function fits(L, b, tenure, tier, sz = 1) {
+  const y = L.year;
+  if (tenure === 'own') { const p = priceAt(tier, y) * sz, ltv = yr(T('LTV')[L.home.regionGroup], y); return p - Math.min(ltv * p, b.loanCap) <= b.assets + b.INC; } // INC: 신용·가족 차입 등 보완 자금
+  if (tenure === 'jeonse') { const d = priceAt(tier, y) * yr(T('JEONSE_RATIO')[L.home.regionGroup], y) * 0.55; return d - Math.min(0.8 * d, b.jx * b.INC) <= b.assets && d * 0.8 <= b.loanCap + b.assets; }
+  const r = rentAt(tier, y); return r.rent * 12 <= b.rentCap && r.deposit <= b.assets + b.INC;
+}
+// 같은 시도 안에서 예산에 맞는 (시군구, 점유 형태) 선택. 없으면 점유 형태를 낮추고, 끝까지 없으면 최저 등급의 저가 월세.
+function chooseTarget(L, ctx, tenure, region, size) {
+  const h = L.home, y = L.year, b = budgetOf(L), cs = candidates(region, y), want = tierOfL(L);
+  const ladder = tenure === 'own' ? ['own', 'jeonse', 'monthly'] : tenure === 'jeonse' ? ['jeonse', 'monthly'] : [tenure];
+  const pick = list => {
+    const cur = list.find(c => c.r.id === h.sigungu);
+    if (cur && region === h.region && ctx.chance(T('MOVE_RATE').stay)) return cur.r;
+    const w = list.map(c => c.p * Math.exp(-0.8 * Math.abs(c.r.housingTier - want)));
+    return list[+ctx.weighted(Object.fromEntries(w.map((x, i) => [i, x])))].r;
+  };
+  for (const t of ladder) {
+    const ok = tenure === 'public' ? cs.filter(c => c.r.housingTier <= 3) : cs.filter(c => fits(L, b, t, c.r.housingTier, size));
+    if (ok.length) return { tenure: t, place: place(ctx.weighted, pick(ok), y), cheap: false };
+  }
+  const low = Math.min(...cs.map(c => c.r.housingTier)), lows = cs.filter(c => c.r.housingTier === low);
+  return { tenure: 'monthly', place: place(ctx.weighted, pick(lows), y), cheap: tenure !== 'public' };
+}
+export const canOwn = (L, ctx, size = 0.8) => { const b = budgetOf(L); return candidates(L.home.region, L.year).some(c => fits(L, b, 'own', c.r.housingTier, size)); };
 
 export function makeAct(L, ctx) {
   const act = {
@@ -80,9 +118,17 @@ export function makeAct(L, ctx) {
         const jl = Math.min(L.money.loans.jeonse, L.money.assets);
         L.money.loans.jeonse -= jl; L.money.assets -= jl;
       }
+      // 독립 후 이사: 예산에 맞는 (시군구, 점유 형태)만 후보. 부모 집·시설·기숙사·공공임대 외
+      let cheap = false;
+      if (indep(L) && h.sigungu && tenure !== 'facility' && tenure !== 'dorm' && tenure !== 'family') {
+        const size = tenure === 'own' ? Math.min(1.3, Math.max(0.4, (price ?? homePrice(L)) / Math.max(1, homePrice(L)))) : 1;
+        const t = chooseTarget(L, ctx, tenure, h.region, size);
+        Object.assign(h, t.place);
+        tenure = t.tenure; cheap = t.cheap;
+        if (tenure === 'own') price = Math.round(priceAt(tierOfL(L), L.year) * size);
+      }
+      h.cheap = cheap;
       h.parents = tenure === 'family';
-      // 독립 후 같은 시도 안 이사: 절반은 소득·주택가에 맞는 다른 시군구로
-      if (!h.parents && tenure !== 'facility' && h.sigungu && !region && ctx.chance(0.5)) Object.assign(h, pickMoveTarget(ctx.weighted, h.region, L.year, levelOf(L)));
       h.tenure = tenure; h.rent = 0; h.contractEnd = null;
       if (tenure === 'monthly' || tenure === 'public') {
         const r = rentFor(L, ctx);
@@ -90,7 +136,7 @@ export function makeAct(L, ctx) {
         payDeposit(tenure === 'public' ? Math.round(r.deposit * 0.3) : r.deposit, 0.5);
         h.contractEnd = L.year + 2;
       } else if (tenure === 'jeonse') {
-        const size = 0.35 + 0.35 * ctx.rand();
+        const size = 0.45 + 0.2 * ctx.rand();
         payDeposit(Math.round(homePrice(L) * yr(T('JEONSE_RATIO')[h.regionGroup], L.year) * size), 0.8);
         h.contractEnd = L.year + 2;
       } else if (tenure === 'own') {
@@ -104,8 +150,10 @@ export function makeAct(L, ctx) {
         h.rent = Math.round(rentFor(L, ctx).rent * 0.5);
       }
       refreshDebt(L);
-      h.moves.push({ year: L.year, to: tenure, reason });
-      tally(L, 'moves');
+      // 같은 해 두 번째 이사는 새 기록을 만들지 않고 마지막 이사를 갱신(연 1회 상한)
+      const last = h.moves[h.moves.length - 1];
+      if (last && last.year === L.year && last.reason !== '독립') { last.to = tenure; last.reason = reason; }
+      else { h.moves.push({ year: L.year, to: tenure, reason }); tally(L, 'moves'); }
       if (involuntary) tally(L, 'invMoves');
       if (!silent) ctx.sys('sys.home.move', { toLabel: TENURE_LABEL[tenure], reasonLabel: reason });
     },
@@ -114,7 +162,10 @@ export function makeAct(L, ctx) {
       if (!key || key === h.region) return;
       if (!isCapital(h.region) && isCapital(key)) L.flags.toCapital = L.year;
       h.region = key; h.regionGroup = regionGroup(key);
-      Object.assign(h, pickMoveTarget(ctx.weighted, key, L.year, levelOf(L)));
+      if (indep(L) && h.sigungu && !h.parents) {
+        const t = chooseTarget(L, ctx, 'monthly', key, 1);
+        Object.assign(h, t.place);
+      } else Object.assign(h, pickMoveTarget(ctx.weighted, key, L.year, levelOf(L)));
       if (!silent) ctx.sys('sys.home.region_move', { regionLabel: regionLabel(key) });
     },
 
@@ -144,8 +195,8 @@ export function makeAct(L, ctx) {
     },
     loseJob(reason = '사업 부진') {
       if (L.job.status !== 'employed' && L.job.status !== 'self') return;
-      ctx.sys('sys.job.lose', { reasonLabel: reason });
       act.endJob(reason);
+      ctx.sys('sys.job.lose', { reasonLabel: reason });
       tally(L, 'jobLosses'); L.flags.jobLoss = L.year;
     },
     retire() {
@@ -174,24 +225,32 @@ export function makeAct(L, ctx) {
       if (!f.partner) return;
       f.married = true; f.marriedYear = L.year; f.dating = false;
       L.flags.marryYear = L.year;
-      if (!silent) ctx.sys('sys.fam.wedding');
+      if (!f.partner.since) {                          // 새 배우자 개체: 이름·시작연도를 연표에 남긴다(QA #7)
+        const no = (f.spouses ||= []).length + 1;
+        Object.assign(f.partner, { no, since: L.year, name: spouseName(L.seed, no, f.partner.sex, L.year - f.partner.age) });
+        f.spouses.push({ no, name: f.partner.name, since: L.year, until: null, end: null });
+      }
+      if (!silent) ctx.sys('sys.fam.wedding', {}, { spouse: spouseRef(f.partner) });
       if (!indep(L)) becomeIndependent(L, ctx);
       act.spend(1500 + Math.round(1500 * ctx.rand()));
       if (L.home.parents || L.home.tenure === 'dorm') act.move('jeonse', { reason: '결혼', silent: true });
     },
     divorce() {
-      const f = L.family;
+      const f = L.family, sp = f.partner;
       f.partner = null; f.married = false; f.divorced = true;
+      endSpouse(L, sp, 'divorced');
       L.flags.divorceYear = L.year; tally(L, 'divorces');
       if (L.home.owned) { sell(0.5); ctx.sys('sys.home.sell'); act.move('monthly', { reason: '이혼', involuntary: true, silent: true }); }
-      ctx.sys('sys.fam.divorced');
+      ctx.sys('sys.fam.divorced', {}, sp ? { spouse: { ...spouseRef(sp), end: 'divorced' } } : {});
     },
     loseSpouse() {
       const f = L.family;
       if (!f.partner) return;
+      const sp = f.partner;
       f.partner = null; f.married = false; f.widowed = true;
       L.flags.widowYear = L.year;
-      ctx.sys('sys.fam.widowed', {}, sensFields(L, 'death'));
+      endSpouse(L, sp, 'widowed');
+      ctx.sys('sys.fam.widowed', {}, { ...sensFields(L, 'death'), spouse: { ...spouseRef(sp), end: 'widowed' } });
     },
     haveChild() {
       const sex = ctx.chance(0.512) ? 'M' : 'F';
@@ -221,11 +280,11 @@ export function makeAct(L, ctx) {
       L.family.caringFor = who; L.flags.careStart = L.year;
       tally(L, 'careStarts'); tally(L, 'invol');
     },
-    endCare() {
+    endCare(cause) {
       const who = L.family.caringFor;
       if (!who) return;
       L.family.caringFor = null;
-      ctx.sys('sys.fam.care_end', { who: WHO_LABEL[who] || who });
+      ctx.sys('sys.fam.care_end', { who: WHO_LABEL[who] || who, because: cause === 'death' ? ' 사망으로' : '' });
     },
   };
 
@@ -252,6 +311,11 @@ export function makeAct(L, ctx) {
   return act;
 }
 
+const spouseRef = p => ({ no: p.no, name: p.name, since: p.since });
+function endSpouse(L, p, end) {
+  const rec = p && L.family.spouses?.find(s => s.no === p.no);
+  if (rec) Object.assign(rec, { until: L.year, end });
+}
 export const WHO_LABEL = { father: '아버지', mother: '어머니', spouse: '배우자', parent: '부모님', grandparent: '할머니' };
 
 // 자영 소득(GDD §5.3: bandBase×.9×lnN(0,.6)×era, 연)

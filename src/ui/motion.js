@@ -21,4 +21,4 @@ export function enterScreen(el, name) {
   el.dataset.enter = dir;
   return dir;
 }
-export const fastYear = speed => speed >= 4;     // 4×·10×: 큰 연출(흔들림·글로우)을 줄인다
+export const fastYear = speed => speed >= 4;     // 4×·5×: 큰 연출(흔들림·글로우)을 줄인다
