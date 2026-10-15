@@ -2,11 +2,13 @@
 import { T, D, yr, ag } from './tables.js';
 import { indep } from './act.js';
 import { LEAN_CAL, INCOME_CAL, REL_CAL } from './tuning.js';
+import { mbtiOdds } from './mbti.js';
 
 // 선택의 '방향'(GDD §13.1): 선택한 옵션이 다른 옵션들보다 어느 지표 쪽으로 기울었는지를 지표별 −1~1로 쌓고 해마다 옅어진다.
 // 구조 시스템은 이것을 오즈 배수 exp(odds·lean)(±1에서 ×0.6~×1.6)로, 지표 표류는 목표값 가산으로 읽는다.
 export const lean = (L, k) => L.lean?.[k] ?? 0;
-export const leanOdds = (L, k, sign = 1) => Math.exp(sign * LEAN_CAL.odds * lean(L, k));
+// 성향(MBTI) 보정도 곱한다(mbti.js mbtiOdds, ×0.85~×1.2): 예) J형 진학·취업 오즈↑, F형 결혼↑·이혼↓
+export const leanOdds = (L, k, sign = 1) => Math.exp(sign * LEAN_CAL.odds * lean(L, k)) * mbtiOdds(L, k, sign);
 export function nudge(L, k, d) {
   if (!d) return;
   const o = (L.lean ||= {});
@@ -47,7 +49,7 @@ export function pctile(x, bs) {
 // 경제 완충력 구성(GDD §4.2)
 export function econ(L) {
   const ind = indep(L), m = L.money, p = L.family.partner;
-  const NW = ind ? m.assets + (L.home.deposit || 0) + (L.home.owned ? L.home.value : 0) - m.debt : L.household.netWorth;
+  const NW = ind ? m.assets + (L.home.deposit || 0) + (L.home.owned ? L.home.value : 0) + otherAssets(L) - m.debt : L.household.netWorth;
   const INC = ind ? annualIncome(L) : L.household.income;
   // 가구주 나이: 독립 전에는 부모(어머니 나이 + 본인 나이)
   const head = ind ? L.age : L.birth.parents.motherAge + L.age;
@@ -67,8 +69,17 @@ export function econ(L) {
 export function annualIncome(L) {
   const j = L.job, a = L.aging, p = L.family.partner;
   const work = j.status === 'employed' || j.status === 'self' ? j.wage * (L.flags.leaveYear === L.year ? 0.5 : 1) : 0;
-  return work + (p?.income || 0) + 12 * ((a.pensionMonthly || 0) + (a.basic || 0)) + (L.flags.seniorJob === L.year ? T('SENIOR_JOB').monthly * T('SENIOR_JOB').months : 0) + (j.platform && j.status !== 'employed' ? 600 : 0);
+  return work + otherIncome(L).total + (p?.income || 0) + 12 * ((a.pensionMonthly || 0) + (a.basic || 0)) + (L.flags.seniorJob === L.year ? T('SENIOR_JOB').monthly * T('SENIOR_JOB').months : 0) + (j.platform && j.status !== 'employed' ? 600 : 0);;
 }
+// 근로 외 소득원(세전, 2025 실질 만원) [R17]: 임대료(그해 공실 개월 제외)·부업(일하는 동안)·사적연금 수령분. 세금은 money.js가 뗀다.
+export function otherIncome(L) {
+  const rent = (L.rentals || []).reduce((s, r) => s + (r.rent || 0) * (r.vacant === L.year ? 1 - (r.vacMonths || 0) / 12 : 1), 0);
+  const side = L.flags.sidejob && (L.job.status === 'employed' || L.job.status === 'self') ? L.flags.sidejob.income || 0 : 0;
+  const pens = L.pension2?.paidYear === L.year ? L.pension2.payout || 0 : 0;
+  return { rent, side, pens, total: rent + side + pens };
+}
+// 집 밖의 자산: 세 준 부동산 가치 + 사적연금 적립금(대출은 money.loans에 있어 debt로 빠진다)
+export const otherAssets = L => (L.rentals || []).reduce((s, r) => s + (r.value || 0), 0) + (L.pension2?.balance || 0);
 
 // 소득 5분위(아동은 가구 q, 성인은 INCpos 5분위, 50세+는 근로기 평균 INCpos와 지금 순자산 위치의 평균 — 은퇴 후 소득만으로 계층이 지워지지 않게, QA-S-04) — 사망·발병 배수용
 export function incQuint(L) {

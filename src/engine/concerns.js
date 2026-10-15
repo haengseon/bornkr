@@ -196,7 +196,7 @@ const CALC = {
     },
     pensionfund(L) {
       const py = L.money.pensionYears, m = mk(22), working = L.job.status === 'employed' || L.job.status === 'self';
-      m.add(py < 10 ? 20 : py < 20 ? 8 : 0, `국민연금 가입 ${py}년`).add(!working ? 10 : 0, '소득이 끊긴 상태').add(L.household.netWorth < 0 ? 15 : 0, '빚이 자산보다 많음')
+      m.add(py < 10 ? 20 : py < 20 ? 8 : 0, `국민연금 가입 ${Math.round(py)}년`).add(!working ? 10 : 0, '소득이 끊긴 상태').add(L.household.netWorth < 0 ? 15 : 0, '빚이 자산보다 많음')
         .add(L.birth.quintile <= 2 ? 8 : 0, qLabel(L.birth.quintile));
       return m.done('연금 가입 기간이 긴 편');
     },

@@ -2,6 +2,7 @@
 // 금액은 모두 만원, 2025년 물가 기준(엔진 단위). 순위·백분위·평가어는 만들지 않는다(ARCHITECTURE §15).
 import { REGIONS } from '../engine/constants.js';
 import { placeLine, vibeOf } from '../engine/sigungu.js';
+import { sidoAt } from '../data/admin-names.js';
 import { schoolLabel } from '../engine/index.js';
 import { regionalPrice, regionalRow } from '../data/housing-regional.js';
 import { money, fmtWon } from './format.js';
@@ -96,9 +97,9 @@ export function marketLineOf(L) {
   if (!r) return null;
   const m = money(r.real, L.year, w => fmtWon(Math.round(w / 100) * 100));
   const what = own ? (regionalRow(h.sigungu)?.basis === 'house' ? '단독주택 시세' : '아파트(84㎡) 시세') : '전세 시세';
-  return { text: `이 동네 ${what} 약 ${m.nominal}`, today: m.today };
+  return { text: `이 지역 ${what} 약 ${m.nominal}`, today: m.today };
 }
-export const homeLabel = L => { const h = L.home || {}, b = L.birth || {}; return h.sigungu ? placeLine(h.region, h.sigungu, h.dong, h.transit) : REGION[h.region ?? b.region]?.label ?? ''; };
+export const homeLabel = L => { const h = L.home || {}, b = L.birth || {}; return h.sigungu ? placeLine(h.region, h.sigungu, h.dong, L.year) : sidoAt(h.region ?? b.region, L.year, true); };
 
 // 직업 표시: 일하는 중 = 현재 직업명, 쉬는 중 = '이전 직업: … · 무직/구직 중', 이력이 없으면 구직 중 등 고용 상태.
 export function jobLineOf(L) {

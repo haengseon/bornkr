@@ -1,7 +1,7 @@
 // 구조 변화 동작(ARCHITECTURE §7 act). 시스템과 사건의 do(L, act)가 이걸로만 큰 변화를 만든다.
-import { T, yr, regionGroup, regionLabel, isCapital } from './tables.js';
+import { T, yr, regionGroup, isCapital } from './tables.js';
 import { sensFields } from './safety.js';
-import { pickMoveTarget, levelOf, candidates, place, SGG } from './sigungu.js';
+import { pickMoveTarget, levelOf, candidates, place, SGG, placeLabel } from './sigungu.js';
 import { econ } from './stats.js';
 import { CLASS_CAL } from './tuning.js';
 import { spouseName } from './kin.js';
@@ -36,7 +36,7 @@ export const tierOfL = L => SGG.get(L.home.sigungu)?.housingTier ?? ({ seoul: 4,
 const tierPrice = (tier, year) => T('HOME_PRICE_TIER')[tier] * yr(T('HOME_PRICE_INDEX')[curveOf(tier)], year);
 export const priceAt = (tier, year, id) => regionalPrice(id, year, 'sale')?.real ?? tierPrice(tier, year);
 // 전세 보증금(84㎡ 기준): 지역 전세 시세, 없으면 매매가 × 전세가율
-const jeonseAt = (tier, year, id, rg) => regionalPrice(id, year, 'jeonse')?.real ?? priceAt(tier, year, id) * yr(T('JEONSE_RATIO')[rg], year);
+export const jeonseAt = (tier, year, id, rg) => regionalPrice(id, year, 'jeonse')?.real ?? priceAt(tier, year, id) * yr(T('JEONSE_RATIO')[rg], year);
 export function homePrice(L, tier = tierOfL(L)) { return Math.round(priceAt(tier, L.year, L.home.sigungu)); }
 // 월세는 소형(원룸·투룸) 기준 등급표에 지역 배율: √(지역 84㎡ 월세 × 33/84 ÷ 등급표 월세), .6~1.6
 // ponytail: 84㎡ 월세를 면적비로 줄인 근사 — 소형 월세 실측이 생기면 그 값으로 교체
@@ -45,17 +45,23 @@ export function rentAt(tier, year, cheap = false, id) {
   const base = T('RENT_TIER')[tier], c = T('RENT_TIER').cheap, era = yr(T('ERA_INCOME_INDEX'), year), f = rentMul(tier, year, id, base.rent * era);
   return { rent: Math.max(3, Math.round(base.rent * era * f * (cheap ? c.rent : 1))), deposit: Math.round(base.deposit * era * f * (cheap ? c.deposit : 1)) };
 }
+// 세 준 집의 연 임대수익(2025 실질 만원): 지역 84㎡ 월세 시세 × 12에서 관리·수선비 10% 차감(집값 5% 상한), 시세가 없으면 집값의 연 3%.
+// 공실·임대소득세·보유세·집값 변동은 money.js가 L.rentals 전체에 적용한다.
+export function leaseIncome(id, year, value) {
+  const m = regionalPrice(id, year, 'rentMonthly')?.real;
+  return Math.round(Math.min(value * 0.05, m ? m * 12 : value * 0.03) * 0.9);
+}
 export function rentFor(L, ctx, tier = tierOfL(L), cheap = L.home.cheap) {
   const r = rentAt(tier, L.year, cheap, L.home.sigungu);
   return { rent: Math.round(r.rent * (0.85 + 0.3 * ctx.rand())), deposit: r.deposit };
 }
-// 예산: 소득·가용 자산·대출 한도(연도별 DSR/DTI 상한, 연 원리금 상환 기준)
-export function budgetOf(L) {
-  const mb = T('MOVE_BUDGET'), y = L.year, INC = Math.max(0, econ(L).INC);
+// 예산: 소득·가용 자산·대출 한도(연도별 DSR/DTI 상한, 연 원리금 상환 기준). keepHome: 지금 집을 팔지 않고 남겨 두는 경우(세 주기·비워 두기)
+export function budgetOf(L, keepHome = false) {
+  const mb = T('MOVE_BUDGET'), y = L.year, INC = Math.max(0, econ(L).INC), own = L.home.owned && !keepHome;
   const r = (yr(T('BASE_RATE'), y) ?? 0.05) + 0.02, n = mb.term;
   const ann = r / (1 - (1 + r) ** -n);
   const help = L.family.parents.father.alive || L.family.parents.mother.alive ? Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1] : 0;
-  return { INC, ann, assets: Math.max(0, L.money.assets) + (L.home.deposit || 0) + (L.home.owned ? L.home.value : 0) * 0.9 - (L.home.owned ? L.money.loans.mortgage : 0) + help, loanCap: Math.max(0, yr(mb.dsr, y) * INC / ann - (L.money.debt - (L.home.owned ? L.money.loans.mortgage : 0) - L.money.loans.jeonse)), rentCap: mb.rentCap * INC, jx: mb.jeonseLoanX };
+  return { INC, ann, assets: Math.max(0, L.money.assets) + (L.home.deposit || 0) + (own ? L.home.value * 0.9 - L.money.loans.mortgage : 0) + help, loanCap: Math.max(0, yr(mb.dsr, y) * INC / ann - (L.money.debt - (own ? L.money.loans.mortgage : 0) - L.money.loans.jeonse)), rentCap: mb.rentCap * INC, jx: mb.jeonseLoanX };
 }
 export function fits(L, b, tenure, tier, sz = 1, id) {
   const y = L.year;
@@ -64,22 +70,27 @@ export function fits(L, b, tenure, tier, sz = 1, id) {
   const r = rentAt(tier, y, false, id); return r.rent * 12 <= b.rentCap && r.deposit <= b.assets + b.INC;
 }
 // 같은 시도 안에서 예산에 맞는 (시군구, 점유 형태) 선택. 없으면 점유 형태를 낮추고, 끝까지 없으면 최저 등급의 저가 월세.
-function chooseTarget(L, ctx, tenure, region, size) {
-  const h = L.home, y = L.year, b = budgetOf(L), cs = candidates(region, y), want = tierOfL(L);
-  const ladder = tenure === 'own' ? ['own', 'jeonse', 'monthly'] : tenure === 'jeonse' ? ['jeonse', 'monthly'] : [tenure];
+// o: { minTier(상급지만), edu(학군 가중), keepHome(지금 집을 남겨 둠), strict(점유 형태를 낮추지 않음 → 없으면 null), only(시군구 id 우선) }
+function chooseTarget(L, ctx, tenure, region, size, o = {}) {
+  const h = L.home, y = L.year, b = budgetOf(L, o.keepHome), cs = candidates(region, y), want = Math.max(tierOfL(L), o.minTier ?? 0);
+  const ladder = o.strict ? [tenure] : tenure === 'own' ? ['own', 'jeonse', 'monthly'] : tenure === 'jeonse' ? ['jeonse', 'monthly'] : [tenure];
   const pick = list => {
+    const home = o.only && list.find(c => c.r.id === o.only);
+    if (home) return home.r;
     const cur = list.find(c => c.r.id === h.sigungu);
-    if (cur && region === h.region && ctx.chance(T('MOVE_RATE').stay)) return cur.r;
-    const w = list.map(c => c.p * Math.exp(-0.8 * Math.abs(c.r.housingTier - want)));
+    if (cur && region === h.region && !o.minTier && ctx.chance(T('MOVE_RATE').stay)) return cur.r;
+    const w = list.map(c => c.p * Math.exp(-0.8 * Math.abs(c.r.housingTier - want) + (o.edu ? 0.5 * (c.r.eduTier - 3) : 0)));
     return list[+ctx.weighted(Object.fromEntries(w.map((x, i) => [i, x])))].r;
   };
   for (const t of ladder) {
-    const ok = tenure === 'public' ? cs.filter(c => c.r.housingTier <= 3) : cs.filter(c => fits(L, b, t, c.r.housingTier, size, c.r.id));
+    const ok = (tenure === 'public' ? cs.filter(c => c.r.housingTier <= 3) : cs.filter(c => fits(L, b, t, c.r.housingTier, size, c.r.id))).filter(c => c.r.housingTier >= (o.minTier ?? 0));
     if (ok.length) return { tenure: t, place: place(ctx.weighted, pick(ok), y), cheap: false };
   }
+  if (o.strict) return null;
   const low = Math.min(...cs.map(c => c.r.housingTier)), lows = cs.filter(c => c.r.housingTier === low);
   return { tenure: 'monthly', place: place(ctx.weighted, pick(lows), y), cheap: tenure !== 'public' };
 }
+export const pickTarget = chooseTarget;
 export const canOwn = (L, ctx, size = 0.8) => { const b = budgetOf(L); return candidates(L.home.region, L.year).some(c => fits(L, b, 'own', c.r.housingTier, size, c.r.id)); };
 
 export function makeAct(L, ctx) {
@@ -116,19 +127,21 @@ export function makeAct(L, ctx) {
     },
 
     // 이사. tenure: own|jeonse|monthly|public|family|dorm|facility
-    move(tenure, { reason = '이사', involuntary = false, price, silent = false, region } = {}) {
+    // 미리 정한 목적지(계획의 cost와 같은 숫자로 정산): to = 시군구 place, dep(보증금)·rent(월세)·price(매수가), home = 다시 들어가 사는 세 준 집(L.rentals 항목)
+    move(tenure, { reason = '이사', involuntary = false, price, silent = false, region, to, dep, rent, home } = {}) {
       const h = L.home;
-      if (region && region !== h.region) act.moveRegion(region, { silent: true });
-      // 나가는 집 정산: 보증금 회수 → 전세대출 상환, 자가는 매도
+      // 나가는 집 정산: 보증금 회수 → 자가는 매도(세 주거나 비워 둘 집은 먼저 keepHome으로 빼 둔다) → 전세대출 상환
       if (indep(L) && !h.parents) {
         if (h.deposit) { L.money.assets += h.deposit; h.deposit = 0; }
-        if (h.owned && tenure !== 'own') sell();
+        if (h.owned) sell();
         const jl = Math.min(L.money.loans.jeonse, L.money.assets);
         L.money.loans.jeonse -= jl; L.money.assets -= jl;
       }
+      if (region && region !== h.region) act.moveRegion(region, { silent: true, reason: tenure === 'dorm' && reason === '이사' ? '진학' : reason, place: to });
       // 독립 후 이사: 예산에 맞는 (시군구, 점유 형태)만 후보. 부모 집·시설·기숙사·공공임대 외
       let cheap = false;
-      if (indep(L) && h.sigungu && tenure !== 'facility' && tenure !== 'dorm' && tenure !== 'family') {
+      if (to && tenure !== 'family') Object.assign(h, to);
+      else if (indep(L) && h.sigungu && tenure !== 'facility' && tenure !== 'dorm' && tenure !== 'family') {
         const size = tenure === 'own' ? Math.min(1.3, Math.max(0.4, (price ?? homePrice(L)) / Math.max(1, homePrice(L)))) : 1;
         const t = chooseTarget(L, ctx, tenure, h.region, size);
         Object.assign(h, t.place);
@@ -140,13 +153,16 @@ export function makeAct(L, ctx) {
       h.tenure = tenure; h.rent = 0; h.contractEnd = null;
       if (tenure === 'monthly' || tenure === 'public') {
         const r = rentFor(L, ctx);
-        h.rent = tenure === 'public' ? Math.round(r.rent * 0.5) : r.rent;
-        payDeposit(tenure === 'public' ? Math.round(r.deposit * 0.3) : r.deposit, 0.5);
+        h.rent = rent ?? (tenure === 'public' ? Math.round(r.rent * 0.5) : r.rent);
+        payDeposit(dep ?? (tenure === 'public' ? Math.round(r.deposit * 0.3) : r.deposit), 0.5);
         h.contractEnd = L.year + 2;
       } else if (tenure === 'jeonse') {
         const size = 0.45 + 0.2 * ctx.rand();
-        payDeposit(Math.round(jeonseAt(tierOfL(L), L.year, h.sigungu, h.regionGroup) * size), 0.8);
+        payDeposit(dep ?? Math.round(jeonseAt(tierOfL(L), L.year, h.sigungu, h.regionGroup) * size), 0.8);
         h.contractEnd = L.year + 2;
+      } else if (tenure === 'own' && home) {                // 세 줬던 집으로 돌아간다: 사지 않고 임대 목록에서 뺀다
+        L.rentals = (L.rentals || []).filter(r => r !== home);
+        h.owned = true; h.value = home.value; h.valueMark = home.value; h.markYear = L.year; h.boughtYear ??= home.since;
       } else if (tenure === 'own') {
         const p = Math.round(price ?? homePrice(L));
         const own = Math.max(0, L.money.assets - 300);
@@ -160,21 +176,36 @@ export function makeAct(L, ctx) {
       refreshDebt(L);
       // 같은 해 두 번째 이사는 새 기록을 만들지 않고 마지막 이사를 갱신(연 1회 상한)
       const last = h.moves[h.moves.length - 1];
-      if (last && last.year === L.year && last.reason !== '독립') { last.to = tenure; last.reason = reason; }
+      if (last && last.year === L.year && last.reason !== '독립') { last.to = tenure; if (!last.region || !last.reason) last.reason = reason; }   // 시도 이동의 사유는 덮지 않는다
       else { h.moves.push({ year: L.year, to: tenure, reason }); tally(L, 'moves'); }
       if (involuntary) tally(L, 'invMoves');
       if (!silent) ctx.sys('sys.home.move', { toLabel: TENURE_LABEL[tenure], reasonLabel: reason });
     },
-    moveRegion(key, { silent = false } = {}) {
-      const h = L.home;
+    // 시도 이동. 사유(reason)는 이사 기록(L.home.moves[].reason·from·region)에 남는다. 자가를 두고 떠나면 세를 준다(keepHome).
+    moveRegion(key, { silent = false, reason, place: to } = {}) {
+      const h = L.home, from = h.region;
       if (!key || key === h.region) return;
+      if (indep(L) && h.owned && !h.parents) act.keepHome('lease');
       if (!isCapital(h.region) && isCapital(key)) L.flags.toCapital = L.year;
       h.region = key; h.regionGroup = regionGroup(key);
-      if (indep(L) && h.sigungu && !h.parents) {
+      if (to) Object.assign(h, to);
+      else if (indep(L) && h.sigungu && !h.parents) {
         const t = chooseTarget(L, ctx, 'monthly', key, 1);
         Object.assign(h, t.place);
       } else Object.assign(h, pickMoveTarget(ctx.weighted, key, L.year, levelOf(L)));
-      if (!silent) ctx.sys('sys.home.region_move', { regionLabel: regionLabel(key) });
+      const last = h.moves[h.moves.length - 1];
+      if (last && last.year === L.year) Object.assign(last, { from, region: key, ...(reason && { reason }) });
+      else { h.moves.push({ year: L.year, to: h.parents ? 'family' : h.tenure, reason, from, region: key }); tally(L, 'moves'); }
+      if (!silent) ctx.sys('sys.home.region_move', { regionLabel: placeLabel(key, h.sigungu, h.dong, L.year) });
+    },
+    // 지금 자가를 팔지 않고 남겨 둔 채 떠난다: lease = 세를 준다(연 임대수익), vacant = 비워 둔다. 담보대출은 그대로 남는다.
+    keepHome(mode = 'lease') {
+      const h = L.home;
+      if (!h.owned) return null;
+      const r = { kind: 'home', rent: mode === 'lease' ? leaseIncome(h.sigungu, L.year, h.value) : 0, since: L.year, region: h.region, sigungu: h.sigungu, dong: h.dong, transit: h.transit, value: h.value, ...(mode !== 'lease' && { empty: true }) };
+      (L.rentals ||= []).push(r);
+      h.owned = false; h.value = 0;
+      return r;
     },
 
     startJob(o) {

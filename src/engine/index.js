@@ -15,6 +15,7 @@ export { schoolLabel, eraSchool } from './anachro.js';
 export { SCENARIO_FROM } from './life.js';
 export { qaTrace } from './qa.js';
 export { concernsOf } from './concerns.js';
+export { standing } from './standing.js';
 
 const withCard = (L, r) => (keepPace(L), r.compare != null ? { ...r, compare: compareCard(L, r.compare) } : r);
 

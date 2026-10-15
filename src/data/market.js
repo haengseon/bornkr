@@ -127,3 +127,5 @@ export function realReturns(y, group = 'capital') {
   return { deposit: real(depNom), stock: real(stockNom), fx: real((1 + usdChg) * (1 + usRate) - 1), realty: house + yieldNet - REALTY_COST.values, gold: real(gold) };
 }
 export const ASSET_LABEL = { deposit: '예·적금', stock: '주식', fx: '외화(달러)', realty: '부동산', gold: '금' };
+// 지역 주택 실질 가격 변동(2025까지 실측 표, 이후 연도별 고정 시드의 가상 시장) — 임대 부동산 가치 갱신용
+export const houseChg = (y, group = 'capital') => (y > LAST ? future(y).house : houseYoy(group, y));

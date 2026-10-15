@@ -41,6 +41,22 @@ export function settleMove(L, { D, newDep, moveCost }) {
   return { assets: Math.max(0, rnd(avail - need)), loanKeep: L0 - jl, loanAdd, cash: rnd(D - newDep - moveCost) };
 }
 
+// 이사 정산 미리보기: act.move의 순서(보증금 회수 → 자가 매도 → 전세대출 상환 → 새 집 보증금·매수가 → 이사비)를 그대로 따른다.
+// keep: 'sell'(지금 자가를 판다) | 'lease'·'vacant'(남겨 두고 떠난다: 집값·담보대출은 그대로). lease = 세 준 집의 연 임대수익.
+// 반환 cost: cash = 보유 현금(자산) 변화, loan = 빚 총액 변화, monthly = 달마다 나가는 주거비 변화(월세·대출 이자 − 임대수익).
+export function moveMath(L, { tenure, dep = 0, price = 0, rent = 0, moveCost = 0, keep = 'sell', lease = 0, home = null }) {
+  const m = L.money, h = L.home, J0 = m.loans.jeonse || 0, M0 = m.loans.mortgage || 0;
+  let A = m.assets + (h.deposit || 0), J = J0, M = M0, C = 0;
+  if (h.owned && keep === 'sell') { A += h.value; const r = Math.min(M, A); A -= r; M -= r; C += M; M = 0; }
+  const jl = Math.min(J, A); A -= jl; J -= jl;
+  if (tenure === 'own' && !home) { const own = Math.max(0, A - 300), loan = Math.max(0, price - own); A -= price - loan; M += loan; }
+  else if (tenure === 'jeonse' || tenure === 'monthly') { const own = Math.min(Math.max(0, A), dep * (tenure === 'jeonse' ? 0.2 : 0.5)); A -= own; J += dep - own; }
+  A -= moveCost; if (A < 0) { C -= A; A = 0; }
+  const r = jeonseLoanRate(L.year), oldRent = ['monthly', 'public'].includes(h.tenure) ? h.rent || 0 : 0;
+  return { cash: rnd(A - m.assets), loan: rnd(J + M + C - J0 - M0), monthly: rnd(rent - oldRent + ((J - J0) * r + (M - M0) * (r + 1 / 30)) / 12 - lease / 12) };
+}
+export const moveCostFor = moveCostOf;
+
 // 임대 만료(재계약 불가) 계획
 export function housingPlans(L, rise) {
   const h = L.home, y = L.year, D = h.deposit || 0, R = h.rent || 0, out = [];

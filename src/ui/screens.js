@@ -1,7 +1,7 @@
 // 화면: S01 홈 · S02 안내 · S03 출생 신고서 · S09 사망 · S10 결산 · S12 기록관 · S13 통계 도감 · S14 설정
 import { SPEEDS } from '../engine/constants.js';
 import { newLife, birthCert, peers, summarize, replay } from '../engine/index.js';
-import { S, routes, go, $, $$, esc, show, toast, setSetting, pushScreen } from './dom.js';
+import { S, routes, go, $, $$, esc, show, toast, setSetting, pushScreen, reduced } from './dom.js';
 import { loadRecords, loadCurrent, clearRecords } from './store.js';
 import {
   sexLabel, regionShort, josa, quintileAria, dateKo, dateDot, dateDotSp, mmdd, receiptNo, ageText, causeLabel, deathLine,
@@ -13,6 +13,7 @@ import { startNew } from './play.js';
 import { sceneHtml, mountScene, silhouetteSvg } from './scene.js';
 import { radarSvg, morphRadar, iconSvg } from './gauges.js';
 import { TENURE_LABEL, familyLines, familyText } from './profile.js';
+import { standingOf, standingHtml } from './standing-ui.js';
 import { ERAS, decadeBirthsAvg, pickYear, manText } from './era.js';
 
 const PRIV = '<a class="privlink" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>';
@@ -199,6 +200,7 @@ routes.death = () => {
       <button class="btn btn--ink btn--block" type="button" data-act="sum">결산 보기</button>
     </div></section>`);
   $('[data-act="sum"]', el).addEventListener('click', () => go('summary'));
+  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda);
   if (sens) return;                                  // 민감 원인이면 자동 넘김 없음
   const fill = $('.timer-line__fill', el);
   let left = 8000;
@@ -212,6 +214,19 @@ routes.death = () => {
   };
   setTimeout(tick, 250);
 };
+
+// 사망 에필로그: 출생 막처럼 검은 화면에 연도·나이 → 이름 → 마지막 한 줄(민감 사망은 생략)이 차례로 뜨고, 걷히면 사망 카드.
+// 하단 [결산 보기]·8초 자동 넘김은 그대로(막은 actionbar 위까지만). 탭하면 건너뛴다. 모션 끔/줄임이면 한 번에 보이고 짧게 페이드.
+function deathCine(el, L, d, coda) {
+  const lines = [`${d.year}년 · ${ageText(d.age, d.horizon)}`, L.name, coda].filter(Boolean);
+  el.insertAdjacentHTML('beforeend', `<div class="dcine" data-dcine><div class="dcine__lines" role="status">${lines.map((t, i) => `<p class="dcine__line${i === 1 ? ' dcine__name' : ''}">${esc(t)}</p>`).join('')}</div>
+    <button class="cine__tap" type="button" aria-label="에필로그 건너뛰기"><span class="cine__skip">화면을 누르면 건너뜁니다</span></button></div>`);
+  const cine = $('[data-dcine]', el), still = reduced() || document.documentElement.dataset.motion === 'off', ts = [];
+  const end = () => { ts.forEach(clearTimeout); cine.classList.add('is-out'); setTimeout(() => cine.remove(), 700); };
+  $('.cine__tap', cine).addEventListener('click', end);
+  $$('.dcine__line', cine).forEach((ln, i) => ts.push(setTimeout(() => ln.classList.add('on'), still ? 0 : 400 + i * 1100)));
+  ts.push(setTimeout(end, still ? 2500 : 5200));
+}
 
 // ───────── S10 결산 (기록관 상세 S12-b 공용) ─────────
 function lifegrid(age, events) {
@@ -255,6 +270,7 @@ function summaryHtml(L, sum, archive) {
       ${sum.capNotice ? `<p class="cap verdict__cap">${esc(sum.capNotice)}</p>` : ''}
       <div class="verdict__sign"><p class="mono">${d.year}년</p><p class="verdict__org">태어나보니 대한민국</p><span class="seal seal--square" aria-hidden="true"><span>인</span><span>생</span><span>판</span><span>정</span></span></div>
     </article>
+    ${/* 통계 위치: 민감 사망·19세 미만 사망은 순위·백분위를 보이지 않는다(안전 규칙) */ ''}${d.sensitive || L.death?.sensitive || d.age < 19 ? '' : standingHtml(standingOf(L, 'end'))}
     <section class="section" aria-labelledby="sum-closing">
       <div class="section__head"><h2 class="section__title" id="sum-closing">결산</h2><span class="section__note">0~100 · 누르면 근거</span></div>
       ${CLOSING_KEYS.filter(k => sum.closing?.[k]).map(k => {

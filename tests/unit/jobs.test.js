@@ -42,7 +42,7 @@ test('JOBS 필수 필드·값 범위·code 유일', () => {
     assert.ok(EDU.includes(r.edu), id);
     if (r.edu === 'license') assert.ok(GATES.includes(r.license), `${id}: 자격 관문`);
     else assert.equal(r.license, null, `${id}: license는 edu=license일 때만`);
-    assert.ok([1, 2, 3, 4, 5].includes(r.band), id);
+    assert.ok([1, 2, 3, 4, 5, 6].includes(r.band), id);   // 6 = 의사·치과의사(R20)
     assert.ok(['low', 'mid', 'high'].includes(r.ai), id);
     assert.ok(r.female >= 0 && r.female <= 1, id);
     assert.ok(typeof r.w === 'number' && r.w >= 0, id);

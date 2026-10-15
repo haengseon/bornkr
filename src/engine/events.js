@@ -6,6 +6,7 @@ import { stageOf } from './clock.js';
 import { fill } from './text.js';
 import { sensFields as sens } from './safety.js';
 import { REGION } from './tables.js';
+import { sidoAt } from '../data/admin-names.js';
 import { jobByCode } from './systems/career.js';
 import { leanFromChoice } from './stats.js';
 import { fxEffects, fxRisk } from './milestones.js';
@@ -48,7 +49,7 @@ export const eventById = id => (index(), BY_ID.get(id));
 export function textVars(L) {
   return {
     name: L.name, given: L.given, region: REGION[L.home.region]?.label ?? L.home.region,
-    regionFull: REGION[L.home.region]?.full, year: L.year, age: L.age, title: L.job.title,
+    regionFull: sidoAt(L.home.region, L.year), year: L.year, age: L.age, title: L.job.title,
   };
 }
 
@@ -133,11 +134,18 @@ function matchLink(L, ctx, links) {
   return null;
 }
 // 종합 뉴스: 그해 후보 중 '나와 연결되는' 뉴스를 우선해 한 건(시대 사건이 있었으면 60%). 연결된 뉴스는 효과와 인과 문장이 따라붙는다.
+let NG_IDX = null;
+function ngByYear(y) {                      // 연도별 색인(매년 전체 뉴스 풀을 훑지 않게)
+  if (!NG_IDX) {
+    NG_IDX = new Map();
+    for (const n of NEWS_GENERAL) for (let yy = n.years?.[0] ?? 0; yy <= (n.years?.[1] ?? -1); yy++) (NG_IDX.get(yy) ?? NG_IDX.set(yy, []).get(yy)).push(n);
+  }
+  return NG_IDX.get(y) ?? [];
+}
 function generalNews(L, ctx, eraFired) {
   if (!ctx.chance(eraFired ? 0.3 : 0.5)) return;      // 뉴스는 개인 기록보다 앞서지 않게 해마다 일부만
   const cands = [];
-  for (const n of NEWS_GENERAL) {
-    if (n.years ? L.year < n.years[0] || L.year > n.years[1] : false) continue;
+  for (const n of ngByYear(L.year)) {
     if (n.ages && (L.age < n.ages[0] || L.age > n.ages[1])) continue;
     if (L.fired[n.id]) continue;
     if (n.sensitive === 'disaster' && (L.tally.disaster || 0) >= 3) continue;

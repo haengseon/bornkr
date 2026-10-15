@@ -6,6 +6,7 @@ import { JOBS } from '../../data/jobs.js';
 import CORE from '../../content/jobs-core.js';
 import { LABOR_CAL, CLASS_CAL } from '../tuning.js';
 import { leanOdds } from '../stats.js';
+import { jobBias } from '../mbti.js';
 import { jobPlans, asOptions } from '../plans.js';
 
 const CORE_BY = new Map((CORE || []).map(c => [c.code, c]));
@@ -54,7 +55,7 @@ export function assignJob(L, ctx, o = {}) {
   for (const m of Object.keys(BY_MAJOR)) {
     const base = byEdu?.[m] ?? 0;
     if (!base) continue;
-    wm[m] = (prev && m === prev.major ? 1 + CONT.major * cont : 1) * base * (sexR?.[m] ?? 1) * (ageR?.[m] ?? 1) * (era[m] ? yr(era[m], year) : 1) * (colMajor ? majorAff(colMajor, m) : 1) * bias(L, 'occupationBias', m, 0.5, 2);
+    wm[m] = (prev && m === prev.major ? 1 + CONT.major * cont : 1) * base * (sexR?.[m] ?? 1) * (ageR?.[m] ?? 1) * (era[m] ? yr(era[m], year) : 1) * (colMajor ? majorAff(colMajor, m) : 1) * bias(L, 'occupationBias', m, 0.5, 2) * jobBias(L, m);   // 성향(MBTI) 약한 편향
   }
   const major = ctx.weighted(wm) ?? '9';
   const mine = EDU_RANK[level] ?? 0;
@@ -237,7 +238,8 @@ function seek(L, ctx) {
 function employed(L, ctx) {
   const j = L.job, a = L.age, fl = L.flags, y = L.year;
   j.years++;
-  j.wage = Math.round(j.wage * (1 + (j.regular ? (a < 50 ? 0.015 : 0) : 0.005)));
+  const wr = T('WAGE_RAISE'), eraG = yr(T('ERA_INCOME_INDEX'), y) / yr(T('ERA_INCOME_INDEX'), y - 1);   // 연차 상승 + 시대 실질 임금 성장(R20)
+  j.wage = Math.round(j.wage * eraG * (1 + (j.regular ? ag(j.public ? wr.public : wr.regular, a) : wr.nonreg)));
   if (j.regular && [5, 10, 15, 20].includes(j.years)) ctx.sys('sys.job.raise', { n: j.years }, { quiet: true });
   if (!j.regular) {
     if (ctx.chance(LABOR_CAL.convert)) { j.regular = true; return ctx.sys('sys.job.convert'); }
@@ -302,7 +304,7 @@ function employed(L, ctx) {
 function selfEmployed(L, ctx) {
   const j = L.job, a = L.age, y = L.year;
   j.years++;
-  j.wage = Math.max(0, Math.round(j.wage * Math.exp(ctx.normal(0, 0.1))));
+  j.wage = Math.max(0, Math.round(j.wage * Math.exp(ctx.normal(0, 0.1)) * yr(T('ERA_INCOME_INDEX'), y) / yr(T('ERA_INCOME_INDEX'), y - 1)));   // 시대 성장(R20)
   const shock = T('ERA_SHOCKS')[y]?.self ?? D.ERA_SHOCKS.default?.self ?? 1;
   const sh = L.flags.shock, push = L.flags.bizPush >= y ? 0.6 : 1, hold = sh?.opt === 'hold' && y - sh.year <= 2 ? 1.3 : 1;
   if (ctx.chance(T('SELF_CLOSE') * shock * push * hold)) {

@@ -4,10 +4,10 @@ import { REGIONS_B } from '../data/regions-b.js';
 import { REGIONS_C } from '../data/regions-c.js';
 import { sigunguWeight } from '../data/region-share.js';
 import { REGIONS } from './constants.js';
+import { nameAt, sidoAt } from '../data/admin-names.js';
 
 export const SGG = new Map([...REGIONS_A, ...REGIONS_B, ...REGIONS_C].map(r => [r.id, r]));
 const ALL = [...SGG.values()];
-const FULL = Object.fromEntries(REGIONS.map(r => [r.key, r.full]));
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
 // 그 해에 존재한 시군구와 가중. 아직 분리 전인 시도(대구·광주 등)의 시군구는 모 시도에 합산.
@@ -70,16 +70,16 @@ export const bias = (L, kind, key, lo = 0.6, hi = 1.6) => clamp(SGG.get(L.home?.
 // 교육 확률 배율: eduTier 3 기준 ±15% 이내
 export const eduMult = L => 1 + 0.075 * ((SGG.get(L.home?.sigungu)?.eduTier ?? 3) - 3);
 
-// '경기도 성남시 · 정자동'
-export function placeLabel(region, sigungu, dong) {
+// 거주지 표기: 그해 명칭으로 시·구까지(군은 읍까지), 동·교통은 표기하지 않음. '경상북도 의성군 의성읍', '대구직할시 수성구'
+// dong 은 일반구·읍 판정에만 쓴다. year 없으면 현재 명칭.
+function label(region, sigungu, dong, year, short) {
   const r = SGG.get(sigungu);
-  return r ? `${FULL[region] ?? ''} ${r.name}${dong ? ` · ${dong}` : ''}`.trim() : FULL[region] ?? '';
+  if (!r) return sidoAt(region, year, short);
+  const n = nameAt(sigungu, year, dong), sido = sidoAt(n.sido ?? r.sido, year, short);
+  return n.name === sidoAt(r.sido, year) ? n.name : `${sido} ${n.name}`.trim();
 }
+export const placeLabel = (region, sigungu, dong, year) => label(region, sigungu, dong, year, false);
 export const vibeOf = (sigungu, dong) => { const r = SGG.get(sigungu); return (r?.dongs.find(d => d.name === dong)?.vibe) ?? r?.vibe ?? ''; };
 
-const SHORT = Object.fromEntries(REGIONS.map(r => [r.key, r.label]));
-// '경기 김포시 양촌읍 · 외곽(차량 필요)' (시군구 정보가 없으면 시도 약칭만)
-export function placeLine(region, sigungu, dong, transit) {
-  const r = SGG.get(sigungu);
-  return r ? [`${SHORT[region] ?? ''} ${r.name}${dong ? ` ${dong}` : ''}`.trim(), TRANSIT_LABEL[transit]].filter(Boolean).join(' · ') : SHORT[region] ?? '';
-}
+// '경북 의성군 의성읍' · '경기 성남시 분당구' (시군구 정보가 없으면 시도 약칭만)
+export const placeLine = (region, sigungu, dong, year) => label(region, sigungu, dong, year, true);

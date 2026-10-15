@@ -176,3 +176,6 @@ SOURCES['R11.S1'] = { org: '과학기술정보통신부·한국지능정보사�
 SOURCES['R11.S2'] = { org: '국가데이터처', title: '2024 생활시간조사 — 10~19세 학습·개인유지 시간(R03 §9.2 인용)', year: 2025, url: 'https://kosis.kr', kind: 'official' };
 SOURCES['R11.S3'] = { org: '법제처(일반지식, 재확인 권장)', title: '영유아보육법 — 어린이집 CCTV 설치 의무화(2015)·어린이 보호구역(1995 도입)', year: 2026, url: 'https://www.law.go.kr', kind: 'secondary' };
 SOURCES['R11.S4'] = { org: '법제처(일반지식, 재확인 권장)', title: '연명의료결정법(2016 제정, 2018-02 시행)', year: 2026, url: 'https://www.law.go.kr', kind: 'secondary' };
+// ── R20 연봉·부동산 현실 대조 ──
+SOURCES['R20.S1'] = { org: '보건복지부·한국보건사회연구원 / 고용노동부 / 한국경영자총협회 / 국세청', title: 'R20 연봉 대조: 보건의료인력 실태조사(2020·2023), 매월노동통계 1989~94 보도, 경총 대졸 초임(2025-01 보도), 국세통계 전문직 사업소득(2024 귀속)', year: 2026, url: 'docs/research/R20-wage-and-price-audit.md', kind: 'secondary' };
+SOURCES['R20.S2'] = { org: 'KB부동산 / 한국부동산원 / 국토교통부', title: 'R20 부동산 대조: KB 월간 주택가격동향 평균 매매·전세가, 부동산원 월세 통계, 실거래가 요약(보도 인용)', year: 2026, url: 'docs/research/R20-wage-and-price-audit.md', kind: 'secondary' };

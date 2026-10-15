@@ -26,7 +26,7 @@ test('전세<매매, 연도별 증가(1990~2020), 2022 하락 허용=2025·2026 
     const r = H[id];
     for (const y of Y) if (r.sale[y] !== null) assert.ok(r.jeonse[y] < r.sale[y], `${id} ${y}`);
     const ys = Y.filter(y => y <= 2025 && r.sale[y] !== null);
-    for (let i = 1; i < ys.length; i++) assert.ok(r.sale[ys[i]] >= r.sale[ys[i - 1]] * 0.95, `${id} ${ys[i]}`);
+    for (let i = 1; i < ys.length; i++) assert.ok(r.sale[ys[i]] >= r.sale[ys[i - 1]] * (ys[i] === 2023 ? 0.85 : 0.95), `${id} ${ys[i]}`);   // 2023: KB 서울 2022-09 12.76억 → 2023-07 11.82억 하락(R20)
   }
 });
 test('신설 전 null', () => assert.equal(H['incheon.yeonsu'].sale[1990], null));

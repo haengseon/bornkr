@@ -5,7 +5,7 @@ import { COMPARE_AGES, STATS, STAGES, SPEEDS, ISSUES } from '../engine/constants
 import { S, $, $$, esc, show, go, announce, toast, sleep, reduced, setSetting, sheetOpen, sheetHeld, openSheet, closeSheet } from './dom.js';
 import { saveCurrent, clearCurrent, addRecord } from './store.js';
 import { fxChips, sexLabel, regionShort, nativeAge, stageState, statLevel, josa, kindBadge } from './labels.js';
-import { openStats, gaugesHtml, panel as statPanel } from './sheets.js';
+import { openStats, gaugesHtml } from './sheets.js';
 import { profileOf, familyLines, familyText } from './profile.js';
 import { fmtWon, fmtIncome, fmtRent, nominal, money, tenureText, areaText, AREA_GUESS, deltaText } from './format.js';
 import { ringSvg, setRing, countTo, radarSvg, morphRadar, iconSvg, optionIcon } from './gauges.js';
@@ -15,6 +15,7 @@ import { fastYear } from './motion.js';
 import { mbtiOf, mbtiText, traitChips } from './persona.js';
 import { getConcerns, valuesOf, axesOf, byValue, societyHtml } from './concerns-adapter.js';
 import { reactHtml, reactText } from './reaction-ui.js';
+import { standingOf, pctChip, pctText } from './standing-ui.js';
 import { pickNews, loadArchive, archiveNow, openPaper, newsArchiveHtml, bindNewsArchive, newsOfEntry, newsRowHtml } from './news.js';
 
 const TICK = 100;            // 연 대기 틱
@@ -132,7 +133,6 @@ function lifeHtml(L) {
   ${cardsHtml(L)}
   </div>
   <div class="life__feed"><ol class="feed" aria-label="생애 기록"></ol>
-    <div class="dock" aria-label="상세 정보">${DOCK.map(([t, l]) => `<section class="dock__s" id="dk-${t}" aria-labelledby="dkh-${t}"><h2 class="dock__h" id="dkh-${t}">${l}</h2><div class="dock__b" data-dock="${t}"></div></section>`).join('')}</div>
   </div>
   <button class="totop" type="button" aria-label="맨 위로" data-act="top" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
   <aside class="life__aux" aria-label="보조 패널"><details class="aux" open><summary>과거 신문</summary><div class="aux__news"></div></details><details class="aux" open><summary>지표</summary><div class="aux__stats"></div></details><details class="aux" open><summary>관심사·고민</summary><div class="aux__issues"></div></details><div class="aux"><button class="btn btn--block" type="button" data-aux-tab="peers">같은 날 태어난 사람들</button></div></aside>
@@ -142,7 +142,7 @@ function lifeHtml(L) {
       <div class="seg seg--num" role="group" aria-label="배속">${SPEEDS.map(n => `<button class="seg__btn" type="button" data-speed="${n}" aria-pressed="${S.settings.speed === n}" aria-label="${n}배속">${n}×</button>`).join('')}</div>
       ${autoSwitch()}
     </div>
-    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-pressed="false" data-tab="${t}">${l}</button>`).join('')}</div>
+    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-haspopup="dialog" aria-pressed="false" data-tab="${t}">${l}</button>`).join('')}</div>
   </nav>
 </section>`;
 }
@@ -185,7 +185,9 @@ function entryHtml(e, req) {
     body = `<p class="entry__text">${esc(e.text)}</p>`;
   } else {
     const who = e.spouse ? `${/remarry/.test(e.id) ? '새 배우자 ' : /wedding|marry/.test(e.id) ? '배우자 ' : ''}${e.spouse.name ?? ''}(${e.spouse.since ?? e.year}년${e.spouse.end ? `~${e.year}년 ${e.spouse.end === 'widowed' ? '사별' : '이혼'}` : '~'})` : e.grandparent ? e.grandparent.label : '';
-    body = `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>` + esc(e.text) + (e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : '') + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
+    const nc = e.id === 'sys.concern.new' ? (/새 관심사/.test(e.text) ? '새 관심사' : '새 고민') : '';
+    if (nc) cls.push('entry--concern');
+    body = (nc ? `<span class="tag tag--concern entry__kind">${nc}</span>` : `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>`) + esc(e.text) + (e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : '') + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
   }
   if (e.sensitive) cls.push('entry--sensitive');
   return `<li class="${cls.join(' ')}"${e.kind === 'compare' ? ' data-cmp' : ''}>${body}</li>`;
@@ -241,7 +243,6 @@ function refreshAux() {
   if (is) { const c = getConcerns(L); is.innerHTML = (c.stageLabel ? `<p class="aux__stage cap">${esc(c.stageLabel)}의 관심사·고민</p>` : '') + byValue(c).map(i => `<div class="aux__row" title="${esc(i.reason || i.desc || '')}"><span>${esc(i.label)}</span><span class="mono">${i.value}</span><span class="meter"><span class="meter__fill" style="--v:${i.value}"></span></span></div>`).join('') + societyHtml(newsLog, L); }
 }
 // '나' 줄: MBTI 풍 4글자(경계는 흐리게) · 성향 칩 2개 · 가장 큰 고민. 눌러서 각 시트를 연다. 값이 같으면 다시 그리지 않는다(애니메이션 없음).
-const DOCK = [['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']];
 let personaKey = '', topPrev = null;
 function updatePersona(L) {
   const el = $('.life [data-persona]'); if (!el) return;
@@ -258,7 +259,7 @@ function updatePersona(L) {
 function updateHud(animate = true) {
   const L = S.L, root = $('.life');
   if (!root) return;
-  refreshAux(); updatePersona(L); renderDock();
+  refreshAux(); updatePersona(L);
   $('[data-hud="age"]', root).textContent = L.age;
   $('[data-hud="year"]', root).textContent = L.year;
   $('[data-hud="region"]', root).textContent = regionShort(L.home?.region ?? L.birth?.region);
@@ -363,8 +364,6 @@ function bind(run) {
     requestAnimationFrame(() => {
       ticking = false;
       if (topBtn) topBtn.hidden = window.scrollY < 480;
-      const vis = DOCK.map(([k]) => document.getElementById('dk-' + k)).filter(Boolean).find(el => { const r = el.getBoundingClientRect(); return r.top < innerHeight * 0.6 && r.bottom > innerHeight * 0.2; });
-      setTab(vis ? vis.id.slice(3) : null);
     });
   };
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -384,7 +383,6 @@ function bind(run) {
     } else if (act === 'resume') { P.user = false; resumeHidden(); }
     else if (act === 'auto') toggleAuto();
     else if (act === 'top') window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
-    else if (t.dataset.cage) { dockAge = +t.dataset.cage; renderDock(true); }
     else if (t.dataset.speed) {
       setSetting('speed', +t.dataset.speed);
       root.dataset.fast = fastYear(+t.dataset.speed) ? '1' : '';
@@ -393,40 +391,21 @@ function bind(run) {
     } else if (t.dataset.tab || t.dataset.auxTab) openTab(t.dataset.tab || t.dataset.auxTab);
   });
 }
-// 하단 탭 = 피드 아래 상세 정보 구역으로 스크롤 이동(팝업 아님). 활성 탭은 보고 있는 구역을 따라간다.
-let tabId = null;
+// 하단 탭 = 유일한 탭 줄. 같은 탭을 다시 누르면 시트가 닫히고, 활성 탭은 시트와 함께 바뀐다(팝업).
+let tabEl = null, tabId = null;
 function setTab(id) {
   tabId = id;
   $$('.lifebar .tabbtn').forEach(b => { const on = b.dataset.tab === id; b.setAttribute('aria-pressed', on); b.classList.toggle('is-active', on); });
 }
-const DOCK_OF = { stats: 'stats', traits: 'stats', issues: 'issues', peers: 'peers', news: 'news' };
-export function openTab(id) {
-  const k = DOCK_OF[id] || 'stats', el = document.getElementById('dk-' + k);
-  if (!el) return;
-  setTab(k);
-  el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
-}
-let dockYear = null, dockAge = null;
-function peersDock() {
-  const L = S.L, ages = [...COMPARE_AGES.filter(a => a < L.age), L.age], a = ages.includes(dockAge) ? dockAge : L.age;
-  dockAge = a;
-  return `<div class="cmp-tabs" role="group" aria-label="나이 고르기">${ages.map(x => `<button class="seg__btn" type="button" data-cage="${x}" aria-pressed="${x === a}">${x === L.age ? `지금 ${x}세` : `${x}세`}</button>`).join('')}</div><p class="compare__title">${nativeAge(a)}, 같은 날 태어난 사람들</p>${cardHtml(a)}`;
-}
-function renderDock(force = false) {
-  const L = S.L, root = $('.life');
-  if (!root || (!force && dockYear === L.year)) return;
-  dockYear = L.year;
-  const set = (k, html) => { const el = $(`[data-dock="${k}"]`, root); if (el) el.innerHTML = html; };
-  set('stats', statPanel('stats'));
-  set('issues', statPanel('issues'));
-  set('peers', peersDock());
-  set('news', newsArchiveHtml(newsLog));
-  try {
-    morphRadar($('[data-dock="stats"] .radar--trait', root), L.traits, 1);
-    morphRadar($('[data-dock="issues"] .radar', root), valuesOf(getConcerns(L)), 1);
-  } catch { /* 그래프는 장식: 실패해도 표는 보인다 */ }
-  bindNewsArchive($('[data-dock="news"]', root), () => newsLog, openNews);
-  bindNewsArchive($('[data-dock="issues"]', root), () => newsLog, openNews);
+export function openTab(id, focusKey = null) {
+  if (tabId === id && tabEl?.isConnected && !tabEl.hidden) { closeSheet(true, tabEl); return; }
+  const done = () => { if (tabId === id) setTab(null); syncClock(); };
+  if (id === 'peers') openCompare(done);
+  else if (id === 'news') openNewsBox();
+  else { tabEl = openStats(id, focusKey, done); }
+  if (id === 'peers') tabEl = $('.compare-sheet');
+  setTab(id);
+  syncClock();
 }
 function toggleAuto() {
   setSetting('auto', !S.settings.auto);
@@ -820,14 +799,15 @@ function updateProfile(L, animate = true) {
   num('sales', '월 매출', biz?.monthlySales ?? 0, mw, ESTB, !!biz, tdy);
   num('profit', '월 순익', biz?.monthlyProfit ?? 0, mw, ESTB, !!biz, tdy);
   { const fl = $('[data-family]', root); if (fl) { const ls = familyLines(L); fl.innerHTML = ls.map(x => `<li>${esc(familyText(x))}</li>`).join(''); fl.hidden = !ls.length; } }
+  const st = standingOf(L);        // 통계 위치(연 1회 계산·S.standing 캐시): 요약 줄·펼친 칸 옆 작은 칩
   { // 접힌 카드의 한 줄 요약(핵심 숫자는 줄이지 않고 보조 문구만 말줄임) + 큰 변화 강조(자동 펼침 없음)
     const net = p.wealth?.net ?? (p.money.assets - p.money.debt), debt = p.money.debt || 0, pay = p.biz ? p.biz.monthlyProfit : p.pay?.annual ?? 0;
     const ten = p.home.tenure === 'jeonse' ? `전세 ${mw(h0.deposit || 0)}` : p.home.tenure === 'monthly' ? `월세 ${mw(h0.rent || 0)}` : tenure;
     const prev = root._prev || {}, arrow = (k, v, thr) => { const o = prev[k]; if (o != null && o !== v) { if (Math.abs(v - o) >= thr) { const c = $(`.pcard[data-card="${prev.cardOf?.[k] ?? k}"]`); } sumArrow[k] = { dir: v > o ? 'up' : 'down', until: Date.now() + 6000 }; } return sumArrow[k] && Date.now() < sumArrow[k].until ? `<span class="prof__arrow" data-dir="${sumArrow[k].dir}">${sumArrow[k].dir === 'up' ? '▲' : '▼'}</span>` : ''; };
     const set = (k, main, key, extra = '') => { const el = $(`[data-sum="${k}"]`, root); if (el) el.innerHTML = `<span class="pcard__main">${esc(main)}</span>${key ? `<b class="pcard__key">${key}</b>` : ''}${extra}`; };
     set('home', `${p.home.regionLabel} · ${p.home.tenureLabel}`, p.home.tenure === 'jeonse' || p.home.tenure === 'monthly' ? ten.replace(/^\S+ /, '') : '');
-    set('job', `${jobS} · ${w.emp.label}`, p.pay || p.biz ? (p.biz ? `월 순익 ${mw(p.biz.monthlyProfit)}` : inc(p.pay.annual).replace(/^\S+ /, '')) : '', arrow('pay', pay, 1));
-    set('asset', '순자산', mw(net), arrow('net', net, 1) + (debt > 0 ? `<small class="pcard__debt">부채 ${mw(debt)}</small>` : ''));
+    set('job', `${jobS} · ${w.emp.label}`, p.pay || p.biz ? (p.biz ? `월 순익 ${mw(p.biz.monthlyProfit)}` : inc(p.pay.annual).replace(/^\S+ /, '')) : '', arrow('pay', pay, 1) + pctChip(st?.income));
+    set('asset', '순자산', mw(net), arrow('net', net, 1) + pctChip(st?.asset) + (debt > 0 ? `<small class="pcard__debt">부채 ${mw(debt)}</small>` : ''));
     const flash = (k, c) => { const el = $(`.pcard[data-card="${c}"]`, root); if (el) { el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); } };
     if (prev.home != null && prev.home !== p.home.regionLabel + p.home.tenure) flash('home', 'home');
     if (prev.job != null && prev.job !== jobS) flash('job', 'job');
@@ -835,6 +815,7 @@ function updateProfile(L, animate = true) {
     root._prev = { home: p.home.regionLabel + p.home.tenure, job: jobS, net, pay };
   }
   num('net', '순자산', p.wealth?.net ?? (p.money.assets - p.money.debt), mw, ESTB, true, tdy);
+  for (const [k, it] of [['net', st?.asset], ['pay', st?.income]]) { const t = $(`[data-f="${k}"] [data-t]`, root); if (!t) continue; let c = t.previousElementSibling?.classList.contains('pct') ? t.previousElementSibling : null; if (!c) { t.insertAdjacentHTML('beforebegin', '<span class="pct"></span>'); c = t.previousElementSibling; } c.textContent = pctText(it); c.hidden = !it; }
   $('[data-wealth]', root).innerHTML = assetRows(p.wealth, Y, mw);
   { // 나이대가 바뀌면 축이 달라진다: 축 목록이 다르면 그래프를 새로 그린다
     const c = getConcerns(L), sv = $('.radar--issue', root), keys = c.items.map(i => i.key).join(',');
@@ -857,7 +838,12 @@ function assetRows(w, Y, mw) {
 }
 
 // ───────── S06 선택 시트 ─────────
-function runChoice(req, run, ctxText) {
+// 성향 적합(엔진 req.fit = 추천 id, option.fit = boolean; 아직 없으면 표시 없음). '기본'과 겹치면 한 태그로 합친다.
+const fitOf = (o, req) => o.fit ?? (req.fit != null && o.id === req.fit);
+const sideTag = (isDef, fit) => !isDef && !fit ? ''
+  : fit ? `<span class="tag tag--fit${isDef ? ' is-def' : ''}" role="note" aria-label="${isDef ? '기본 행동, ' : ''}내 성향에 맞는 선택: ${esc(fit)}">${isDef ? '기본 · ' : ''}${esc(fit)}</span>`
+  : '<span class="tag">기본</span>';
+export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice.mjs 가 합성 선택지로 직접 그린다
   return new Promise(resolve => {
     P.choice = true;
     S.clock.choiceStart?.();
@@ -867,6 +853,7 @@ function runChoice(req, run, ctxText) {
     const maj = isMajorChoice(req), topic = req.topic ?? topicOfId(req.eventId) ?? 'housing';
     const def = req.options.find(o => o.id === req.defaultId) || req.options[0];
     const josaTail = josa(def.label, '으로').slice(def.label.length);
+    const fitText = req.mbti?.label ? `${req.mbti.label} 적합` : '성향 적합';
     const el = openSheet({
       cls: `choice${maj ? ' choice--major' : ''}`, closable: false,
       label: '.choice__prompt', focus: '.choice__prompt',
@@ -876,7 +863,7 @@ function runChoice(req, run, ctxText) {
         ${ctxText ? `<p class="choice__text">${esc(ctxText)}</p>` : ''}
         <h2 class="choice__prompt">${esc(req.prompt || '어떻게 할까?')}</h2>
         ${jobInfoHtml(req.jobInfo)}
-        <ol class="options is-arming">${req.options.map((o, i) => `<li style="--i:${i}"><button class="option${o.id === def.id ? ' is-default' : ''}" type="button" data-opt="${esc(o.id)}"><span class="option__ico">${iconSvg(optionIcon(o.label))}</span><span class="option__label">${esc(o.label)}</span><span class="option__side"><span class="option__no">${i + 1}</span>${o.id === def.id ? '<span class="tag">기본</span>' : ''}</span>${o.hint ? `<span class="option__hint">${esc(o.hint)}</span>` : ''}${o.cost ? costHtml(o.cost, req.year ?? L.year) : ''}${(() => { const ef = effectsOf(o.effects), rk = riskOf(o); return ef.length || rk ? `<span class="option__eff">${rk ? `<span class="risk risk--${o.risk}">${iconSvg(rk.icon)}<span>${rk.label}</span><span class="risk__bars" aria-hidden="true"><i></i><i></i><i></i></span></span>` : ''}${ef.length ? '<span class="option__lead">예상</span>' : ''}${ef.map(effChip).join('')}</span>` : ''; })()}</button></li>`).join('')}</ol>
+        <ol class="options is-arming">${req.options.map((o, i) => `<li style="--i:${i}"><button class="option${o.id === def.id ? ' is-default' : ''}" type="button" data-opt="${esc(o.id)}"><span class="option__ico">${iconSvg(optionIcon(o.label))}</span><span class="option__label">${esc(o.label)}</span><span class="option__side"><span class="option__no">${i + 1}</span>${sideTag(o.id === def.id, fitOf(o, req) && fitText)}</span>${o.hint ? `<span class="option__hint">${esc(o.hint)}</span>` : ''}${o.cost ? costHtml(o.cost, req.year ?? L.year) : ''}${(() => { const ef = effectsOf(o.effects), rk = riskOf(o); return ef.length || rk ? `<span class="option__eff">${rk ? `<span class="risk risk--${o.risk}">${iconSvg(rk.icon)}<span>${rk.label}</span><span class="risk__bars" aria-hidden="true"><i></i><i></i><i></i></span></span>` : ''}${ef.length ? '<span class="option__lead">예상</span>' : ''}${ef.map(effChip).join('')}</span>` : ''; })()}</button></li>`).join('')}</ol>
         <p class="choice__status" aria-live="polite">시간이 다 되면 '${esc(def.label)}'${josaTail} 정합니다.</p>
         ${S.choiceHinted ? '' : '<p class="choice__hint cap">선택 시간은 12초이며, 배속과 상관없습니다. 시간이 다 되면 ‘기본’ 표시 행동이 선택됩니다. 자동결정을 켜면 1.2초 뒤 기본 행동으로 진행합니다. 자동결정이 꺼져 있으면 창을 여는 동안 진행이 멈춥니다.</p>'}
       </div>

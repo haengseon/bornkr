@@ -253,7 +253,8 @@ for (const x of rows) {
   const selfShare = isPublic || major === 'A' ? 0 : longest(SELF, code, SELF_MAJOR[major]);
   out.push({
     code, name: displayName(code, r.name_ko), official: r.name_ko, major, sub: r.sub_major_name, minor: r.minor_name,
-    skill: Number(r.skill_level), edu, license, band: Number(r.wage_band), ai: r.ai_exposure,
+    skill: Number(r.skill_level), edu, license, band: /^241[124]/.test(code) ? 6 : Number(r.wage_band),   // R20: 의사·치과의사 = band 6(연 2억 안팎, BAND_BASE.note6)
+    ai: r.ai_exposure,
     female: Math.round(female * 1000) / 1000, w: Math.round(w * 100) / 100,
     selfShare, hazard: longest(HAZARD, code, 1), rural: isRural(code, major), public: isPublic,
     since: SINCE[code] ?? 1960,

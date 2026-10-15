@@ -705,7 +705,7 @@ export default [
       options: [
         {
           id: 'go', label: '서울로 올라간다', fx: { stats: { wealth: 2, relations: -2, leisure: -2 }, issues: { housing: 4 } }, result: '짐을 줄여 올라왔고 월세 계약서에 서명했다.',
-          do: (L, act) => { act.moveRegion('seoul'); if (!L?.home?.owned) act.move('monthly', { reason: '일자리', silent: true }); },
+          do: (L, act) => { act.moveRegion('seoul', { reason: '취업' }); if (!L?.home?.owned) act.move('monthly', { reason: '일자리', silent: true }); },
         },
         { id: 'stay', label: '고향에 남는다', fx: { stats: { relations: 2, happiness: 1, wealth: -1 }, issues: { region: 3 } }, result: '이 지역 일자리를 다시 알아보며 계절을 보냈다.' },
       ],
@@ -722,7 +722,7 @@ export default [
       options: [
         {
           id: 'apply', label: '고향 일자리에 지원', fx: { stats: { relations: 3, leisure: 2, wealth: -2, happiness: 1 }, issues: { region: -2 } }, result: '짐을 줄여 고향 집 근처에 방을 구했다.',
-          do: (L, act) => { act.moveRegion(L?.birth?.region); if (!L?.home?.owned) act.move('monthly', { reason: '고향으로', silent: true }); },
+          do: (L, act) => { act.moveRegion(L?.birth?.region, { reason: '귀향 취업' }); if (!L?.home?.owned) act.move('monthly', { reason: '고향으로', silent: true }); },
         },
         { id: 'stay', label: '수도권에 남는다', fx: { stats: { wealth: 1, relations: -1, leisure: -1 }, issues: { housing: 3 } }, result: '주말 기차표를 몇 장 더 끊게 되었다.', hint: '이미 자리 잡은 곳에 남는 경향' },
       ],

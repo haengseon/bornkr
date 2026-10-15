@@ -1,6 +1,6 @@
 // 바텀시트 내용: 지표·성향·관심사(S05)·출처 목록. (도움 번호 UI는 제거됨)
 import { explain } from '../engine/index.js';
-import { STATS, TRAITS, ISSUES } from '../engine/constants.js';
+import { STATS, ISSUES } from '../engine/constants.js';
 import { S, $, $$, esc, openSheet } from './dom.js';
 import { kindBadge, srcText, statLevel } from './labels.js';
 import { radarSvg, morphRadar, ringSvg } from './gauges.js';
@@ -8,6 +8,8 @@ import { getConcerns, valuesOf, axesOf, byValue, societyHtml } from './concerns-
 import { profileOf } from './profile.js';
 import { fmtWon, nominal, money } from './format.js';
 import { newsArchiveHtml, bindNewsArchive } from './news.js';
+import { mbtiOf } from './persona.js';
+import { TYPE_INFO } from '../content/mbti-lean.js';
 
 const shown = { issue: null, trait: null };   // 지난번에 본 값에서 지금 값으로 모핑
 
@@ -55,9 +57,18 @@ function concernDetails(i) {
 // 6지표 게이지(정보 표시: 누를 수 없다). 메인에서 '지표' 탭·PC 우측 패널로 옮겼다.
 export const gaugesHtml = L => `<ul class="gauges" aria-label="6지표">${STATS.map(s => { const v = L.stats[s.key], lv = statLevel(v); return `<li class="gauge${lv ? ' is-' + lv : ''}">${ringSvg(s.key, v)}<span class="gauge__label">${s.label}</span><span class="gauge__value">${v}</span></li>`; }).join('')}</ul>`;
 const TABS = [['stats', '지표·성향'], ['traits', '성향'], ['issues', '관심사·고민'], ['peers', '동갑내기']];
-const traitsHtml = L => `<p class="sheet__note">성향은 좋고 나쁨이 없습니다. 점선이 50.</p><div class="radar-box">${radarSvg('trait', shown.trait ?? {}, { aria: '성향 5축' })}</div>`
-    + TRAITS.map(t => `<div class="metric"><div class="metric__sum"><span class="metric__label">${t.label}</span><span class="metric__value">${L.traits[t.key]}</span>${meter(L.traits[t.key])}</div></div>`).join('')
-    + `<p class="trait-note">성향은 가구 배경·질병·장애로 정해지지 않습니다. 사건과 선택이 조금씩 움직입니다.</p>`;
+// 성향 패널: 게임용 MBTI 4축 막대 + 유형 설명(한 줄 특징·강점·주의점·큰 결정 경향)
+const MBTI_AX = [['EI', 'E', '외향', 'I', '내향'], ['SN', 'N', '직관', 'S', '현실'], ['TF', 'F', '감정', 'T', '사고'], ['JP', 'J', '계획', 'P', '즉흥']];
+const traitsHtml = L => {
+  const ax = mbtiOf(L.mbti ?? L.traits ?? {}), ty = ax.map(x => x.ch).join(''), info = TYPE_INFO[ty];
+  const bar = ([k, hi, hiL, lo, loL], i) => { const v = ax[i].v, side = v >= 50 ? hi : lo;
+    return `<div class="mbti-axis${ax[i].vague ? ' is-vague' : ''}" role="img" aria-label="${loL}(${lo}) ${100 - v} 대 ${hiL}(${hi}) ${v}, ${side} 쪽${ax[i].vague ? ' 약하게' : ''}"><span class="mbti-axis__end${side === lo ? ' is-on' : ''}">${lo} ${loL}</span><span class="mbti-axis__track"><span class="mbti-axis__dot" style="--v:${v}"></span></span><span class="mbti-axis__end${side === hi ? ' is-on' : ''}">${hiL} ${hi}</span></div>`; };
+  return `<p class="sheet__note">게임용 성향(MBTI 풍)이며 실제 검사가 아닙니다. 좋고 나쁨이 없습니다. 가운데(45~55)는 약한 선호.</p>`
+    + `<div class="mbti-card"><p class="mbti-card__type">${ty}${info ? ` <span class="mbti-card__one">${esc(info[0])}</span>` : ''}</p>${MBTI_AX.map(bar).join('')}`
+    + (info ? `<dl class="mbti-card__info"><dt>강점</dt><dd>${esc(info[1])}</dd><dt>주의할 점</dt><dd>${esc(info[2])}</dd><dt>인생의 큰 결정에서</dt><dd>${esc(info[3])}</dd></dl>` : '')
+    + `<p class="cap">예민함 ${L.traits?.sens ?? 50}/100 · 직접 고르지 않은 결정과 뉴스에 대한 생각, 피드 문구에 이 성향이 드러납니다.</p></div>`
+    + `<p class="trait-note">성향은 가구 배경·질병·장애로 정해지지 않습니다. 사건과 직접 고른 선택이 조금씩 움직입니다.</p>`;
+};
 export function panel(tab) {
   const L = S.L;
   if (tab === 'traits') return traitsHtml(L);

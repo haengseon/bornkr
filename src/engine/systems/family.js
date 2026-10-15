@@ -7,6 +7,7 @@ import { assignJob, wageFor, askChildcare } from './career.js';
 import { econ, leanOdds } from '../stats.js';
 import { sensFields } from '../safety.js';
 import { makeGrandparents } from '../kin.js';
+import { inheritShare } from './money.js';
 
 const ORD = ['첫째', '둘째', '셋째', '넷째', '다섯째'];
 const SCHOOL = { 7: '초등학교', 13: '중학교', 16: '고등학교' };
@@ -33,9 +34,12 @@ export function pre(L, ctx) {
       if (atHome) becomeIndependent(L, ctx);          // 부모 집에 살던 성인: 이제 그 집의 가구주(QA-S-32)
       let amount = 0;
       if (orphan && indep(L) && L.household.netWorth > 0) {
-        amount = Math.round(L.household.netWorth * 0.8 / ((f.siblings || 0) + 1));
+        const inh = inheritShare(L.household.netWorth, (f.siblings || 0) + 1, y);   // 상속세·정리 비용 뒤 내 몫 [R17.S7]
+        amount = inh.share;
         ctx.act.gain(amount);
+        L.tally.inherit = (L.tally.inherit || 0) + amount;
         ctx.sys('sys.money.inheritance', { amount });
+        if (inh.tax > 0) ctx.sys('sys.money.inheritance_tax', { tax: inh.tax });
       }
       if (atHome) {
         const h = L.home;

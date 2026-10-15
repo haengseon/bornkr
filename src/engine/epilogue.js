@@ -5,7 +5,8 @@ import { needYear } from './anachro.js';
 import { fill } from './text.js';
 import { ISSUE_KEYS, TRAIT_KEYS } from './constants.js';
 import { REGION } from './tables.js';
-import { SGG } from './sigungu.js';
+import { SGG, placeLine } from './sigungu.js';
+import { sidoAt } from '../data/admin-names.js';
 import * as P from '../content/epilogue.js';
 
 const MAX_PARA = 220;
@@ -24,7 +25,7 @@ const RANK = /부장|과장|차장|대리|임원|사장|이사|팀장|본부장/
 
 function facts(L) {
   const b = L.birth, by = b.year, age = L.death?.age ?? L.age, endYear = L.death?.year ?? L.year;
-  const reg = REGION[b.region] ?? { full: '', label: '' }, sg = SGG.get(b.sigungu);
+  const sg = SGG.get(b.sigungu);
   const f = L.family || {}, home = L.home || {}, job = L.job || {};
   const hist = (job.history || []).filter(h => h.code);
   const span = h => (h.to ?? endYear) - h.from;
@@ -67,8 +68,8 @@ function facts(L) {
     sudden: ['transport', 'fall', 'external'].includes(L.death?.cause),   // 사고사엔 '조용히 눈을 감았다'류를 쓰지 않는다(deathStory와 모순 방지)
   };
   c.vars = {
-    name: L.name, year: by, endYear, season: SEASON(b.month), sido: reg.full,
-    place: sg ? `${reg.label} ${sg.name}` : reg.full, job1,
+    name: L.name, year: by, endYear, season: SEASON(b.month), sido: sidoAt(b.region, by),
+    place: sg ? placeLine(b.region, b.sigungu, b.dong, by) : sidoAt(b.region, by), job1,
     mAge: mYear != null ? koNum(mYear - by) : '', mainYears: main ? `${koNum(span(main), true)} 해` : '',
     movesK: `${koNum(moves.length, true)} 번`,
   };

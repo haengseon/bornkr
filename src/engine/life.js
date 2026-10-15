@@ -31,7 +31,8 @@ import { updateIssues } from './issues.js';
 import { compareStep } from './compare.js';
 import { deathStep, infantStep } from './death.js';
 import { jobCard } from './jobcard.js';
-import { traitPick } from './mbti.js';
+import { traitPick, traitFit, mbtiNudge, fxScale } from './mbti.js';
+import { concernWatch } from './concernwatch.js';
 import { modifier } from '../content/job-perception.js';
 
 const SYSTEMS = [education, military, career, money, invest, housing, family, health, aging, milestones];
@@ -43,6 +44,7 @@ const PHASES = [
   ['era', L => eraStep(L, makeCtx(L, 'c'))],
   ['chance', L => chanceStep(L, makeCtx(L, 'c'))],
   ['drift', L => { driftStats(L); updateIssues(L); }],
+  ['concern', L => concernWatch(L, makeCtx(L, 'c'))],
   ['compare', L => compareStep(L, makeCtx(L, 'c'))],
   ['death', L => deathStep(L, makeCtx(L))],
 ];
@@ -99,14 +101,14 @@ export function apply(L, fx, meta = {}) {
   for (const [k, d] of Object.entries(fx.stats || {})) {
     if (!(k in L.stats) || !d) continue;
     let dd = clamp(d, -8, 8);
-    if (k === 'happiness' || k === 'relations') dd *= 0.85 + 0.3 * L.traits.sens / 100;
+    dd *= fxScale(L, 'stats', k);   // 예민도·유형 보정(mbti.js)
     change(L, 'stats', k, dd, reason, src);
   }
   for (const [k, d] of Object.entries(fx.traits || {})) {     // 성향 Δ(사건당 ±5, 5~95)
     if (k in L.traits && d) L.traits[k] = clamp(Math.round(L.traits[k] + clamp(d, -5, 5)), 5, 95);
   }
   for (const [k, d] of Object.entries(fx.issues || {})) {
-    if (k in L.issues && d) change(L, 'issues', k, clamp(d, -12, 12), reason, src);
+    if (k in L.issues && d) change(L, 'issues', k, clamp(d, -12, 12) * fxScale(L, 'issues', k), reason, src);
   }
   if (fx.money) {
     const act = makeAct(L, makeCtx(L, 'c'));
@@ -138,7 +140,7 @@ function jobInfoFor(L, req) {
   return null;
 }
 
-const NEED = new Set(['sys.home.expire', 'sys.job.lost', 'sys.money.crunch', 'sys.invest.plan', 'sys.invest.panic']);   // 생활이 걸린 불가피한 갈림길은 주제 반복 규칙으로 묻지 않고 넘기지 않는다
+const NEED = new Set(['sys.home.expire', 'sys.job.lost', 'sys.money.crunch', 'sys.invest.plan', 'sys.invest.panic', 'sys.home.hometown', 'sys.home.relocate']);   // 생활이 걸린 불가피한 갈림길은 주제 반복 규칙으로 묻지 않고 넘기지 않는다
 // 선택 요청. 그해 1건·구간 상한(GDD §2.2). 막히면 시스템 선택은 기본값을 바로 적용(auto, forced).
 // req: { eventId, options:[id | {id,label,hint}], defaultId, vars?, data?, sensitive?, prompt? }
 export function ask(L, req, ctx) {
@@ -157,6 +159,7 @@ export function ask(L, req, ctx) {
     ...(!isSys && req.topic && { topic: req.topic, major: true, chapter: chapterOf(L.age).n, timeoutMs: 20000 }),
   };
   if (isSys) { const tp = traitPick(L, req.eventId, options, full.defaultId); full.defaultId = tp.id; if (tp.mbti) full.mbti = tp.mbti; }   // 직접 고르지 않은 기본 행동은 성향이 정한다
+  if (isSys || req.topic) { const fit = traitFit(L, req.eventId, options); if (fit) { full.fit = fit; options.forEach(o => { if (o.id === fit) o.fit = true; }); } }   // '성향 적합' 표시(UI)
   const ji = jobInfoFor(L, req);
   if (ji) full.jobInfo = ji;
   if (isSys) decorate(L, full);                       // 이정표: major·topic·chapter·options[].effects/risk(PROCESS-V2)
@@ -181,6 +184,7 @@ export function ask(L, req, ctx) {
 function resolveChoice(L, req, optionId, { auto = false, forced = false } = {}) {
   const opt = req.options.find(o => o.id === optionId) || req.options.find(o => o.id === req.defaultId);
   L.choices.push({ year: L.year, age: L.age, eventId: req.eventId, option: opt.id, auto: !!auto, ...(forced && { forced: true }) });
+  if (!auto) mbtiNudge(L, req.eventId, opt.id);   // 직접 고른 선택은 성향을 조금 움직인다
   const ctx = makeCtx(L, 'c');
   const before = req.major ? { p: profileOf(L), s: snapOf(L) } : null;
   if (req.eventId.startsWith('sys.')) {
@@ -308,6 +312,7 @@ function prio(e) {
   if (e.kind === 'system' && MAJOR.test(e.id)) return 1;
   if (e.kind === 'event') return 2;
   if (e.kind === 'personal') return 3;
+  if (e.id === 'sys.concern.new') return 2.2;                        // 새 관심사·고민은 놓치지 않게 개인 사건 바로 아래
   if (e.mbti) return 3;                                              // 성향이 정한 기본 행동은 개인 기록 수준으로 보인다
   if (e.kind === 'news') return e.link ? 2 : 2.5;                    // 중대 뉴스 구분 없음: 내게 닿은 뉴스는 개인 사건 수준, 나머지는 일반 뉴스   // 주요 사건·우연 사건 다음, 일상 기록(3)보다는 앞(개인 우선이되 뉴스가 묻히지 않게)
   return 4;

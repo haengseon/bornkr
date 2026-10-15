@@ -57,7 +57,7 @@ test('엔진: 시군구가 있으면 지역 시세, 없으면 등급표', () => 
 
 test('거주 카드 시세 한 줄: 약만 붙고 [추정] 없음', () => {
   const m = marketLineOf({ year: 2010, home: { sigungu: 'seoul.nowon', tenure: 'jeonse' } });
-  assert.match(m.text, /^이 동네 전세 시세 약 /);
+  assert.match(m.text, /^이 지역 전세 시세 약 /);
   assert.match(m.today, /2026년 환산 약/);
   assert.doesNotMatch(m.text + m.today, /추정/);
   assert.match(marketLineOf({ year: 2025, home: { sigungu: 'jeonnam.haenam', tenure: 'own' } }).text, /단독주택/);

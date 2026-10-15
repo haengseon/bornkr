@@ -1,7 +1,8 @@
 // 결산(ARCHITECTURE §13, GDD §12). 승패·서열·백분위·금액·직급·사인 없음(사인은 death 상세 필드만).
 import { placeLine, placeLabel } from './sigungu.js';
+import { sidoAt } from '../data/admin-names.js';
 import { STAGES, ISSUES, ISSUE_KEYS, STAT_KEYS } from './constants.js';
-import { T, yr, REGION } from './tables.js';
+import { T, yr } from './tables.js';
 import { epilogueOf } from './epilogue.js';
 import { deathStory } from './deathstory.js';
 import { text, fill, josa } from './text.js';
@@ -20,7 +21,7 @@ const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 
 // 출생 신고서(GDD §12.4, ARCHITECTURE §19). 0세에서도 동작.
 export function birthCert(L) {
-  const b = L.birth, p = b.parents, reg = REGION[b.region];
+  const b = L.birth, p = b.parents;
   const father = p.singleParent ? null : `아버지 ${EDU_L[p.fatherEdu]}·${p.fatherJob ? JOB_L[p.fatherJob] : '일을 찾는 중'}`;
   const mother = `어머니 ${EDU_L[p.motherEdu]}·${p.motherJob ? JOB_L[p.motherJob] : '집안일'}`;
   const forms = [p.singleParent && '한부모 가정', p.multicultural && '다문화 가정'].filter(Boolean);
@@ -32,14 +33,14 @@ export function birthCert(L) {
   const orderLabel = b.siblings === 0 ? '외동' : ORDER_L[b.order - 1] ?? '막내';
   const qLabel = QLABEL[b.quintile - 1];
   const story = [
-    fill('{name|은} {year}년 {month}월, {region}에서 {ord|으로} 태어났다.', { name: L.name, year: b.year, month: b.month, region: b.sigungu ? placeLabel(b.region, b.sigungu, b.dong) : b.urban ? reg.full : `${reg.full}의 농촌 마을`, ord: orderLabel }),
+    fill('{name|은} {year}년 {month}월, {region}에서 {ord|으로} 태어났다.', { name: L.name, year: b.year, month: b.month, region: b.sigungu ? placeLabel(b.region, b.sigungu, b.dong, b.year) : b.urban ? sidoAt(b.region, b.year) : `${sidoAt(b.region, b.year)}의 농촌 마을`, ord: orderLabel }),
     `집은 ${homeLine}, 형편은 ${qLabel}이었다.`,
     `${CARE_L[b.care]} 자랐다.`,
   ];
   return {
     name: L.name, sex: L.sex === 'M' ? '남' : '여',
     date: `${b.year}.${String(b.month).padStart(2, '0')}.${String(b.day).padStart(2, '0')}`,
-    regionLabel: `${b.sigungu ? placeLine(b.region, b.sigungu, b.dong, b.transit) : reg.full} · ${b.urban ? '도시' : '농촌'}`, urban: b.urban,
+    regionLabel: `${b.sigungu ? placeLine(b.region, b.sigungu, b.dong, b.year) : sidoAt(b.region, b.year)} · ${b.urban ? '도시' : '농촌'}`, urban: b.urban,
     quintileLabel: qLabel, parentsLine: [father, mother].filter(Boolean).join(', '), homeLine,
     careLine: CARE_L[b.care], accessLine, eraLine, story, hook: text('end.hook'), birthLine: birthLine(L),
     quintile: b.quintile,               // 화면 내부 로직용 — 표시 금지

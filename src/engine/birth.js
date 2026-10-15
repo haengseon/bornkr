@@ -5,6 +5,7 @@ import { REGIONS, BIRTH_YEAR_RANGE, STAT_KEYS, ISSUE_KEYS, TRAIT_KEYS, STAGES } 
 import { SURNAMES, GIVEN_NAMES } from '../content/names.js';
 import { signalValue } from './issues.js';
 import { makeGrandparents } from './kin.js';
+import { initMbti } from './mbti.js';
 import { pickSigungu, place, quintileAdjust, bias, TRANSIT_ACCESS, placeLabel } from './sigungu.js';
 import { REGION_SHARE_BY_YEAR } from '../data/region-share.js';
 
@@ -113,7 +114,8 @@ export function newLife({ seed, forced = {} } = {}) {
   const cd = T('CHILD_DISABILITY');
   const disability = forced.disability !== undefined ? forced.disability : chance(cd.rate) ? W(cd.types) : null;
   const healthAccess = Math.round(clamp(50 + 8 * (q - 3) + (urban ? 6 : -8) + (isCapital(region) ? 4 : 0) + yr(ACCESS_ERA, year) + 1.5 * (sgg.urban - 3) + TRANSIT_ACCESS[pl.transit] + N(0, 6), 5, 95));
-  const traits = Object.fromEntries(TRAIT_KEYS.map(k => [k, Math.round(clamp(N(50, 15), 5, 95))]));
+  // 성향: 난수 소비 순서를 지키려 5회 추첨은 그대로 하고, sens(타고난 예민도)만 쓴다. MBTI 4축은 별도 해시 RNG(mbti.js initMbti).
+  const sensBase = TRAIT_KEYS.map(k => Math.round(clamp(N(50, 15), 5, 95)))[TRAIT_KEYS.indexOf('sens')];
 
   // 이름(앞쪽 가중)
   const surname = W(SURNAMES.values);
@@ -146,7 +148,7 @@ export function newLife({ seed, forced = {} } = {}) {
       order, siblings,
     },
     age: 0, year, alive: true, death: null,
-    stats, traits,
+    stats,
     issues: Object.fromEntries(ISSUE_KEYS.map(k => [k, 10])),
     reasons: {},
     edu: { stage: 'home', score: 50, tutoring: 0, highType: null, college: null, level: 'mid', loan: 0, retake: 0, leave: 0, gradYear: null, dropout: false, left: 0 },
@@ -167,12 +169,13 @@ export function newLife({ seed, forced = {} } = {}) {
     log: [], choices: [], pending: null, lastChoiceAge: null,
     yr: { phase: 0, asked: false, start: 0, mark: 0, oop: 0, compare: null },
   };
+  initMbti(L, sensBase);   // L.mbti·L.traits(호환 접근자)·L.mbtiType
   // 이슈 초기값: 전 축 10, 지역·생활비는 신호의 50%(GDD §3.4)
   L.family.gp = makeGrandparents(seed, L.family.grandparents);      // 조부모 개체(친가/외가·성별). 숫자 grandparents는 생존 수로 유지
   L.issues.region = Math.round(signalValue(L, 'region') * 0.5);
   L.issues.living = Math.round(signalValue(L, 'living') * 0.5);
   L.hist[0] = { s: STAT_KEYS.map(k => L.stats[k]), i: ISSUE_KEYS.map(k => L.issues[k]) };
-  L.log.push({ year, age: 0, kind: 'birth', id: 'birth', text: `${year}년 ${month}월 ${day}일, ${placeLabel(region, pl.sigungu, pl.dong)}에서 태어났다.` });
+  L.log.push({ year, age: 0, kind: 'birth', id: 'birth', text: `${year}년 ${month}월 ${day}일, ${placeLabel(region, pl.sigungu, pl.dong, year)}에서 태어났다.` });
   L.yr.mark = 1;
   return L;
 }
