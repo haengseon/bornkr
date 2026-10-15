@@ -1,0 +1,14 @@
+import { launch, startServer, openPage, toBirth, startLife, seedInit, presetInit } from '../e2e/helpers.mjs';
+import path from 'node:path'; import { ROOT } from '../e2e/helpers.mjs';
+const browser = await launch(), srv = await startServer();
+const errs = [];
+const page = await openPage(browser, srv.url, { w: 390, h: 800, clock: true, noAutoMajor: true, url: '?motion=off', init: seedInit(7) + presetInit({ speed: 5, auto: true, seen19: true }) });
+page.on('pageerror', e => errs.push(String(e)));
+await toBirth(page); await page.clock.runFor(1500); await startLife(page); await page.clock.runFor(120_000);
+for (let i = 0; i < 40 && await page.evaluate(() => document.querySelectorAll('.sheet').length); i++) await page.clock.runFor(1500);
+await page.click('#lt-issues'); await page.waitForTimeout(2500); console.log('exists', await page.evaluate(() => !!document.getElementById('dk-issues') && document.getElementById('dk-issues').innerText.length));
+console.log(await page.evaluate(() => ({ y: scrollY, dock: document.getElementById('dk-issues').getBoundingClientRect().top, top: !document.querySelector('.totop').hidden, sheets: document.querySelectorAll('.sheet').length, active: document.querySelector('.tabbtn.is-active')?.id })));
+await page.screenshot({ path: path.join(ROOT, 'tests/qa/out/dock.png') });
+await page.click('.totop'); await page.waitForTimeout(2500);
+console.log('after top', await page.evaluate(() => scrollY), errs);
+await browser.close(); srv.stop();

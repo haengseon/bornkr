@@ -31,6 +31,7 @@ import { updateIssues } from './issues.js';
 import { compareStep } from './compare.js';
 import { deathStep, infantStep } from './death.js';
 import { jobCard } from './jobcard.js';
+import { traitPick } from './mbti.js';
 import { modifier } from '../content/job-perception.js';
 
 const SYSTEMS = [education, military, career, money, invest, housing, family, health, aging, milestones];
@@ -155,6 +156,7 @@ export function ask(L, req, ctx) {
     ...(req.careTarget && { careTarget: req.careTarget }),
     ...(!isSys && req.topic && { topic: req.topic, major: true, chapter: chapterOf(L.age).n, timeoutMs: 20000 }),
   };
+  if (isSys) { const tp = traitPick(L, req.eventId, options, full.defaultId); full.defaultId = tp.id; if (tp.mbti) full.mbti = tp.mbti; }   // 직접 고르지 않은 기본 행동은 성향이 정한다
   const ji = jobInfoFor(L, req);
   if (ji) full.jobInfo = ji;
   if (isSys) decorate(L, full);                       // 이정표: major·topic·chapter·options[].effects/risk(PROCESS-V2)
@@ -183,7 +185,7 @@ function resolveChoice(L, req, optionId, { auto = false, forced = false } = {}) 
   const before = req.major ? { p: profileOf(L), s: snapOf(L) } : null;
   if (req.eventId.startsWith('sys.')) {
     const said = rawText(`${req.eventId}.${opt.id}`) ? text(`${req.eventId}.${opt.id}`, { name: L.name, ...req.vars }, ctx) : `${req.prompt} → ${opt.label}`;
-    const entry = emit(L, { kind: forced ? 'system' : 'choice', id: req.eventId, text: said, option: opt.id, label: opt.label, auto: !!auto, ...(req.careTarget && { careTarget: req.careTarget }), ...(forced && { quiet: true }) });
+    const entry = emit(L, { kind: forced ? 'system' : 'choice', id: req.eventId, text: said, option: opt.id, label: opt.label, auto: !!auto, ...(auto && req.mbti && opt.id === req.defaultId && { mbti: req.mbti }), ...(req.careTarget && { careTarget: req.careTarget }), ...(forced && !(auto && req.mbti && opt.id === req.defaultId) && { quiet: true }) });
     SYS_CHOICES[req.eventId]?.(L, ctx, opt.id, req.data || {});
     if (before) settle(L, ctx, req, opt, entry, before);
   } else {
@@ -306,7 +308,8 @@ function prio(e) {
   if (e.kind === 'system' && MAJOR.test(e.id)) return 1;
   if (e.kind === 'event') return 2;
   if (e.kind === 'personal') return 3;
-  if (e.kind === 'news') return e.impact || eventById(e.id)?.shock ? 1.5 : 2.5;   // 주요 사건·우연 사건 다음, 일상 기록(3)보다는 앞(개인 우선이되 뉴스가 묻히지 않게)
+  if (e.mbti) return 3;                                              // 성향이 정한 기본 행동은 개인 기록 수준으로 보인다
+  if (e.kind === 'news') return e.link ? 2 : 2.5;                    // 중대 뉴스 구분 없음: 내게 닿은 뉴스는 개인 사건 수준, 나머지는 일반 뉴스   // 주요 사건·우연 사건 다음, 일상 기록(3)보다는 앞(개인 우선이되 뉴스가 묻히지 않게)
   return 4;
 }
 // 한 해 표시 항목(피드) 예산: 0개 15%·1개 60%·2개 20%·3개 5%(FEED_DIST), 절대 상한 FEED_MAX=3.

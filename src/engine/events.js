@@ -11,6 +11,7 @@ import { leanFromChoice } from './stats.js';
 import { fxEffects, fxRisk } from './milestones.js';
 import { eventFrom } from './anachro.js';
 import { variantText } from './variants.js';
+import { NEWS_GENERAL, ERA_LINKS } from '../content/news-general.js';
 
 const LIMITED = new Set(['violence', 'abuse', 'sexual']);
 let BUCKET = null;
@@ -105,18 +106,54 @@ export function eraStep(L, ctx) {
     const w = ev.weight ?? 1;
     if (w > top) { top = w; best = [ev]; } else if (w === top) best.push(ev);
   }
-  if (!best.length) return;
-  const e = best.length > 1 ? ctx.pick(best) : best[0];
-  if (e.p != null && !ctx.chance(pOf(e, L, ctx))) return;
-  const tier = L.age <= 6 ? 'child' : L.age <= 14 ? 'teen' : 'adult';
-  const txt = fill(e.tiers?.[tier] ?? e.text, textVars(L), ctx);
-  L.fired[e.id] = (L.fired[e.id] || 0) + 1;
-  if (e.sensitive === 'disaster') L.tally.disaster = (L.tally.disaster || 0) + 1;
-  const stats = Object.fromEntries(Object.entries(e.fx?.stats || {}).map(([k, v]) => [k, Math.max(-3, Math.min(3, v))]));
-  const fx = e.fx && { ...e.fx, stats };
-  ctx.emit({ kind: 'news', id: e.id, text: txt, ...(fx && { effects: fx }), ...(e.src && { src: e.src }), ...sens(L, e.sensitive) });
-  ctx.apply(fx, { reason: e.reason ?? txt, src: e.src });
-  L.yr.news = e.id;
+  let era = false;
+  if (best.length) {
+    const e = best.length > 1 ? ctx.pick(best) : best[0];
+    if (!(e.p != null && !ctx.chance(pOf(e, L, ctx)))) {
+      era = true;
+      const tier = L.age <= 6 ? 'child' : L.age <= 14 ? 'teen' : 'adult';
+      const txt = fill(e.tiers?.[tier] ?? e.text, textVars(L), ctx);
+      L.fired[e.id] = (L.fired[e.id] || 0) + 1;
+      if (e.sensitive === 'disaster') L.tally.disaster = (L.tally.disaster || 0) + 1;
+      const link = matchLink(L, ctx, ERA_LINKS[e.id]);          // 이 뉴스가 내 삶에 닿은 방식(상태에서 파생)
+      const stats = Object.fromEntries(Object.entries({ ...(e.fx?.stats || {}) }).map(([k, v]) => [k, Math.max(-3, Math.min(3, v))]));
+      const fx = e.fx && { ...e.fx, stats };
+      ctx.emit({ kind: 'news', id: e.id, text: txt, ...(fx && { effects: fx }), ...(link && { link: link.line, ...(link.fx && { linkFx: link.fx }) }), ...(e.src && { src: e.src }), ...sens(L, e.sensitive) });
+      ctx.apply(fx, { reason: e.reason ?? txt, src: e.src });
+      if (link?.fx) ctx.apply(link.fx, { reason: link.reason ?? link.line, src: e.src });
+      L.yr.news = e.id;
+    }
+  }
+  generalNews(L, ctx, era);
+}
+
+// 첫 번째로 맞는 링크 하나(없으면 null)
+function matchLink(L, ctx, links) {
+  for (const k of links || []) { try { if (!k.when || k.when(L, ctx)) return k; } catch { /* 조건 오류는 링크 없음 */ } }
+  return null;
+}
+// 종합 뉴스: 그해 후보 중 '나와 연결되는' 뉴스를 우선해 한 건(시대 사건이 있었으면 60%). 연결된 뉴스는 효과와 인과 문장이 따라붙는다.
+function generalNews(L, ctx, eraFired) {
+  if (!ctx.chance(eraFired ? 0.3 : 0.5)) return;      // 뉴스는 개인 기록보다 앞서지 않게 해마다 일부만
+  const cands = [];
+  for (const n of NEWS_GENERAL) {
+    if (n.years ? L.year < n.years[0] || L.year > n.years[1] : false) continue;
+    if (n.ages && (L.age < n.ages[0] || L.age > n.ages[1])) continue;
+    if (L.fired[n.id]) continue;
+    if (n.sensitive === 'disaster' && (L.tally.disaster || 0) >= 3) continue;
+    const link = matchLink(L, ctx, n.links);
+    cands.push({ n, link, w: (n.weight ?? 1) * (link ? 4 : 1) });
+  }
+  if (!cands.length) return;
+  const tot = cands.reduce((s, c) => s + c.w, 0);
+  let x = ctx.rand() * tot, pick = cands[cands.length - 1];
+  for (const c of cands) if ((x -= c.w) < 0) { pick = c; break; }
+  const { n, link } = pick;
+  L.fired[n.id] = 1;
+  if (n.sensitive === 'disaster') L.tally.disaster = (L.tally.disaster || 0) + 1;
+  const txt = `${n.headline}. ${n.summary}`;
+  ctx.emit({ kind: 'news', id: n.id, text: txt, section: n.sec, ...(link && { link: link.line, ...(link.fx && { effects: link.fx, linkFx: link.fx }) }), ...(n.src && { src: n.src }), ...sens(L, n.sensitive) });
+  if (link?.fx) ctx.apply(link.fx, { reason: link.reason ?? link.line, src: n.src });
 }
 
 // 4단계: 우연 사건(1년 최대 2건, 선택 1건, 5세 firstChoice 보장)

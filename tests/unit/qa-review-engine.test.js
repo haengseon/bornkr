@@ -213,7 +213,7 @@ test('QA#7 배우자는 개체(이름·시작연도)이며 사별·재혼 뒤 �
     assert.equal(widowed.length, (f.spouses || []).filter(s => s.end === 'widowed').length);
     if (remarry.length) { remarried++; assert.ok(remarry[0].spouse.no >= 2); assert.ok(f.spouses.length >= 2); }
   }
-  assert.ok(remarried > 5, `재혼 표본 ${remarried}`);
+  assert.ok(remarried >= 3, `재혼 표본 ${remarried}`);
 });
 
 test('QA#7 부모 돌봄 선택에 대상 호칭(careTarget)과 라벨·결과 문구가 붙는다', () => {

@@ -5,7 +5,7 @@ import { COMPARE_AGES, STATS, STAGES, SPEEDS, ISSUES } from '../engine/constants
 import { S, $, $$, esc, show, go, announce, toast, sleep, reduced, setSetting, sheetOpen, sheetHeld, openSheet, closeSheet } from './dom.js';
 import { saveCurrent, clearCurrent, addRecord } from './store.js';
 import { fxChips, sexLabel, regionShort, nativeAge, stageState, statLevel, josa, kindBadge } from './labels.js';
-import { openStats, gaugesHtml } from './sheets.js';
+import { openStats, gaugesHtml, panel as statPanel } from './sheets.js';
 import { profileOf, familyLines, familyText } from './profile.js';
 import { fmtWon, fmtIncome, fmtRent, nominal, money, tenureText, areaText, AREA_GUESS, deltaText } from './format.js';
 import { ringSvg, setRing, countTo, radarSvg, morphRadar, iconSvg, optionIcon } from './gauges.js';
@@ -121,6 +121,7 @@ function lifeHtml(L) {
       <div class="hud__id"><p class="hud__name">${esc(L.name)} <span class="tag">${sexLabel(L.sex)}</span></p>
         <p class="hud__meta"><span class="mono" data-hud="year">${L.year}</span>년 <span class="mono hud__month" data-hud="month">1</span>월 · <span data-hud="region"></span> 거주</p></div>
       <span class="tag tag--ink" data-hud="paused" role="status" hidden>일시정지됨</span>
+      <div class="hud__mbti" data-mbti></div>
     </div>
     <div class="persona" data-persona></div>
     <ul class="sbar" aria-label="6지표">${STATS.map(s => `<li class="sbar__i" data-stat="${s.key}" title="${s.label}" aria-label="${s.label} ${L.stats[s.key]}">${ringSvg(s.key, L.stats[s.key])}<span class="sbar__v">${L.stats[s.key]}</span><span class="sbar__d" aria-hidden="true"></span></li>`).join('')}</ul>
@@ -130,7 +131,10 @@ function lifeHtml(L) {
   <ol class="chap" aria-label="인생 챕터">${CHAPTERS.map(c => `<li class="chap__seg" data-chap="${c.n}"><span class="chap__dot"></span><span class="chap__n">${c.n}</span></li>`).join('')}</ol><p class="chap__label" aria-hidden="true"></p>
   ${cardsHtml(L)}
   </div>
-  <div class="life__feed"><ol class="feed" aria-label="생애 기록"></ol></div>
+  <div class="life__feed"><ol class="feed" aria-label="생애 기록"></ol>
+    <div class="dock" aria-label="상세 정보">${DOCK.map(([t, l]) => `<section class="dock__s" id="dk-${t}" aria-labelledby="dkh-${t}"><h2 class="dock__h" id="dkh-${t}">${l}</h2><div class="dock__b" data-dock="${t}"></div></section>`).join('')}</div>
+  </div>
+  <button class="totop" type="button" aria-label="맨 위로" data-act="top" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
   <aside class="life__aux" aria-label="보조 패널"><details class="aux" open><summary>과거 신문</summary><div class="aux__news"></div></details><details class="aux" open><summary>지표</summary><div class="aux__stats"></div></details><details class="aux" open><summary>관심사·고민</summary><div class="aux__issues"></div></details><div class="aux"><button class="btn btn--block" type="button" data-aux-tab="peers">같은 날 태어난 사람들</button></div></aside>
   <nav class="lifebar" aria-label="진행 조작">
     <div class="lifebar__row">
@@ -138,7 +142,7 @@ function lifeHtml(L) {
       <div class="seg seg--num" role="group" aria-label="배속">${SPEEDS.map(n => `<button class="seg__btn" type="button" data-speed="${n}" aria-pressed="${S.settings.speed === n}" aria-label="${n}배속">${n}×</button>`).join('')}</div>
       ${autoSwitch()}
     </div>
-    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-haspopup="dialog" aria-pressed="false" data-tab="${t}">${l}</button>`).join('')}</div>
+    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-pressed="false" data-tab="${t}">${l}</button>`).join('')}</div>
   </nav>
 </section>`;
 }
@@ -172,7 +176,7 @@ function entryHtml(e, req) {
   } else if (e.kind === 'choice') {
     cls.push('entry--choice');
     const { label, result } = choiceParts(e, req);
-    body = `<span class="tag entry__kind">선택</span><span class="entry__label">${esc(label)}</span>${e.auto ? ' <span class="tag">기본 행동</span>' : ''}${result ? `<p class="entry__result">${esc(result)}</p>` : ''}${reactHtml(e, S.L)}${chips(e.effects)}`;
+    body = `<span class="tag entry__kind">선택</span><span class="entry__label">${esc(label)}</span>${e.auto ? ' <span class="tag">기본 행동</span>' : ''}${e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : ''}${result ? `<p class="entry__result">${esc(result)}</p>` : ''}${reactHtml(e, S.L)}${chips(e.effects)}`;
   } else if (e.kind === 'compare') {
     cls.push('entry--quiet');
     body = `<span class="tag entry__kind">비교</span>같은 날 태어난 세 사람의 ${nativeAge(e.age)}.`;
@@ -181,7 +185,7 @@ function entryHtml(e, req) {
     body = `<p class="entry__text">${esc(e.text)}</p>`;
   } else {
     const who = e.spouse ? `${/remarry/.test(e.id) ? '새 배우자 ' : /wedding|marry/.test(e.id) ? '배우자 ' : ''}${e.spouse.name ?? ''}(${e.spouse.since ?? e.year}년${e.spouse.end ? `~${e.year}년 ${e.spouse.end === 'widowed' ? '사별' : '이혼'}` : '~'})` : e.grandparent ? e.grandparent.label : '';
-    body = `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>` + esc(e.text) + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
+    body = `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>` + esc(e.text) + (e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : '') + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
   }
   if (e.sensitive) cls.push('entry--sensitive');
   return `<li class="${cls.join(' ')}"${e.kind === 'compare' ? ' data-cmp' : ''}>${body}</li>`;
@@ -237,6 +241,7 @@ function refreshAux() {
   if (is) { const c = getConcerns(L); is.innerHTML = (c.stageLabel ? `<p class="aux__stage cap">${esc(c.stageLabel)}의 관심사·고민</p>` : '') + byValue(c).map(i => `<div class="aux__row" title="${esc(i.reason || i.desc || '')}"><span>${esc(i.label)}</span><span class="mono">${i.value}</span><span class="meter"><span class="meter__fill" style="--v:${i.value}"></span></span></div>`).join('') + societyHtml(newsLog, L); }
 }
 // '나' 줄: MBTI 풍 4글자(경계는 흐리게) · 성향 칩 2개 · 가장 큰 고민. 눌러서 각 시트를 연다. 값이 같으면 다시 그리지 않는다(애니메이션 없음).
+const DOCK = [['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']];
 let personaKey = '', topPrev = null;
 function updatePersona(L) {
   const el = $('.life [data-persona]'); if (!el) return;
@@ -245,14 +250,15 @@ function updatePersona(L) {
   const key = txt + ch.map(x => x.label).join() + (top ? top.key + top.value : '') + d;
   if (key === personaKey) return;
   personaKey = key; if (top) topPrev = { key: top.key, value: top.value };
-  el.innerHTML = `<button class="persona__mbti" type="button" data-tab="stats" title="게임용 성향 유형(MBTI 풍) — 실제 검사 아님" aria-label="나의 유형 ${txt}, 게임용 성향 유형이며 실제 검사가 아닙니다">${mb.map(x => `<span${x.vague ? ' class="is-vague"' : ''}>${x.ch}</span>`).join('')}</button>`
+  const mbEl = $('.life [data-mbti]'); if (mbEl) mbEl.innerHTML = `<button class="persona__mbti" type="button" data-tab="stats" title="게임용 성향 유형(MBTI 풍) — 실제 검사 아님" aria-label="나의 유형 ${txt}, 게임용 성향 유형이며 실제 검사가 아닙니다">${mb.map(x => `<span${x.vague ? ' class="is-vague"' : ''}>${x.ch}</span>`).join('')}</button>`;
+  el.innerHTML = ''
     + ch.map(x => `<button class="persona__chip" type="button" data-tab="stats" aria-label="성향 ${esc(x.label)}">${esc(x.label)}</button>`).join('')
     + (top ? `<button class="persona__chip persona__chip--top" type="button" data-tab="issues" aria-label="가장 큰 고민 ${esc(top.label)} ${top.value}">고민 ${esc(top.label)} <b>${top.value}</b>${d ? `<span class="prof__arrow" data-dir="${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'}</span>` : ''}</button>` : '');
 }
 function updateHud(animate = true) {
   const L = S.L, root = $('.life');
   if (!root) return;
-  refreshAux(); updatePersona(L);
+  refreshAux(); updatePersona(L); renderDock();
   $('[data-hud="age"]', root).textContent = L.age;
   $('[data-hud="year"]', root).textContent = L.year;
   $('[data-hud="region"]', root).textContent = regionShort(L.home?.region ?? L.birth?.region);
@@ -349,7 +355,20 @@ function bind(run) {
     else if (!P.choice && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { const i = TABIDS.indexOf(tabId); openTab(TABIDS[(i < 0 ? (e.key === 'ArrowRight' ? 0 : 3) : i + (e.key === 'ArrowRight' ? 1 : 3)) % 4]); }
   };
   document.addEventListener('keydown', onKey);
-  unbind = () => { document.removeEventListener('visibilitychange', onVis); document.removeEventListener('keydown', onKey); };
+  // 맨 위로 버튼: 스크롤을 내리면 나타난다. 보고 있는 상세 구역에 맞춰 하단 탭이 따라 켜진다.
+  const topBtn = $('[data-act="top"]', root);
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      if (topBtn) topBtn.hidden = window.scrollY < 480;
+      const vis = DOCK.map(([k]) => document.getElementById('dk-' + k)).filter(Boolean).find(el => { const r = el.getBoundingClientRect(); return r.top < innerHeight * 0.6 && r.bottom > innerHeight * 0.2; });
+      setTab(vis ? vis.id.slice(3) : null);
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  unbind = () => { document.removeEventListener('visibilitychange', onVis); document.removeEventListener('keydown', onKey); window.removeEventListener('scroll', onScroll); };
   root.addEventListener('click', e => {
     const ct = e.target.closest('[data-card-toggle]');
     if (ct) { toggleCard(ct.dataset.cardToggle); return; }
@@ -364,6 +383,8 @@ function bind(run) {
       if (P.user || P.hidden) { P.user = false; resumeHidden(); toast('재개'); } else { P.user = true; updatePauseUI(); syncClock(); toast('일시정지'); }
     } else if (act === 'resume') { P.user = false; resumeHidden(); }
     else if (act === 'auto') toggleAuto();
+    else if (act === 'top') window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+    else if (t.dataset.cage) { dockAge = +t.dataset.cage; renderDock(true); }
     else if (t.dataset.speed) {
       setSetting('speed', +t.dataset.speed);
       root.dataset.fast = fastYear(+t.dataset.speed) ? '1' : '';
@@ -372,21 +393,40 @@ function bind(run) {
     } else if (t.dataset.tab || t.dataset.auxTab) openTab(t.dataset.tab || t.dataset.auxTab);
   });
 }
-// 하단 탭 = 유일한 탭 줄. 같은 탭을 다시 누르면 시트가 닫히고, 활성 탭은 시트와 함께 바뀐다.
-let tabEl = null, tabId = null;
+// 하단 탭 = 피드 아래 상세 정보 구역으로 스크롤 이동(팝업 아님). 활성 탭은 보고 있는 구역을 따라간다.
+let tabId = null;
 function setTab(id) {
   tabId = id;
   $$('.lifebar .tabbtn').forEach(b => { const on = b.dataset.tab === id; b.setAttribute('aria-pressed', on); b.classList.toggle('is-active', on); });
 }
-export function openTab(id, focusKey = null) {
-  if (tabId === id && tabEl?.isConnected && !tabEl.hidden) { closeSheet(true, tabEl); return; }
-  const done = () => { if (tabId === id) setTab(null); syncClock(); };
-  if (id === 'peers') openCompare(done);
-  else if (id === 'news') openNewsBox();
-  else { tabEl = openStats(id, focusKey, done); }
-  if (id === 'peers') tabEl = $('.compare-sheet');
-  setTab(id);
-  syncClock();
+const DOCK_OF = { stats: 'stats', traits: 'stats', issues: 'issues', peers: 'peers', news: 'news' };
+export function openTab(id) {
+  const k = DOCK_OF[id] || 'stats', el = document.getElementById('dk-' + k);
+  if (!el) return;
+  setTab(k);
+  el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+}
+let dockYear = null, dockAge = null;
+function peersDock() {
+  const L = S.L, ages = [...COMPARE_AGES.filter(a => a < L.age), L.age], a = ages.includes(dockAge) ? dockAge : L.age;
+  dockAge = a;
+  return `<div class="cmp-tabs" role="group" aria-label="나이 고르기">${ages.map(x => `<button class="seg__btn" type="button" data-cage="${x}" aria-pressed="${x === a}">${x === L.age ? `지금 ${x}세` : `${x}세`}</button>`).join('')}</div><p class="compare__title">${nativeAge(a)}, 같은 날 태어난 사람들</p>${cardHtml(a)}`;
+}
+function renderDock(force = false) {
+  const L = S.L, root = $('.life');
+  if (!root || (!force && dockYear === L.year)) return;
+  dockYear = L.year;
+  const set = (k, html) => { const el = $(`[data-dock="${k}"]`, root); if (el) el.innerHTML = html; };
+  set('stats', statPanel('stats'));
+  set('issues', statPanel('issues'));
+  set('peers', peersDock());
+  set('news', newsArchiveHtml(newsLog));
+  try {
+    morphRadar($('[data-dock="stats"] .radar--trait', root), L.traits, 1);
+    morphRadar($('[data-dock="issues"] .radar', root), valuesOf(getConcerns(L)), 1);
+  } catch { /* 그래프는 장식: 실패해도 표는 보인다 */ }
+  bindNewsArchive($('[data-dock="news"]', root), () => newsLog, openNews);
+  bindNewsArchive($('[data-dock="issues"]', root), () => newsLog, openNews);
 }
 function toggleAuto() {
   setSetting('auto', !S.settings.auto);

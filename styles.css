@@ -1645,7 +1645,7 @@ a[href], .url, .mono-wrap { overflow-wrap: anywhere; }
 .persona__mbti .is-vague { opacity: .4; }
 .persona__chip--top { flex: 1 1 auto !important; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .persona__chip--top b { margin-left: 3px; font-variant-numeric: tabular-nums; }
-@media (max-width: 419px) { .persona__chip:nth-of-type(2) { display: none; } }
+@media (max-width: 419px) { .persona__chip:not(.persona__chip--top):nth-of-type(2) { display: none; } }
 
 /* ═══════ 하단 바 = 정확히 2줄(조작 / 탭) · 6지표는 상단 HUD 한 줄 ═══════ */
 .lifebar { padding: 6px var(--gutter) calc(6px + var(--safe-b)); gap: 6px; }
@@ -1745,3 +1745,21 @@ a[href], .url, .mono-wrap { overflow-wrap: anywhere; }
 .cost__r small { color: var(--ink-3); font-size: 12px; }
 .cost__k { color: var(--ink-3); }
 .cost__n { flex-basis: 100%; font-size: 12px; color: var(--ink-3); }
+
+/* newslink: 뉴스가 내 삶에 닿은 방식(인과 한 줄) */
+.newsrow__link { margin: 2px 0 2px 2px; padding-left: 10px; border-left: 2px solid var(--accent); font-size: 14px; line-height: 1.5; color: var(--ink-2); word-break: keep-all; text-wrap: balance; }
+.paper__link { margin: 10px 0; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--paper-2); font-size: 14px; line-height: 1.6; word-break: keep-all; }
+
+/* mbti: 헤더 우측 상단 + 성향이 정한 기본 행동 표시 */
+.hud__mbti { margin-left: auto; flex: none; align-self: flex-start; }
+.hud__mbti .persona__mbti { min-height: 36px; padding: 0 12px !important; font-size: 20px !important; border-width: 2px !important; }
+.tag--mbti { background: var(--paper-2); border-color: var(--accent); color: var(--accent); }
+
+/* dock: 하단 탭이 가리키는 상세 정보 구역(피드 아래) + 맨 위로 버튼 */
+.life__aux { display: none !important; }
+.dock { display: grid; gap: var(--sp-5); margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 2px solid var(--ink); }
+.dock__s { scroll-margin-top: var(--sp-3); min-width: 0; }
+.dock__h { margin: 0 0 var(--sp-3); font-family: var(--font-serif); font-size: 18px; line-height: 1.4; color: var(--ink); }
+.dock__b .cmp-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: var(--sp-3); }
+.totop { position: fixed; right: 12px; bottom: calc(var(--bar-h) + var(--safe-b) + 12px); z-index: var(--z-float); width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--rule); border-radius: 50%; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-float); }
+.totop[hidden] { display: none; }

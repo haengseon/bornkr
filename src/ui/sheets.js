@@ -58,7 +58,7 @@ const TABS = [['stats', '지표·성향'], ['traits', '성향'], ['issues', '관
 const traitsHtml = L => `<p class="sheet__note">성향은 좋고 나쁨이 없습니다. 점선이 50.</p><div class="radar-box">${radarSvg('trait', shown.trait ?? {}, { aria: '성향 5축' })}</div>`
     + TRAITS.map(t => `<div class="metric"><div class="metric__sum"><span class="metric__label">${t.label}</span><span class="metric__value">${L.traits[t.key]}</span>${meter(L.traits[t.key])}</div></div>`).join('')
     + `<p class="trait-note">성향은 가구 배경·질병·장애로 정해지지 않습니다. 사건과 선택이 조금씩 움직입니다.</p>`;
-function panel(tab) {
+export function panel(tab) {
   const L = S.L;
   if (tab === 'traits') return traitsHtml(L);
   if (tab === 'issues') {

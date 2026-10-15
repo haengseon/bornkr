@@ -95,7 +95,7 @@ export function chapterOf(L, req, hint) {
 
 // ───────── 시대 충격(속보) ─────────
 const SHOCK_RE = /IMF|외환위기|금융위기|코로나|팬데믹|오일\s?쇼크|석유\s?파동|카드\s?대란/;
-export const isShockEntry = e => !!e && e.kind === 'news' && !e.sensitive && (e.shock === true || (e.shock !== false && SHOCK_RE.test(`${e.eraId ?? ''} ${e.id ?? ''} ${e.text ?? ''}`)));
+export const isShockEntry = () => false;   // 중대 뉴스(속보 연출) 없음: IMF·금융위기도 일반 뉴스 줄로 나온다
 
 // 소주제(장면 그래픽): 퇴사·계약만료, 폐업, 대출
 export function sceneTopicOf(e) {

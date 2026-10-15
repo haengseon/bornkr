@@ -24,12 +24,12 @@ const splitNews = t => { const m = String(t).match(/^(.+?[.?!])\s+(.+)$/); retur
 export function newsOfEntry(e, year, L) {
   const [headline, summary] = splitNews(e.text);
   const chips = fxChips(e.effects);
-  return { year: e.year ?? year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era', effects: e.effects, scenario: !!e.scenario, react: L ? reactText(e, L) : '' };
+  return { year: e.year ?? year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era', effects: e.effects, scenario: !!e.scenario, react: L ? reactText(e, L) : '', link: e.link || '', linkFx: e.linkFx || null };
 }
 // 피드의 '올해의 뉴스' 줄: 신문 아이콘 + 헤드라인 한 줄 + 개인 영향 칩(사건 단위 effects 만). 누르면 신문 지면 팝업.
 const NEWS_ICO = '<svg class="newsrow__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 8h6M7 12h10M7 16h10"/></svg>';
 export function newsRowHtml(n, i) {
-  return `<button class="newsrow" type="button" data-fn="${i}" aria-label="뉴스 열기: ${esc(n.headline)}"><span class="newsrow__tag">${n.scenario ? '가상 뉴스' : '뉴스'}</span><span class="newsrow__t">${esc(n.headline)}</span></button>`;
+  return `<button class="newsrow" type="button" data-fn="${i}" aria-label="뉴스 열기: ${esc(n.headline)}"><span class="newsrow__tag">${n.scenario ? '가상 뉴스' : '뉴스'}</span><span class="newsrow__t">${esc(n.headline)}</span></button>${n.link ? `<p class="newsrow__link">→ ${esc(n.link)}</p>` : ''}`;
 }
 
 // entries: advanceYear 가 돌려준 로그, archive: NEWS_ARCHIVE|null, seen: Set(이미 보인 해). 1년 최대 1건.
@@ -57,6 +57,7 @@ export function newsInner(n) {
   return `<article class="paper"><p class="paper__mast"><span class="paper__name">${esc(md.name)}</span><span class="paper__date"><span class="mono">${n.year}</span>년 ${esc(md.kind)}판</span></p>
     <h3 class="paper__head">${esc(n.headline)}</h3>
     ${n.summary ? `<p class="paper__body">${esc(n.summary)}</p>` : ''}
+    ${n.link ? `<p class="paper__link"><b>나에게 닿은 일</b> ${esc(n.link)}</p>` : ''}
     ${n.react ? `<p class="react">${esc(n.react)}</p>` : ''}
     ${n.impact ? `<p class="paper__impact"><b>삶에 준 영향</b> ${esc(n.impact)}</p>` : ''}
     ${tags ? `<p class="paper__tags">${tags}</p>` : ''}
