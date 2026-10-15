@@ -129,12 +129,13 @@ function lifeHtml(L) {
   <div class="life__feed"><ol class="feed" aria-label="생애 기록"></ol></div>
   <aside class="life__aux" aria-label="보조 패널"><details class="aux" open><summary>과거 신문</summary><div class="aux__news"></div></details><details class="aux" open><summary>지표</summary><div class="aux__stats"></div></details><details class="aux" open><summary>관심사·고민</summary><div class="aux__issues"></div></details><div class="aux"><button class="btn btn--block" type="button" data-aux-tab="peers">같은 날 태어난 사람들</button></div></aside>
   <nav class="lifebar" aria-label="진행 조작">
+    <ul class="sbar" aria-label="6지표">${STATS.map(s => `<li class="sbar__i" data-stat="${s.key}">${ringSvg(s.key, L.stats[s.key])}<span class="sbar__v">${L.stats[s.key]}</span><span class="sbar__l">${s.label}</span><span class="sbar__d" aria-hidden="true"></span></li>`).join('')}</ul>
     <div class="lifebar__row">
       <button class="btn lifebar__pause" type="button" aria-pressed="false" data-act="pause">${pauseInner(false)}</button>
       <div class="seg seg--num" role="group" aria-label="배속">${SPEEDS.map(n => `<button class="seg__btn" type="button" data-speed="${n}" aria-pressed="${S.settings.speed === n}" aria-label="${n}배속">${n}×</button>`).join('')}</div>
       ${autoSwitch()}
     </div>
-    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표'], ['traits', '성향'], ['issues', '관심사·고민'], ['peers', '동갑내기']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-haspopup="dialog" aria-pressed="false" data-tab="${t}">${l}${t === 'stats' ? '<span class="tabbadge" data-badge hidden aria-hidden="true">±</span>' : ''}</button>`).join('')}</div>
+    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표'], ['traits', '성향'], ['issues', '관심사·고민'], ['peers', '동갑내기']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-haspopup="dialog" aria-pressed="false" data-tab="${t}">${l}</button>`).join('')}</div>
   </nav>
 </section>`;
 }
@@ -255,14 +256,18 @@ function updateHud(animate = true) {
   root.dataset.fast = fastYear(S.settings.speed) ? '1' : '';
   const ageEl = $('[data-hud="age"]', root);
   if (animate && ageEl.textContent !== String(L.age)) { ageEl.classList.remove('tick'); void ageEl.offsetWidth; ageEl.classList.add('tick'); }
-  let big = 0, any = false;
-  for (const s of STATS) {
-    const d = prevStats ? L.stats[s.key] - prevStats[s.key] : 0;
-    if (d) { any = true; big = Math.max(big, Math.abs(d)); }
-  }
-  if (any) { // 6지표는 '지표' 탭으로 옮겼다: 변화가 있으면 탭에 ± 배지만 잠깐
-    const bd = $('[data-badge]', root);
-    if (bd) { bd.hidden = false; clearTimeout(bd._t); bd._t = setTimeout(() => { bd.hidden = true; }, 6000); }
+  let big = 0;
+  for (const s of STATS) { // 하단 바 위 6지표 스트립: 값·물결 링·변화 ▲▼ 팝업
+    const li = $(`[data-stat="${s.key}"]`), v = L.stats[s.key], d = prevStats ? v - prevStats[s.key] : 0, lv = statLevel(v);
+    if (!li) continue;
+    $('.sbar__v', li).textContent = v; setRing(li, v);
+    li.classList.toggle('is-low', lv === 'low'); li.classList.toggle('is-critical', lv === 'critical');
+    if (d) {
+      big = Math.max(big, Math.abs(d));
+      const de = $('.sbar__d', li); de.textContent = deltaText(d); li.dataset.dir = d > 0 ? 'up' : 'down';
+      li.classList.remove('is-changed'); void li.offsetWidth; li.classList.add('is-changed');
+      clearTimeout(li._t); li._t = setTimeout(() => li.classList.remove('is-changed'), 1700);
+    }
   }
   if (animate && scene && big >= 8 && !fastYear(S.settings.speed)) { const el = scene.el; el.classList.remove('is-shake'); void el.offsetWidth; el.classList.add('is-shake'); }
   prevStats = { ...L.stats };
@@ -384,7 +389,7 @@ function waitYear(run) {
   });
 }
 
-// 달력 흐름: 한 해(1배속 30초) 동안 1월→12월. 시계가 멈추면 같이 멈춘다. 월 정보가 엔진에 없으므로 흐름만 보여 준다.
+// 달력 흐름: 한 해(1배속 15초) 동안 1월→12월. 시계가 멈추면 같이 멈춘다. 월 정보가 엔진에 없으므로 흐름만 보여 준다.
 function setMonth(frac) {
   const el = $('.life [data-hud="month"]');
   if (!el) return;
@@ -516,7 +521,7 @@ function showShock(e, run) {
     let stop = () => {};
     const done = () => { stop(); closeSheet(true, el); };
     $('.shock__ok', el).addEventListener('click', done);
-    stop = autoAfter(2400, done);       // 자동결정에서만 자동 진행
+    stop = autoAfter(3000, done);       // 자동결정에서만 자동 진행(최소 3초, 배속과 무관)
     syncClock();
   });
 }
@@ -578,7 +583,7 @@ function showMajor(r, run, req, { shown = null, soft = false } = {}) {
     let stop = () => {};
     const done = () => { stop(); closeSheet(true, el); };
     $('.major__ok', el).addEventListener('click', done);
-    stop = autoAfter(2600, done);       // 자동결정에서만 2.6초 뒤 진행, 아니면 [확인]
+    stop = autoAfter(3000, done);       // 자동결정에서만 3초 뒤 진행(배속과 무관), 아니면 [확인]
     syncClock();
   });
 }
@@ -849,7 +854,7 @@ function runChoice(req, run, ctxText) {
       const go = () => { stop(); finish(r2); };
       if (!maj) {
         // 일반·우연 선택: 확인 없이 결과를 잠시 보여 준 뒤 자동으로 닫는다(탭하면 즉시). 결과 문장은 피드에 남는다.
-        const t = setTimeout(go, 1800);
+        const t = setTimeout(go, 2500);
         stop = () => clearTimeout(t);
         el.addEventListener('click', go);
         return;
@@ -859,7 +864,7 @@ function runChoice(req, run, ctxText) {
       ok.type = 'button'; ok.className = 'btn btn--primary btn--block major__ok choice__ok'; ok.textContent = '확인';
       foot.prepend(ok);   // [확인]은 시트 맨 아래 푸터(고정)
       ok.addEventListener('click', go);
-      stop = autoAfter(700, go);
+      stop = autoAfter(3500, go);      // 자동결정에서도 카드 뒤집기(~1.4초) + 결과 읽기 시간 확보: 탭하면 즉시
       ok.focus({ preventScroll: true });
     }
     function finish(r2) {

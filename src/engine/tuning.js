@@ -56,7 +56,7 @@ export const STAGE_CAP = {
 
 // 해마다 피드에 띄우는 줄 수(GDD §2.1 '로그 줄/년(표시)'). 넘치면 quiet.
 export const SHOW_LINES = { early: 2, school: 3, youth: 3, mid: 3, late: 2 };   // (구) 구간별 표시 상한 — 피드 예산(FEED_DIST)으로 대체
-export const FEED_DIST = [0.08, 0.66, 0.20, 0.06];   // 한 해 표시 항목 수 목표 분포(0·1·2·3개)
+export const FEED_DIST = [0.04, 0.66, 0.24, 0.06];   // 한 해 표시 항목 수 목표 분포(0·1·2·3개)
 export const FEED_MAX = 3;                           // 한 해 표시 항목 절대 상한
 
 export const MAX_CHANCE_PER_YEAR = 2;   // 우연 사건 1년 최대(GDD §2.4)

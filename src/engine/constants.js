@@ -46,7 +46,7 @@ export const STAGES = [
 ];
 
 export const COMPARE_AGES = [7, 19, 29, 42, 55, 70];
-export const BASE_YEAR_MS = 30_000;       // 1배속에서 1년 = 현실 30초(고정, 배속으로만 나눈다)
+export const BASE_YEAR_MS = 15_000;       // 1배속에서 1년 = 현실 15초(고정, 배속으로만 나눈다: 5배속 3초)
 export const MIN_YEAR_MS = 1_500;         // 예산 압축 시 하한(1배속 기준)
 export const CHOICE_TIMEOUT_MS = 12_000;  // 선택 카운트다운
 export const HARD_CAP_MS = Infinity;     // 시간 상한 없음(1년=30초 정책: 1배속 완주는 35~50분이라 15분 상한과 양립 불가)

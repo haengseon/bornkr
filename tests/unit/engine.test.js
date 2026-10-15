@@ -89,7 +89,7 @@ test('동료 3명: 결정적, 같은 날 출생, 출생 시각 순', () => {
   for (let i = 1; i < 3; i++) assert.ok(a[i - 1].order <= a[i].order);
 });
 
-test('시계: 1년=1배속 30초 고정, 배속 1~5로만 나눔, 일시정지 시간 제외, 시간 상한 없음', () => {
+test('시계: 1년=1배속 15초 고정, 배속 1~5로만 나눔, 일시정지 시간 제외, 시간 상한 없음', () => {
   let t = 0;
   const c = E.createClock({ now: () => t });
   c.start();
@@ -98,7 +98,7 @@ test('시계: 1년=1배속 30초 고정, 배속 1~5로만 나눔, 일시정지 �
   t += 60 * 60_000;
   assert.equal(c.overCap(), false);            // 1년=30초 정책: 15분 상한 없음
   const L = E.newLife({ seed: 1 });
-  const want = { 1: 30000, 2: 15000, 3: 10000, 4: 7500, 5: 6000 };
+  const want = { 1: 15000, 2: 7500, 3: 5000, 4: 3750, 5: 3000 };
   for (const [sp, ms] of Object.entries(want)) assert.equal(c.yearDelay(L, Number(sp)), ms);
 });
 

@@ -281,5 +281,5 @@ test('피드: 한 해 표시 항목(quiet·compare 제외, 선택·사망 포함
   }
   const tot = hist.reduce((x, y) => x + y, 0), mean = (hist[1] + 2 * hist[2] + 3 * hist[3]) / tot;
   assert.ok(mean > 0.9 && mean < 1.5, `평균 ${mean.toFixed(2)}`);
-  assert.ok(hist[1] / tot > 0.45 && hist[0] / tot > 0.08 && hist[3] / tot < 0.1, JSON.stringify(hist));
+  assert.ok(hist[1] / tot > 0.45 && hist[0] / tot > 0.03 && hist[3] / tot < 0.1, JSON.stringify(hist));
 });

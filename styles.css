@@ -445,11 +445,6 @@ details.metric[open] > .metric__sum::after { transform: rotate(-135deg); }
 }
 
 /* 광고 자리: 홈·통계 도감·기록관 목록에만. 높이 예약, 고정·오버레이 금지 */
-.ad-slot {
-  display: grid; place-items: center; min-height: 100px; margin: var(--sp-5) 0;
-  border: 1px dashed var(--rule); color: var(--ink-3); font-size: var(--fs-label);
-}
-.ad-slot__label { justify-self: start; align-self: start; padding: 2px 6px; }
 
 /* ───────────── 5. 화면별 ───────────── */
 
@@ -1318,13 +1313,6 @@ button, summary, [role="switch"], .option { cursor: pointer; }
   .ntoast__src { display: none; }
 }
 
-/* ADS */
-.adzone { margin: var(--sp-6) 0 var(--sp-7); padding-top: var(--sp-5); border-top: 1px solid var(--rule-2); overflow: hidden; max-width: 100%; }
-.adzone__label { margin: 0 0 var(--sp-2); color: var(--ink-3); font-size: var(--fs-label); }
-.adzone__box { min-height: 120px; max-width: 100%; overflow: hidden; display: grid; place-items: center; }
-.adzone__ph { color: var(--ink-3); font-size: var(--fs-label); border: 1px dashed var(--rule-2); display: grid; place-items: center; width: 100%; min-height: 120px; }
-.privlink { color: var(--accent); text-decoration: underline; }
-@media (min-width: 768px) { .adzone__box, .adzone__ph { min-height: 110px; } }
 
 /* ═══════ 선택 시트: 하단 여백 제거 · 줄바꿈 · 어두운 배경 대비 ═══════ */
 .choice .sheet__body { padding-bottom: var(--sp-2); }
@@ -1614,3 +1602,19 @@ a[href], .url, .mono-wrap { overflow-wrap: anywhere; }
 .doc, .doc__head, .form__row, .form__label, .form__value { min-width: 0; overflow-wrap: anywhere; }
 .doc__head { flex-wrap: wrap; }
 @media (max-width: 299px) { .newsrow__ico { display: none; } .newsrow { padding-inline: 8px; } .doc__title { letter-spacing: 0; } .doc { padding-inline: 8px; } }
+
+/* ═══════ 6지표: 하단 바 위에 상시 나열(눌러서 보지 않는다) ═══════ */
+.sbar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; margin: 0 0 var(--sp-1); padding: 0; list-style: none; }
+.sbar__i { position: relative; display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 3px; padding: 2px 0 0; cursor: default; }
+.sbar__i .ring6 { width: 22px; height: 22px; overflow: visible; }
+.sbar__v { font-family: var(--font-num); font-weight: 700; font-size: 14px; line-height: 1.2; }
+.sbar__l { grid-column: 1 / -1; text-align: center; font-size: 12px; line-height: 1.2; color: var(--ink-2); white-space: nowrap; }
+.sbar__d { position: absolute; top: -14px; right: 2px; padding: 0 5px; border-radius: var(--r-pill); background: var(--paper); border: 1px solid currentColor; font-family: var(--font-num); font-size: 12px; font-weight: 700; line-height: 18px; opacity: 0; pointer-events: none; }
+.sbar__i[data-dir="up"] .sbar__d { color: var(--good); } .sbar__i[data-dir="down"] .sbar__d { color: var(--danger); }
+.sbar__i.is-changed .sbar__d { animation: sbar-pop 1.6s var(--ease) both; }
+@keyframes sbar-pop { 0% { opacity: 0; transform: translateY(6px); } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
+.sbar__i.is-low .sbar__v { color: var(--warn); } .sbar__i.is-critical .sbar__v { color: var(--danger); }
+:root { --bar-h: 164px; }
+@media (max-width: 459px) { :root { --bar-h: 192px; } }
+@media (max-width: 339px) { :root { --bar-h: 216px; } .sbar__l { font-size: 12px; letter-spacing: -.05em; } }
+.lifebar { padding-top: var(--sp-3); }

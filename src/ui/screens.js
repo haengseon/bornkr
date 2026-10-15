@@ -9,7 +9,6 @@ import {
 } from './labels.js';
 import { srcList, openSources, toMetas } from './sheets.js';
 import { openShare } from './cards.js';
-import { adSlotHtml, mountAd } from './ads.js';
 import { startNew } from './play.js';
 import { sceneHtml, mountScene, silhouetteSvg } from './scene.js';
 import { radarSvg, morphRadar, iconSvg } from './gauges.js';
@@ -17,7 +16,6 @@ import { TENURE_LABEL, familyLines, familyText } from './profile.js';
 import { ERAS, decadeBirthsAvg, pickYear, manText } from './era.js';
 
 const PRIV = '<a class="privlink" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>';
-const AD = '<aside class="ad-slot" aria-label="광고"><span class="ad-slot__label">광고</span></aside>';
 const meter = v => `<span class="meter meter--lg"><span class="meter__fill" style="--v:${v}"></span></span>`;
 const opts = () => ({ hideSensitiveCause: S.settings.hideSensitiveCause });
 
@@ -25,11 +23,11 @@ const opts = () => ({ hideSensitiveCause: S.settings.hideSensitiveCause });
 routes.home = () => {
   const recs = loadRecords(), cur = loadCurrent();
   const homeEl = show('home', `<section class="screen has-bar home" data-screen="home"><div class="screen__body">
-    <p class="home__formno">생애 시뮬레이션 · 1회 배속에 따라 약 10~40분 <span class="tag">19세 이상</span></p>
+    <p class="home__formno">생애 시뮬레이션 · 1회 배속에 따라 약 7~25분 <span class="tag">19세 이상</span></p>
     <h1 class="home__title">태어나보니 대한민국</h1>
     <p class="home__sub">한 번뿐인 인생</p>
     <p class="home__lede">대한민국 어딘가에서 무작위로 태어나, 한 번의 생을 2050년 또는 사망까지 삽니다. 태어날 곳은 고를 수 없고, 고를 수 있는 건 생각보다 적습니다.</p>
-    <dl class="facts"><div><dt>소요</dt><dd>약 10~40분</dd></div><div><dt>끝</dt><dd>2050년 또는 사망</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
+    <dl class="facts"><div><dt>소요</dt><dd>약 7~25분</dd></div><div><dt>끝</dt><dd>2050년 또는 사망</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
     ${cur ? `<div class="resume"><div class="resume__text"><p class="resume__title">하던 생애가 있습니다</p><p class="cap">${esc(cur.name ?? '')} · ${cur.age}세(${cur.year ?? ''}년)</p></div><button class="btn" type="button" data-go="resume">이어 하기</button></div>
     <div class="confirm" id="confirm-new" role="group" aria-labelledby="confirm-new-text" hidden>
       <p class="confirm__text" id="confirm-new-text">새로 태어나면 하던 생애(${esc(cur.name ?? '')} · ${cur.age}세)는 이어 할 수 없습니다. 그래도 새로 태어날까요?</p>
@@ -46,7 +44,6 @@ routes.home = () => {
       <button class="linkrow" type="button" data-go="settings"><span><span class="linkrow__title">설정</span><span class="linkrow__desc">밝기 · 배속 · 모션</span></span></button>
     </nav>
     <p class="note">실제 통계와 시대별 자료를 참고한 가상 인생입니다. 일부 확률과 개인 사건은 게임을 위한 추정·각색입니다. 질병·사고·폭력·상실 같은 일도 다루며, 장면은 그리지 않고 짧게 적습니다.</p>
-    ${AD}
     <p class="note">숫자는 통계청·KOSIS·교육부·고용노동부 자료를 바탕으로 하며 실측·전망·게임 추정을 구분해 표시합니다. 화면의 금액은 그해 가격으로 보여 주고 2026년 환산(약)을 곁들입니다.</p>
     <p class="note">${PRIV}</p>
   </div>
@@ -85,7 +82,7 @@ routes.gate = () => show('gate', `<section class="screen has-bar" data-screen="g
     <li>이 게임은 19세 이상을 위해 만들었습니다.</li>
     <li>질병·사고·폭력·상실·자해 같은 일이 통계를 참고한 확률로 일어날 수 있습니다(일부는 게임을 위한 추정·각색). 장면은 그리지 않습니다.</li>
     <li>그런 일은 짧게만 적고, 선택지는 평소와 같습니다.</li>
-    <li>출생부터 결산까지 배속에 따라 약 10~40분입니다(한 해는 1배속에서 30초, 배속은 1~5배). 손을 떼도 기본 행동으로 끝까지 진행됩니다.</li>
+    <li>출생부터 결산까지 배속에 따라 약 7~25분입니다(한 해는 1배속에서 15초, 배속은 1~5배). 손을 떼도 기본 행동으로 끝까지 진행됩니다.</li>
     <li>숫자에는 실측·전망·게임 추정이 섞여 있습니다. 숫자를 누르면 출처와 계산 이유가 나옵니다.</li>
   </ol></article></div>
   <div class="actionbar"><button class="btn" type="button" data-go="home">홈으로</button><button class="btn btn--primary" type="button" data-go="gateOk">확인하고 태어나기</button></div></section>`);
@@ -293,7 +290,6 @@ function summaryHtml(L, sum, archive) {
       </div>
     </section>
     ${sum.sources?.length ? `<details class="birth-again"><summary>출처 ${toMetas(sum.sources).length}개</summary>${srcList(sum.sources)}</details>` : ''}
-    ${adSlotHtml()}
   </div>
   <div class="actionbar">
     <button class="btn" type="button" data-go="archive">${archive ? '목록으로' : '기록관'}</button>
@@ -304,7 +300,6 @@ function showSummary(L, sum, archive) {
   S.view = { L, sum, cert: sum.birthCert ?? S.cert ?? {} };
   const el = show('summary', summaryHtml(L, sum, archive));
   setTimeout(() => morphRadar($('.sum-radar .radar', el), L.issues, 900), 120);
-  mountAd(el);
   el.addEventListener('click', e => {
     const k = e.target.closest('[data-card]')?.dataset.card;
     if (k) openShare(S.view, k);
@@ -334,7 +329,6 @@ routes.archive = () => {
       <p class="cap archive__cap">이 기기에만 저장됩니다. 최근 30개까지.</p>
       <ol class="records">${recs.map((r, i) => `<li><button class="record" type="button" data-rec="${i}"><span class="record__no">${recs.length - i}</span><span><span class="record__name">${esc(r.name)}</span><span class="record__years">${r.birthYear}–${r.deathYear ?? r.birthYear + r.deathAge} · ${r.deathAge}세</span></span><span class="record__verdict">${esc(r.verdictMain)}</span></button></li>`).join('')}</ol>`
       : '<p class="empty">아직 끝난 생애가 없습니다.</p><button class="btn btn--primary btn--block" type="button" data-go="born">태어나기</button>'}
-    ${AD}
     </div></section>`);
   el.addEventListener('click', e => {
     const i = e.target.closest('[data-rec]')?.dataset.rec;
@@ -407,7 +401,7 @@ routes.codex = async () => {
     const host = s.url ? (() => { try { return new URL(s.url).host; } catch { return ''; } })() : '';
     return `<li class="src-item" data-kind="${bd.group}"><p class="src-item__title">${esc(s.title)}</p><p class="src-item__meta"><span class="${bd.cls}">${bd.label}</span> ${esc([s.org, s.year].filter(Boolean).join(' · '))}${host ? ` · <a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(host)}</a>` : ''}</p></li>`;
   }).join('')}</ul></section>` : '<p class="cap cap--pad">출처 목록을 준비하고 있습니다.</p>';
-  box.innerHTML = (sections[0] || '') + AD + sections.slice(1).join('') + srcHtml;
+  box.innerHTML = sections.join('') + srcHtml;
   $('.filter', el).addEventListener('click', e => {
     const b = e.target.closest('[data-filter]');
     if (!b) return;

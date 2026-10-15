@@ -23,7 +23,8 @@ import { STATS, ISSUES } from './constants.js';
 import { TENURE_LABEL, WHO_LABEL } from './act.js';
 import { HT_LABEL } from './systems/education.js';
 import { won } from './text.js';
-import { eraStep, chanceStep, resolveEventChoice } from './events.js';
+import { eraStep, chanceStep, resolveEventChoice, eventById } from './events.js';
+import { yearNote } from './notes.js';
 import { driftStats, derive } from './stats.js';
 import { updateIssues } from './issues.js';
 import { compareStep } from './compare.js';
@@ -276,7 +277,10 @@ export const MAJOR = /^sys\.(fam\.(wedding|child_born|parent_death|widowed|divor
 function prio(e) {
   if (e.kind === 'choice' || e.kind === 'death' || e.kind === 'birth' || e.asked) return 0;
   if (e.kind === 'system' && MAJOR.test(e.id)) return 1;
-  return { news: 2, event: 3 }[e.kind] ?? 4;
+  if (e.kind === 'event') return 2;
+  if (e.kind === 'personal') return 3;
+  if (e.kind === 'news') return e.impact || eventById(e.id)?.shock ? 1.5 : 2.5;   // 주요 사건·우연 사건 다음, 일상 기록(3)보다는 앞(개인 우선이되 뉴스가 묻히지 않게)
+  return 4;
 }
 // 한 해 표시 항목(피드) 예산: 0개 15%·1개 60%·2개 20%·3개 5%(FEED_DIST), 절대 상한 FEED_MAX=3.
 // 선택·사망·출생은 항상 보이고, 나머지는 우선순위(prio) 순으로 예산 안에서만 보인다. 넘친 항목은 quiet(기록·효과는 그대로).
@@ -291,6 +295,7 @@ function flushQuiet(L) {
   let shown = L.log.slice(ys.start, ys.mark).filter(e => !e.quiet && e.kind !== 'compare' && e.kind !== 'birth').length;
   for (const e of fresh) {
     const t = topicOf(e);
+    if (e.kind === 'news' && prio(e) === 2.5 && R.rand(R.makeRng(R.hashSeed(L.seed, 'newsshow', L.age))) >= 0.5) { e.quiet = true; continue; }   // 평범한 뉴스는 약 50%만
     if (prio(e) === 0) shown++;
     else if (shown < target && !seen.has(t)) { shown++; seen.add(t); }          // 같은 해 같은 주제는 한 번만 보인다
     else e.quiet = true;
@@ -318,7 +323,7 @@ function run(L, from) {
     PHASES[L.yr.phase++][1](L);
     if (L.pending || !L.alive) break;
   }
-  if (!L.pending) endYear(L);
+  if (!L.pending) { endYear(L); if (L.alive && !L.yr.noted) { L.yr.noted = true; const n = yearNote(L); if (n) emit(L, { kind: 'personal', id: `personal.${n.key}`, text: n.text }); } }
   flushQuiet(L);
   const ch = chapterOf(L.age);
   // summary: 이정표 결정이 없는 해(빨리감기 한 줄 요약 대상, PROCESS-V2 §1)
