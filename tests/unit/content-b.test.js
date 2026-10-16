@@ -10,7 +10,7 @@ import { SOURCES } from '../../src/data/sources.js';
 import { fill } from '../../src/engine/text.js';
 
 // GDD §9.4 '콘텐츠 B' 카탈로그 55개 + 작가 추가 사건
-const CATALOG = `youth.retake.room youth.freshman youth.tuition.bill youth.cafe.shift youth.wage.theft youth.leave.year youth.mil.letter youth.mil.injury youth.discharge.gap youth.spec youth.intern youth.civil.exam youth.civil.result youth.rejections youth.first.contract youth.overtime youth.work.bullying youth.work.harassment youth.recovery youth.burnout youth.rider youth.freelance youth.startup.idea youth.mold.room youth.substandard youth.jeonse.loan youth.fraud.news youth.roommate youth.parent.call youth.dating.app youth.blind.date youth.breakup.after youth.wedding.cost youth.wedding.gift youth.inlaws youth.pregnant.work youth.infertility youth.newborn.night youth.daycare.wait youth.return.work youth.single.evening youth.hobby youth.friend.weddings youth.invest youth.card.debt youth.checkup youth.low.mood youth.to.seoul youth.hometown.job youth.working.holiday youth.grad.school youth.loan.repay youth.parent.hospital youth.pet youth.first.vote`.split(/\s+/);
+const CATALOG = `youth.retake.room youth.freshman youth.tuition.bill youth.cafe.shift youth.wage.theft youth.leave.year youth.mil.letter youth.mil.injury youth.discharge.gap youth.spec youth.intern youth.civil.exam youth.rejections youth.first.contract youth.overtime youth.work.bullying youth.work.harassment youth.recovery youth.burnout youth.rider youth.freelance youth.startup.idea youth.mold.room youth.substandard youth.jeonse.loan youth.fraud.news youth.roommate youth.parent.call youth.dating.app youth.blind.date youth.breakup.after youth.wedding.cost youth.wedding.gift youth.inlaws youth.pregnant.work youth.infertility youth.newborn.night youth.daycare.wait youth.return.work youth.single.evening youth.hobby youth.friend.weddings youth.invest youth.card.debt youth.checkup youth.low.mood youth.to.seoul youth.hometown.job youth.working.holiday youth.grad.school youth.loan.repay youth.parent.hospital youth.pet youth.first.vote`.split(/\s+/);
 // 추가 사건: 전세사기 후속 지원(도움 경로), 일상 사건 7건(청년기 연간 기대 건수·20대 초반 공백 보강)
 const EXTRA = ['youth.fraud.support', 'youth.exam.week', 'youth.friends.meet', 'youth.commute', 'youth.salary.day', 'youth.holiday.home', 'youth.move.in', 'youth.rent.day'];
 
@@ -77,7 +77,7 @@ const dist = (a, b) => {
 };
 const BANNED = ['피가', '피를', '칼', '때려', '폭행', '흉기', '주먹', '발로', '자해', '자살', '죽고', '죽을', '성폭', '강간', '불쌍', '결핍', '극복', '비정상', '안타깝', '가난한 집', '장애를 앓', '낙오', '실패', '무능', '게으', '루저', '노력 부족', '탓이', '자초'];
 const SILENCE = /참는|참아|침묵|무시|모른 척|모른척|가만히|못 본 척/;
-const ACT_OK = new Set(['flag', 'gain', 'spend', 'borrow', 'move', 'moveRegion']);
+const ACT_OK = new Set(['flag', 'gain', 'spend', 'borrow', 'move', 'moveRegion', 'preparePublicExam']);
 const FLAGS_OK = new Set(['civilExam', 'examUntil', 'infertile', 'childWait', 'noChild']);
 
 function checkFx(fx, where) {
@@ -257,8 +257,8 @@ test('조건(when): 시스템 상태와 연동되는 사건이 맞는 상태에�
   assert.ok(W('youth.mil.letter', mkL(2010, 21, { mil: 'serving' })) && !W('youth.mil.letter', mkL(2010, 21, { mil: 'none' })));
   assert.ok(W('youth.rider', mkL(2020, 25, { platform: true })) && !W('youth.rider', mkL(2020, 25, {})));
   assert.ok(W('youth.substandard', mkL(2012, 24, { flags: { substandard: 2011 } })) && !W('youth.substandard', mkL(2012, 24, {})));
-  assert.ok(W('youth.civil.result', mkL(2016, 28, { flags: { civilExam: 2014 } })) && !W('youth.civil.result', mkL(2016, 28, { flags: { civilExam: 2016 } })));
-  assert.ok(W('youth.civil.result', mkL(2016, 28, { flags: { civilExam: 2016 }, public: true })));
+  assert.ok(W('youth.civil.exam', mkL(2016, 28, { job: 'seeking' })));
+  assert.ok(!W('youth.civil.exam', mkL(2016, 28, { job: 'seeking', flags: { examUntil: 2017 } })));
   assert.ok(W('youth.recovery', mkL(2016, 28, { flags: { victim: 2015 } })) && !W('youth.recovery', mkL(2016, 28, { flags: { victim: 2016 } })) && !W('youth.recovery', mkL(2016, 28, { flags: { victim: 2011 } })));
   assert.ok(W('youth.fraud.support', mkL(2024, 28, { flags: { fraud: 2023 } })) && !W('youth.fraud.support', mkL(2024, 28, {})));
   assert.ok(W('youth.breakup.after', mkL(2011, 25, { log: [{ id: 'sys.fam.breakup', year: 2010 }] })) && !W('youth.breakup.after', mkL(2013, 25, { log: [{ id: 'sys.fam.breakup', year: 2010 }] })));

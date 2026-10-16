@@ -15,10 +15,10 @@ const debt = L => (L?.money?.debt ?? 0) > 0;
 
 // D(id, topic, ages, years, when, p, text, reason, prompt, [[id, 라벨, fx, 결과, 힌트?], ×2~3])
 const D = (id, topic, ages, years, when, p, text, reason, prompt, opts) => ({
-  id: `dec.${id}`, topic, major: true, ages, years, ...(when ? { when } : {}), p, once: true, text, reason, tags: [`dec.${topic}`],
+  id: `dec.${id}`, topic, major: true, ages, years, ...(when ? { when: id === 'exam.prep.way' ? L => when(L) && L?.flags?.examUntil == null : when } : {}), p, once: true, text, reason, tags: [`dec.${topic}`],
   choice: {
     prompt, default: opts[0][0],
-    options: opts.map(([oid, label, f, result, hint]) => ({ id: oid, label, fx: fx(f), result, ...(hint ? { hint } : {}) })),
+    options: opts.map(([oid, label, f, result, hint]) => ({ id: oid, label, fx: fx(f), result, ...(hint ? { hint } : {}), ...(id === 'exam.prep.way' && { do: (L, act) => act.preparePublicExam(2) }) })),
   },
 });
 

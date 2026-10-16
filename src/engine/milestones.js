@@ -30,6 +30,8 @@ export const META = {
   'sys.mil.timing': { ch: 3, topic: 'job', opts: { now: [E(['leisure', -1], ['relations', 1]), 'low'], later: [E(['intellect', 1], ['leisure', -1]), 'mid'] } },
   'sys.job.first_offer': { ch: 3, topic: 'job', opts: { take: [E(['wealth', 1, 2], ['leisure', -1]), 'low'], wait: [E(['wealth', -1], ['job', 1]), 'mid'], exam: [E(['wealth', -1, 2], ['happiness', -1], ['job', 1]), 'high'] } },
   'sys.chain.exam_retry': { ch: 3, topic: 'job', chain: 'exam', opts: { again: [E(['wealth', -1], ['happiness', -1], ['job', 1]), 'high'], quit: [E(['wealth', 1], ['happiness', 1]), 'low'] } },
+  'sys.fam.sibling_welcome': { ch: 1, topic: 'family', opts: { help: [E(['relations', 2], ['leisure', -3]), 'low'], play: [E(['relations', 2], ['leisure', -1]), 'low'], space: [E(['relations', -1], ['leisure', 1]), 'low'] } },
+  'sys.fam.relationship': { ch: 0, topic: 'family', opts: { time: [E(['relations', 2], ['leisure', -3]), 'low'], talk: [E(['relations', 2], ['leisure', -1]), 'low'], later: [E(['relations', -2], ['leisure', 1]), 'low'] } },
   'sys.home.independence': { ch: 4, topic: 'housing', opts: { stay: [E(['relations', 1], ['leisure', -1]), 'low'], room: [E(['leisure', 1], ['wealth', -1], ['housing', 1]), 'mid'], jeonse: [E(['leisure', 1], ['wealth', -1, 2], ['housing', 1]), 'high'] } },
   'sys.home.renew': { ch: 4, topic: 'housing', once: true, opts: { pay: [E(['wealth', -1], ['housing', 1]), 'mid'], cheaper: [E(['leisure', -1], ['relations', -1]), 'low'], monthly: [E(['wealth', -1], ['living', 1]), 'mid'] } },
   'sys.fam.love': { ch: 5, topic: 'love', opts: { confess: [E(['relations', 1, 2], ['happiness', 1], ['leisure', -1]), 'high'], wait: [[], 'low'], focus: [E(['wealth', 1], ['relations', -1]), 'mid'] } },
@@ -140,10 +142,7 @@ export function step(L, ctx) {
     fl.mortgageAsked = y;
     return ctx.ask({ eventId: 'sys.chain.mortgage', options: ['hold', 'sell'], defaultId: 'hold' });
   }
-  // 연쇄 ③ 공시 → 불합격 → 한 번 더/그만
-  if (fl.examFailed === y && a < 35 && (fl.examTries || 1) < 4) {
-    return ctx.ask({ eventId: 'sys.chain.exam_retry', options: ['again', 'quit'], defaultId: 'quit' });
-  }
+  // 시험 결과와 재도전 선택은 career.seek에서 일반 취업보다 먼저 처리한다.
 }
 const SHOCK_LABEL = { imf: '외환위기', card: '카드 대란', gfc: '금융위기', covid: '코로나19', yeonggeul: '집값 급등' };
 
@@ -174,7 +173,8 @@ export const choices = {
   },
   'sys.chain.exam_retry'(L, ctx, opt) {
     L.flags.examFailed = null;
-    if (opt === 'again') { L.flags.examTries = (L.flags.examTries || 1) + 1; L.flags.examUntil = L.year + 1; ctx.act.spend(500); }
+    if (opt === 'again') { ctx.act.preparePublicExam(1); ctx.act.spend(500); }
+    else { L.flags.examUntil = null; L.flags.civilExam = null; ctx.sys('sys.job.exam_quit', {}, { essential: true }); }
   },
 };
 

@@ -116,7 +116,7 @@ function frame(p, C, no) {
   p.box(52.5, 52.5, 975, 1245, C.ink, 1);
   p.text(`■ 태어나보니 대한민국 [별지 제${no}호서식]`, 88, 112, p.f(400, 22, 'sans'), C.ink3);
   p.hline(88, 992, 1206, C.rule);
-  p.text('통계를 참고한 가상 인생 시뮬레이션 · 2025년 물가 기준', 88, 1252, p.f(400, 22, 'sans'), C.ink3);
+  p.text('태어나보니 대한민국', 88, 1252, p.f(400, 22, 'sans'), C.ink3);
   p.text('태어나보니 대한민국 · bornkr.click', 992, 1252, p.f(700, 24, 'sans'), C.ink, 'right');
 }
 

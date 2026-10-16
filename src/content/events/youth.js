@@ -164,7 +164,7 @@ export default [
   // ───────── 취업 준비·첫 직장 ─────────
   {
     id: 'youth.spec', ages: [21, 27], p: 0.12, once: true, tags: ['y.jobhunt'],
-    when: L => ['student', 'seeking'].includes(st(L)),
+    when: L => ['student', 'seeking'].includes(st(L)) && L?.flags?.examUntil == null,
     text: era([
       [1960, '이력서에 적을 한 줄이 아직 부족했다.'],
       [1990, '이력서 빈칸이 자꾸 눈에 걸렸다. 어학 점수 칸이었다.'],
@@ -198,7 +198,7 @@ export default [
   },
   {
     id: 'youth.civil.exam', ages: [23, 32], p: 0.08, once: true, years: [1998, 2100], tags: ['y.jobhunt'], src: ['R04.S3'],
-    when: L => ['student', 'seeking'].includes(st(L)),
+    when: L => ['student', 'seeking'].includes(st(L)) && L?.flags?.examUntil == null,
     text: era([
       [1998, '외환위기 뒤 공무원 시험 학원 줄이 길어졌다.'],
       [2010, '노량진 골목에는 컵밥 가게와 고시원이 줄지어 있었다.'],
@@ -211,22 +211,12 @@ export default [
         {
           id: 'start', label: '준비를 시작한다', fx: { stats: { intellect: 2, leisure: -4, wealth: -2, relations: -2 }, issues: { job: 2 } },
           result: '독서실 정기권을 끊고 휴대폰을 서랍에 넣었다.',
-          do: (L, act) => { act.flag('civilExam', L.year); act.flag('examUntil', L.year + 2); },
+          do: (L, act) => act.preparePublicExam(2),
         },
         { id: 'skip', label: '기업 지원을 이어 간다', fx: { stats: { leisure: 1, relations: 1, wealth: -1 } }, result: '공고를 날마다 열어 보며 자기소개서를 고쳤다.', hint: '취업시험 준비자 14.5%(2026)' },
       ],
       default: 'skip',
     },
-  },
-  {
-    id: 'youth.civil.result', ages: [24, 33], p: 0.5, once: true, tags: ['y.jobhunt'],
-    when: L => L?.flags?.civilExam != null && (!!L?.job?.public || L.year - L.flags.civilExam >= 2),
-    text: (L, c) => pickOf(L?.job?.public
-      ? ['합격자 명단에서 내 수험번호를 찾았다. 발령지는 우편으로 왔다.', '합격 통보를 읽고 한참 앉아 있었다. 수험서는 책장 맨 위로 올라갔다.']
-      : ['불합격이었다. 합격선과는 두세 문제 차이였다.', '불합격 통보를 읽고 수험서를 책장 아래 칸에 꽂았다.'], c),
-    do: (L, act) => act.flag('civilExam', null),
-    fx: { stats: { leisure: 2, happiness: 1 } },
-    reason: '공무원 시험 결과',
   },
   {
     id: 'youth.rejections', ages: [23, 30], p: 0.3, cooldown: 4, tags: ['y.jobhunt'], src: ['R04.S3'],

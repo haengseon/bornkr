@@ -1,5 +1,23 @@
 // 시스템 문구 F: 일자리 상실·임대 만료 뒤의 갈림길(선택지 라벨은 계획 계산이 만든다 — plans.js).
 export default {
+  'sys.job.exam_start': ['공무원 시험 준비를 시작했다. 다음 시험에서 결과를 확인하기로 했다.'],
+  'sys.job.exam_pass': ['공무원 시험에 합격했다. 발령을 받아 {title|으로} 일을 시작했다.'],
+  'sys.job.exam_fail': ['공무원 시험에 불합격했다. 합격자 명단에 수험번호가 없었다.'],
+  'sys.job.exam_continue': ['불합격한 과목을 다시 짚으며 다음 시험을 준비했다.'],
+  'sys.job.exam_quit': ['공무원 시험 준비를 끝내고 기업 채용 공고를 다시 살피기 시작했다.'],
+  'sys.fam.sibling_arrived': ['{sibling} {siblingName|이} 태어났다. 집안에 아기 울음소리가 늘었다.'],
+  'sys.fam.sibling_welcome': { prompt: ['{siblingName|이} 태어난 뒤 부모님 손이 바빠졌다. 동생과 어떻게 지낼까?'], options: { help: '돌보는 일을 거든다', play: '곁에서 함께 논다', space: '혼자 있을 시간을 갖는다' } },
+  'sys.fam.sibling_welcome.help': ['기저귀와 수건을 가져다주며 동생 돌보는 일을 거들었다.'],
+  'sys.fam.sibling_welcome.play': ['동생 곁에 앉아 장난감을 흔들어 주었다.'],
+  'sys.fam.sibling_welcome.space': ['혼자 놀고 싶어 방으로 들어갔다. 동생과는 조금 떨어져 지냈다.'],
+  'sys.fam.sibling_death': ['{sibling} {siblingName|이} 세상을 떠났다. 빈자리가 오래 남았다.'],
+  'sys.fam.sibling_school': ['{siblingName|이} 초등학교에 들어갔다. 함께 책가방을 골랐다.'],
+  'sys.fam.sibling_adult': ['{siblingName|이} 어른이 되었다. 둘이 앞으로의 생활을 이야기했다.'],
+  'sys.fam.relationship': { prompt: ['{relativeName|과} 시간을 보내려 한다. 어떻게 함께할까?'], options: { time: '시간을 비워 함께한다', talk: '잠깐 안부를 나눈다', later: '다음으로 미룬다' } },
+  'sys.chain.exam_retry': { prompt: ['공무원 시험에 불합격했다. 준비를 계속할까?'], options: { again: '한 해 더 준비한다', quit: '시험을 접고 일자리를 찾는다' } },
+  'sys.fam.relationship.time': ['가족과 함께 보낼 시간을 따로 비워 두었다. 못다 한 이야기를 나눴다.'],
+  'sys.fam.relationship.talk': ['잠깐이라도 마주 앉아 안부를 물었다. 서로의 하루를 들었다.'],
+  'sys.fam.relationship.later': ['할 일이 밀려 가족과의 약속을 다음으로 미뤘다. 대화가 줄었다.'],
   'sys.home.expire': {
     prompt: ['{tenureLabel} 계약이 끝났는데 집주인이 재계약을 거절했다. 다음 집을 정해야 한다.', '집주인이 집을 비워 달라고 했다. 계약 만료일까지 다음 집을 구해야 한다.', '재계약이 되지 않았다. 짐을 싸기 전에 어디로 갈지부터 정해야 한다.'],
   },

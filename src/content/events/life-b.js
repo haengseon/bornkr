@@ -56,7 +56,7 @@ export default [
   a('seek.waiting', [22, 34], 0.1, seeking, '면접장 대기실에서 번호표를 들고 한 시간을 기다렸다.', { happiness: -1, intellect: 1 }, { cd: 2 }),
   a('seek.reject', [22, 34], 0.1, seeking, '불합격 소식이 이어져 한 주를 쉬었다.', { happiness: -3 }, { cd: 2, i: { job: 2 } }),
   a('seek.spec', [22, 32], 0.08, seeking, '자격증 칸을 채우려고 시험 접수를 했다.', { intellect: 2, wealth: -1 }, { cd: 3 }),
-  a('seek.civil', [22, 34], 0.08, seeking, '공무원 시험 책을 도서관 서랍에 두고 다녔다.', { intellect: 1, leisure: -2, happiness: -1 }, { cd: 4, y: [1990, 2029], i: { job: 2 } }),
+  a('seek.civil', [22, 34], 0.08, L => L?.flags?.examUntil != null, '공무원 시험 책을 도서관 서랍에 두고 다녔다.', { intellect: 1, leisure: -2, happiness: -1 }, { cd: 4, y: [1990, 2029], i: { job: 2 } }),
   a('seek.intern', [22, 30], 0.07, L => seeking(L) || nonreg(L), '인턴 기간이 끝났지만 전환 소식은 오지 않았다.', { happiness: -2 }, { once: true, y: [1997, 2029], i: { job: 3 } }),
   a('seek.fair', [22, 32], 0.06, seeking, '채용박람회에서 이력서를 여러 장 냈다.', { relations: 1, intellect: 1 }, { once: true, y: [1999, 2029] }),
   a('seek.home', [22, 33], 0.08, L => seeking(L) && L?.home?.parents === true, '부모님 집에서 구직 기간을 보냈다.', { relations: 1, wealth: -1 }, { cd: 3 }),

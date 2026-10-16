@@ -251,7 +251,7 @@ function updatePersona(L) {
   const key = txt + ch.map(x => x.label).join() + (top ? top.key + top.value : '') + d;
   if (key === personaKey) return;
   personaKey = key; if (top) topPrev = { key: top.key, value: top.value };
-  const mbEl = $('.life [data-mbti]'); if (mbEl) mbEl.innerHTML = `<button class="persona__mbti" type="button" data-tab="stats" title="게임용 성향 유형(MBTI 풍) — 실제 검사 아님" aria-label="나의 유형 ${txt}, 게임용 성향 유형이며 실제 검사가 아닙니다">${mb.map(x => `<span${x.vague ? ' class="is-vague"' : ''}>${x.ch}</span>`).join('')}</button>`;
+  const mbEl = $('.life [data-mbti]'); if (mbEl) mbEl.innerHTML = `<button class="persona__mbti" type="button" data-tab="stats" title="나의 성향" aria-label="나의 성향 ${txt}">${mb.map(x => `<span${x.vague ? ' class="is-vague"' : ''}>${x.ch}</span>`).join('')}</button>`;
   el.innerHTML = ''
     + ch.map(x => `<button class="persona__chip" type="button" data-tab="stats" aria-label="성향 ${esc(x.label)}">${esc(x.label)}</button>`).join('')
     + (top ? `<button class="persona__chip persona__chip--top" type="button" data-tab="issues" aria-label="가장 큰 고민 ${esc(top.label)} ${top.value}">고민 ${esc(top.label)} <b>${top.value}</b>${d ? `<span class="prof__arrow" data-dir="${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'}</span>` : ''}</button>` : '');
@@ -741,11 +741,12 @@ function toggleCard(k) {
 }
 function cardsHtml() {
   return `<section class="pcards" aria-label="내 현재 상태">
-  ${card('home', '거주', `<dl class="pcard__grid">${cell('home', '지역')}${cell('dwell', '주거')}</dl><ul class="pcard__family" data-family aria-label="가족"></ul>`)}
+  ${card('home', '거주', `<dl class="pcard__grid">${cell('home', '지역')}${cell('dwell', '주거')}</dl>`)}
   ${card('job', '직업', `<dl class="pcard__grid">${cell('job', '직업')}${cell('emp', '고용 형태')}${cell('pay', '연봉')}${cell('years', '연차')}${cell('rank', '직급')}${cell('bizkind', '업종')}${cell('bizyears', '업력')}${cell('sales', '월 매출')}${cell('profit', '월 순익')}</dl>`)}
   ${card('asset', '자산', `<dl class="pcard__grid">${cell('net', '순자산')}</dl><div class="pcard__wealth" data-wealth></div>`)}
+  ${card('family', '가족', `<ul class="pcard__family" data-family aria-label="가족과의 관계"></ul>`)}
   </section>
-  <p class="prof__note">금액은 그해 가격 기준이고, 작은 글씨는 2026년 환산(약)입니다. 순위나 평가가 아닙니다.</p>`;
+  <p class="prof__note">금액: 당시 가격 · 작은 글씨: 2026년 환산</p>`;
 }
 let payDir = null, curChap = null;
 const sumArrow = {};
@@ -808,6 +809,8 @@ function updateProfile(L, animate = true) {
     set('home', `${p.home.regionLabel} · ${p.home.tenureLabel}`, p.home.tenure === 'jeonse' || p.home.tenure === 'monthly' ? ten.replace(/^\S+ /, '') : '');
     set('job', `${jobS} · ${w.emp.label}`, p.pay || p.biz ? (p.biz ? `월 순익 ${mw(p.biz.monthlyProfit)}` : inc(p.pay.annual).replace(/^\S+ /, '')) : '', arrow('pay', pay, 1) + pctChip(st?.income));
     set('asset', '순자산', mw(net), arrow('net', net, 1) + pctChip(st?.asset) + (debt > 0 ? `<small class="pcard__debt">부채 ${mw(debt)}</small>` : ''));
+    const members = familyLines(L).filter(x => x.bond != null);
+    set('family', members.slice(0, 3).map(x => x.rel).join(' · '), `${members.length}명`);
     const flash = (k, c) => { const el = $(`.pcard[data-card="${c}"]`, root); if (el) { el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); } };
     if (prev.home != null && prev.home !== p.home.regionLabel + p.home.tenure) flash('home', 'home');
     if (prev.job != null && prev.job !== jobS) flash('job', 'job');

@@ -16,7 +16,9 @@ export const Q = L => L?.birth?.quintile ?? 3;
 // 이번 해에 가구가 이사했는가(엔진: housing이 flags.familyMove 또는 home.moves에 기록)
 export const moved = L => L?.flags?.familyMove === L?.year || !!L?.home?.moves?.some?.(m => m.year === L.year);
 // 아래 동생이 있는가(형제 수 − 위 형제 수)
-const younger = L => (L?.family?.siblings ?? 0) - ((L?.birth?.order ?? 1) - 1);
+const younger = L => L?.family?.siblingMembers
+  ? L.family.siblingMembers.filter(s => s.alive && s.birthYear > L.birth.year && s.birthYear <= L.year).length
+  : (L?.family?.siblings ?? 0) - ((L?.birth?.order ?? 1) - 1);
 
 export default [
   // ───────── 첫 선택(firstChoice, 4~5세) ─────────

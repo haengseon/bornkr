@@ -97,6 +97,18 @@ export function makeAct(L, ctx) {
   const act = {
     flag(name, value = true) { L.flags[name] = value; },
 
+    preparePublicExam(years = 2) {
+      L.flags.civilExam = L.year;
+      L.flags.examUntil = L.year + years;
+      L.flags.examStarted = L.year;
+      L.flags.examTries = (L.flags.examTries || 0) + 1;
+      L.flags.examFailed = null;
+      L.flags.examResult = null;
+      const previous = L.log.at(-1);
+      const explained = previous && !previous.quiet && ['sys.job.first_offer', 'sys.chain.exam_retry', 'youth.civil.exam', 'dec.exam.prep.way'].includes(previous.id);
+      ctx.sys('sys.job.exam_start', {}, explained ? { quiet: true } : { essential: true });
+    },
+
     gain(amount) {
       amount = Math.round(amount);
       if (indep(L)) L.money.assets += amount; else L.household.netWorth += amount;
@@ -294,9 +306,11 @@ export function makeAct(L, ctx) {
     },
     haveChild() {
       const sex = ctx.chance(0.512) ? 'M' : 'F';
-      L.family.children.push({ sex, birthYear: L.year, alive: true, leftHome: false, married: false, kids: [] });
+      const fullName = spouseName(L.seed, 1000 + L.family.children.length, sex, L.year);
+      const name = L.name.slice(0, 1) + fullName.slice(1);
+      L.family.children.push({ name, sex, birthYear: L.year, alive: true, bond: 65, leftHome: false, married: false, kids: [] });
       L.flags.childYear = L.year;
-      ctx.sys('sys.fam.child_born', { childSexLabel: sex === 'M' ? '아들' : '딸' });
+      ctx.sys('sys.fam.child_born', { childSexLabel: sex === 'M' ? '아들' : '딸' }, { essential: true });
     },
 
     addCondition(key) {

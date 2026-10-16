@@ -209,9 +209,23 @@ function seek(L, ctx) {
   j.searchYears++;
   if (a >= 60 && j.searchYears >= 3) { j.status = 'retired'; return; }
   if (fl.examUntil != null) {
-    if (ctx.chance(0.15)) { fl.examUntil = null; return ctx.act.startJob(publicJob(L, ctx)); }
-    if (y < fl.examUntil) return;
-    fl.examUntil = null; fl.examFailed = y;            // 연쇄: 공시 불합격 → 한 번 더/그만(milestones)
+    if (y <= (fl.examStarted ?? fl.civilExam ?? -1)) return;
+    if (ctx.chance(0.15)) {
+      const offer = publicJob(L, ctx);
+      fl.examUntil = null; fl.civilExam = null; fl.examFailed = null;
+      fl.examResult = { year: y, passed: true };
+      ctx.sys('sys.job.exam_pass', { title: offer.title }, { essential: true });
+      return ctx.act.startJob({ ...offer, silent: true });
+    }
+    fl.examResult = { year: y, passed: false };
+    ctx.sys('sys.job.exam_fail', {}, { essential: true });
+    if (y < fl.examUntil) { ctx.sys('sys.job.exam_continue'); return; }
+    fl.examUntil = null; fl.civilExam = null; fl.examFailed = y;
+    if (a < 35 && (fl.examTries || 1) < 4) {
+      return ctx.ask({ eventId: 'sys.chain.exam_retry', options: ['again', 'quit'], defaultId: 'quit' });
+    }
+    ctx.sys('sys.job.exam_quit', {}, { essential: true });
+    return;                                      // 결과를 정리한 다음 해부터 일반 구직
   }
   if ((j.searchYears === 2 || j.searchYears === 3) && a < 50) ctx.sys('sys.job.search_long', { n: j.searchYears });
   const tab = T('FIRST_JOB_FIND')[L.edu.level] ?? T('FIRST_JOB_FIND').high;
@@ -355,7 +369,7 @@ export const choices = {
     if (opt === 'take') return offer.self ? ctx.act.startBusiness(offer.title, offer) : ctx.act.startJob(offer);
     L.flags.offerSkips = (L.flags.offerSkips || 0) + 1;
     if (opt === 'wait') { L.flags.waitBoost = L.year + 1; return; }
-    L.flags.examUntil = L.year + ctx.int(1, 3);
+    ctx.act.preparePublicExam(ctx.int(1, 3));
   },
   'sys.job.offer'(L, ctx, opt, { mult, regular }) {
     if (opt !== 'move') return;

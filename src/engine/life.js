@@ -308,6 +308,7 @@ function tagMajor(L, e) {
 // 해마다 표시 상한(GDD §2.4): 넘치는 줄은 quiet. 선택·사망·출생은 항상 표시.
 export const MAJOR = /^sys\.(fam\.(wedding|child_born|parent_death|widowed|divorced|grandparent_death|remarry|care_end)|age\.(ltc|spouse_care)|home\.(move|region_move|bought|jeonse_fraud)|job\.(lose|first|exit_main|contract_end)|health\.(dx_cancer|dx_cardio)|mil\.enlist|edu\.(college_enter|graduate))/;
 function prio(e) {
+  if (e.essential) return 0;
   if (e.kind === 'choice' || e.kind === 'death' || e.kind === 'birth' || e.asked) return 0;
   if (e.kind === 'system' && MAJOR.test(e.id)) return 1;
   if (e.kind === 'event') return 2;
@@ -334,6 +335,15 @@ function flushQuiet(L) {
     if (prio(e) === 0) shown++;
     else if (shown < target && !seen.has(t)) { shown++; seen.add(t); }          // 같은 해 같은 주제는 한 번만 보인다
     else e.quiet = true;
+  }
+  // 확정 결과가 있는 해에는 선택 전 장면과 선택 결과를 한 항목으로 이어 적는다.
+  const visible = () => L.log.slice(ys.start).filter(e => !e.quiet && e.kind !== 'compare' && e.kind !== 'birth');
+  for (const scene of visible().filter(e => e.kind === 'event' && e.asked)) {
+    if (visible().length <= FEED_MAX) break;
+    const result = visible().find(e => e.kind === 'choice' && e.id === scene.id);
+    if (!result) continue;
+    result.text = `${scene.text} ${result.text}`;
+    scene.quiet = true;
   }
   // 선택이 뒤늦게 붙어 상한을 넘으면 낮은 우선순위(나중 것부터)를 quiet로
   for (let over = year.concat(fresh.filter(e => !year.includes(e))).filter(e => !e.quiet).length - FEED_MAX; over > 0; over--) {

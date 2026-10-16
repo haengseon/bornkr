@@ -44,8 +44,7 @@ routes.home = () => {
       <button class="linkrow" type="button" data-go="codex"><span><span class="linkrow__title">통계 도감</span><span class="linkrow__desc">출처와 핵심 수치</span></span></button>
       <button class="linkrow" type="button" data-go="settings"><span><span class="linkrow__title">설정</span><span class="linkrow__desc">밝기 · 배속 · 모션</span></span></button>
     </nav>
-    <p class="note">실제 통계와 시대별 자료를 참고한 가상 인생입니다. 일부 확률과 개인 사건은 게임을 위한 추정·각색입니다. 질병·사고·폭력·상실 같은 일도 다루며, 장면은 그리지 않고 짧게 적습니다.</p>
-    <p class="note">숫자는 통계청·KOSIS·교육부·고용노동부 자료를 바탕으로 하며 실측·전망·게임 추정을 구분해 표시합니다. 화면의 금액은 그해 가격으로 보여 주고 2026년 환산(약)을 곁들입니다.</p>
+    <p class="note">질병·사고·폭력·상실을 다루는 장면이 있습니다.</p>
     <p class="note">${PRIV}</p>
   </div>
   <div class="actionbar actionbar--single"><button class="btn btn--primary btn--block" type="button"${cur ? ' aria-controls="confirm-new" aria-expanded="false"' : ''} data-go="born">태어나기</button></div></section>`);
@@ -81,10 +80,9 @@ routes.gate = () => show('gate', `<section class="screen has-bar" data-screen="g
   <article class="doc"><p class="doc__formno">■ 태어나보니 대한민국 [안내]</p><div class="doc__head"><h1 class="doc__title" id="gate-title">안내문</h1></div>
   <ol class="notice-list">
     <li>이 게임은 19세 이상을 위해 만들었습니다.</li>
-    <li>질병·사고·폭력·상실·자해 같은 일이 통계를 참고한 확률로 일어날 수 있습니다(일부는 게임을 위한 추정·각색). 장면은 그리지 않습니다.</li>
+    <li>질병·사고·폭력·상실·자해를 다루는 이야기가 있습니다.</li>
     <li>그런 일은 짧게만 적고, 선택지는 평소와 같습니다.</li>
     <li>출생부터 결산까지 배속에 따라 약 7~25분입니다(한 해는 1배속에서 15초, 배속은 1~5배). 손을 떼도 기본 행동으로 끝까지 진행됩니다.</li>
-    <li>숫자에는 실측·전망·게임 추정이 섞여 있습니다. 숫자를 누르면 출처와 계산 이유가 나옵니다.</li>
   </ol></article></div>
   <div class="actionbar"><button class="btn" type="button" data-go="home">홈으로</button><button class="btn btn--primary" type="button" data-go="gateOk">확인하고 태어나기</button></div></section>`);
 routes.gateOk = () => { setSetting('seen19', true); go('birth'); };
@@ -275,7 +273,7 @@ function summaryHtml(L, sum, archive) {
       <div class="section__head"><h2 class="section__title" id="sum-closing">결산</h2><span class="section__note">0~100 · 누르면 근거</span></div>
       ${CLOSING_KEYS.filter(k => sum.closing?.[k]).map(k => {
         const c = sum.closing[k], body = srcList(c.src);
-        return `<details class="metric"><summary class="metric__sum"><span class="metric__label">${esc(c.label ?? CLOSING_LABEL[k])}</span><span class="metric__value">${c.value}</span>${meter(c.value)}<span class="metric__reason">${esc(c.line ?? '')}</span></summary><div class="metric__body">${body || '<p class="cap">출처 없음 · 게임 계산값</p>'}</div></details>`;
+        return `<details class="metric"><summary class="metric__sum"><span class="metric__label">${esc(c.label ?? CLOSING_LABEL[k])}</span><span class="metric__value">${c.value}</span>${meter(c.value)}<span class="metric__reason">${esc(c.line ?? '')}</span></summary><div class="metric__body">${body}</div></details>`;
       }).join('')}
     </section>
     <section class="section" aria-labelledby="sum-issues">
@@ -283,7 +281,7 @@ function summaryHtml(L, sum, archive) {
       <div class="sum-radar">${radarSvg('issue', {}, { size: 280, aria: '관심사·고민 10축 지도' })}</div>
       ${issues.map(i => `<div class="metric"><div class="metric__sum"><span class="metric__label">${esc(i.label)}</span><span class="metric__value">${i.value}</span>${meter(i.value)}<span class="metric__reason">${esc(i.lines?.[0] ?? '')}</span></div></div>`).join('')}
     </section>
-    ${familyLines(L).length ? `<section class="section" aria-labelledby="sum-fam"><div class="section__head"><h2 class="section__title" id="sum-fam">가족</h2><span class="section__note">이름·관계·시작/종료 연도</span></div><ul class="famlist">${familyLines(L).map(x => `<li>${esc(familyText(x))}</li>`).join('')}</ul></section>` : ''}
+    ${familyLines(L).length ? `<section class="section" aria-labelledby="sum-fam"><div class="section__head"><h2 class="section__title" id="sum-fam">가족</h2></div><ul class="famlist">${familyLines(L).map(x => `<li>${esc(familyText(x))}</li>`).join('')}</ul></section>` : ''}
     <section class="section" aria-labelledby="sum-tl">
       <div class="section__head"><h2 class="section__title" id="sum-tl">생애 연표</h2><span class="section__note">1칸 = 1년</span></div>
       ${lifegrid(d.age, events)}
@@ -392,8 +390,7 @@ routes.codex = async () => {
   const el = show('codex', `<section class="screen screen--paper" data-screen="codex">
     <header class="topbar"><button class="back" type="button" data-go="home">홈</button><h1 class="topbar__title">통계 도감</h1></header>
     <div class="screen__body">
-      <p class="cap">이 게임이 쓰는 숫자와 출처. <span class="badge badge--measured">실측</span> 조사·집계값, <span class="badge badge--projected">전망</span> 기관의 추계, <span class="badge badge--estimated">게임 추정</span> 자료가 없어 근거를 밝혀 정한 값. 출처 목록은 <span class="badge badge--measured">공식 통계</span> <span class="badge badge--secondary">2차 자료</span> <span class="badge badge--estimated">게임 추정</span>으로 나눕니다.</p>
-      <div class="seg filter" role="group" aria-label="구분">${[['all', '전체'], ['measured', '실측'], ['projected', '전망'], ['estimated', '추정']].map(([k, l], i) => `<button class="seg__btn" type="button" data-filter="${k}" aria-pressed="${i === 0}">${l}</button>`).join('')}</div>
+      <div class="seg filter" role="group" aria-label="구분">${[['all', '전체'], ['measured', '실측'], ['projected', '전망']].map(([k, l], i) => `<button class="seg__btn" type="button" data-filter="${k}" aria-pressed="${i === 0}">${l}</button>`).join('')}</div>
       <div data-codex><p class="cap cap--pad">불러오는 중입니다.</p></div>
     </div></section>`);
   const mods = Object.fromEntries((await Promise.allSettled(MODS.map(m => import(`../data/${m}.js`)))).map((r, i) => [MODS[i], r.value || {}]));
@@ -407,7 +404,7 @@ routes.codex = async () => {
       try { r = t && get(t); } catch {}
       if (!r) return '';
       const bd = kindBadge(t.kind);
-      return `<tr data-kind="${bd.group}"><td>${label}<small>${esc(srcOf(t))} · ${r[1]}</small></td><td class="is-num">${esc(r[0])}</td><td><span class="${bd.cls}">${bd.label}</span></td></tr>`;
+      return `<tr data-kind="${bd.group}"><td>${label}<small>${esc(srcOf(t))} · ${r[1]}</small></td><td class="is-num">${esc(r[0])}</td><td>${bd.group === 'estimated' ? '' : `<span class="${bd.cls}">${bd.label}</span>`}</td></tr>`;
     }).join('');
     return trs && `<section class="section" aria-labelledby="cx-${si}"><div class="section__head"><h2 class="section__title" id="cx-${si}">${topic}</h2></div>
       <table class="stat-table"><thead><tr><th scope="col">지표</th><th scope="col" class="is-num">값</th><th scope="col">구분</th></tr></thead><tbody>${trs}</tbody></table></section>`;
@@ -416,7 +413,7 @@ routes.codex = async () => {
   const srcHtml = srcs.length ? `<section class="section" aria-labelledby="cx-src"><div class="section__head"><h2 class="section__title" id="cx-src">출처 목록</h2><span class="section__note">${srcs.length}개</span></div><ul>${srcs.map(s => {
     const bd = kindBadge(s.kind);
     const host = s.url ? (() => { try { return new URL(s.url).host; } catch { return ''; } })() : '';
-    return `<li class="src-item" data-kind="${bd.group}"><p class="src-item__title">${esc(s.title)}</p><p class="src-item__meta"><span class="${bd.cls}">${bd.label}</span> ${esc([s.org, s.year].filter(Boolean).join(' · '))}${host ? ` · <a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(host)}</a>` : ''}</p></li>`;
+    return `<li class="src-item" data-kind="${bd.group}"><p class="src-item__title">${esc(s.title)}</p><p class="src-item__meta">${bd.group === 'estimated' ? '' : `<span class="${bd.cls}">${bd.label}</span>`} ${esc([s.org, s.year].filter(Boolean).join(' · '))}${host ? ` · <a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(host)}</a>` : ''}</p></li>`;
   }).join('')}</ul></section>` : '<p class="cap cap--pad">출처 목록을 준비하고 있습니다.</p>';
   box.innerHTML = sections.join('') + srcHtml;
   $('.filter', el).addEventListener('click', e => {

@@ -6,6 +6,7 @@ import { sidoAt } from '../data/admin-names.js';
 import { schoolLabel } from '../engine/index.js';
 import { regionalPrice, regionalRow } from '../data/housing-regional.js';
 import { money, fmtWon } from './format.js';
+import { familyMembers, bondLabel } from '../engine/kin.js';
 
 const REGION = Object.fromEntries(REGIONS.map(r => [r.key, r]));
 export const TENURE_LABEL = { own: '자가', jeonse: '전세', monthly: '월세', public: '공공임대', family: '가족 집', dorm: '기숙사', facility: '시설' };
@@ -60,6 +61,7 @@ export function bizOf(job) {
 const PART_TIME_WAGE = 1800;   // 비정규 + 연 1,800만원 미만 = 시간제로 본다(추정)
 export function employmentOf(L) {
   const j = L.job, st = j.status;
+  if (st === 'seeking' && L.flags?.examUntil != null) return { code: 'exam', label: '공무원 시험 준비 중' };
   if (L.age < 6 && st !== 'employed') return { code: 'child', label: L.age < 2 ? '영아' : '영유아' };
   if (st === 'employed') {
     if (j.regular) return { code: 'regular', label: '정규직' };
@@ -85,11 +87,12 @@ export function dwellingOf(L) {
 const END = { widowed: '사별', divorced: '이혼' };
 export function familyLines(L) {
   const f = L?.family || {}, out = [];
-  (f.spouses || []).forEach(s => out.push({ rel: s.end ? '이전 배우자' : (f.spouses.length > 1 ? '새 배우자' : '배우자'), name: s.name || '', from: s.since, to: s.until, end: END[s.end] || '' }));
+  familyMembers(L).forEach(({ label, member: m, age }) => out.push({ rel: label, name: m.name || '', age, bond: m.alive === false ? null : (m.bond ?? 65), from: m.birthYear, to: m.alive === false ? m.deathYear : null, end: m.alive === false ? '별세' : m.care || m.ltc ? '돌봄 중' : '' }));
+  (f.spouses || []).filter(s => s.end).forEach(s => out.push({ rel: '이전 배우자', name: s.name || '', from: s.since, to: s.until, end: END[s.end] || '' }));
   (f.gp || []).forEach(g => out.push({ rel: g.label, name: '', from: null, to: g.alive ? null : g.deathYear, end: g.alive ? '' : '별세' }));
   return out;
 }
-export const familyText = x => `${x.rel}${x.name ? ' ' + x.name : ''}${x.from || x.to ? ` (${x.from ? x.from + '년~' : '~'}${x.to ? x.to + '년' : ''}${x.end ? ' ' + x.end : ''})` : x.end ? ` (${x.end})` : ''}`;
+export const familyText = x => `${x.rel}${x.name ? ' ' + x.name : ''}${x.end === '별세' ? ` · ${x.to ? x.to + '년 ' : ''}별세` : `${Number.isFinite(x.age) ? ` · ${x.age}세` : ''}${x.bond != null ? ` · ${bondLabel(x.bond)}` : ''}${x.end ? ` · ${x.end}` : ''}`}${x.rel === '이전 배우자' && x.from ? ` (${x.from}~${x.to || ''})` : ''}`;
 // 이 동네 그 시대 시세 한 줄(R13 시군구 시세): 자가·가족 집 = 매매, 임차 = 전세. 군 지역(basis house)은 단독주택 시세.
 export function marketLineOf(L) {
   const h = L.home || {}, own = !['jeonse', 'monthly', 'public', 'dorm'].includes(h.tenure);
@@ -104,6 +107,7 @@ export const homeLabel = L => { const h = L.home || {}, b = L.birth || {}; retur
 // 직업 표시: 일하는 중 = 현재 직업명, 쉬는 중 = '이전 직업: … · 무직/구직 중', 이력이 없으면 구직 중 등 고용 상태.
 export function jobLineOf(L) {
   const j = L.job || {}, working = j.status === 'employed' || j.status === 'self';
+  if (!working && L.flags?.examUntil != null) return '공무원 시험 준비 중';
   if (working) return j.title || '';
   const prev = j.title || j.history?.at(-1)?.title || '';
   if (j.status === 'student' || (L.age < 19 && !prev)) return '';

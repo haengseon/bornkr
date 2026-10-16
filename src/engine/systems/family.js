@@ -6,7 +6,8 @@ import { indep, WHO_LABEL, becomeIndependent, homePrice } from '../act.js';
 import { assignJob, wageFor, askChildcare } from './career.js';
 import { econ, leanOdds } from '../stats.js';
 import { sensFields } from '../safety.js';
-import { makeGrandparents } from '../kin.js';
+import { makeGrandparents, ensureKin, familyMembers, changeBond, siblingLabel } from '../kin.js';
+import * as R from '../rng.js';
 import { inheritShare } from './money.js';
 
 const ORD = ['첫째', '둘째', '셋째', '넷째', '다섯째'];
@@ -19,6 +20,7 @@ const childLabel = (L, c) => ORD[L.family.children.indexOf(c)] ?? '막내';
 
 export function pre(L, ctx) {
   const f = L.family, y = L.year, a = L.age, fl = L.flags;
+  ensureKin(L);
   // 부모
   for (const who of ['father', 'mother']) {
     const p = f.parents[who];
@@ -59,13 +61,35 @@ export function pre(L, ctx) {
     }
   }
   // 아동기: 동생, 부모 이혼, 조부모, 가족돌봄
-  if (fl.sibAges?.includes(a)) { fl.siblingBorn = y; ctx.sys('sys.fam.sibling_born'); }
+  const newborn = f.siblingMembers.filter(s => s.birthYear === y && !s.announced);
+  for (const s of newborn) { s.announced = true; if (!f.parents.mother.alive) { s.alive = false; s.unborn = true; } }
+  const arrived = newborn.filter(s => !s.unborn);
+  if (arrived.length) {
+    fl.siblingBorn = y;
+    const vars = { sibling: arrived.length > 1 ? '동생들' : siblingLabel(L, arrived[0]), siblingName: arrived.map(s => s.name).join('·') };
+    ctx.sys('sys.fam.sibling_arrived', vars, { essential: true });
+    ctx.apply({ stats: { relations: 2, leisure: -2 }, issues: { care: Math.min(6, 2 * arrived.length) } }, { reason: '동생이 태어나 집안의 하루가 달라졌다' });
+    if (a >= 4 && !L.pending) ctx.ask({ eventId: 'sys.fam.sibling_welcome', options: ['help', 'play', 'space'], defaultId: 'play', vars, data: { ids: arrived.map(s => s.id) } });
+  }
+  for (const s of f.siblingMembers) {
+    const age = y - s.birthYear;
+    if (!s.alive || age < 1) continue;
+    const r = R.makeRng(R.hashSeed(L.seed, s.id, y));
+    if (R.rand(r) < qx(s.sex, age, y)) {
+      s.alive = false; s.deathYear = y;
+      ctx.sys('sys.fam.sibling_death', { sibling: siblingLabel(L, s), siblingName: s.name }, { essential: true, ...sensFields(L, 'death') });
+    } else if (s.birthYear > L.birth.year && [7, 19].includes(age)) {
+      ctx.sys(age === 7 ? 'sys.fam.sibling_school' : 'sys.fam.sibling_adult', { siblingName: s.name });
+      changeBond(L, s.id, 2);
+    }
+  }
+  f.siblings = f.siblingMembers.filter(s => s.alive && s.birthYear <= y).length;
   if (a >= 1 && a <= 18 && !L.birth.parents.singleParent && !fl.parentsDivorced && ctx.chance(yr(T('DIVORCE_MARRIED'), y))) {
     fl.parentsDivorced = y;
     L.household.income = Math.round(L.household.income * 0.75);
     ctx.sys('sys.fam.parents_divorce');
   }
-  if (f.grandparents > 0 && a <= 35 && ctx.chance(0.05 * f.grandparents)) {
+  if (f.grandparents > 0 && ctx.chance(a <= 35 ? 0.05 * f.grandparents : Math.max(...(f.gp || []).filter(g => g.alive).map(g => qx(g.sex, L.birth.parents[g.side === 'paternal' ? 'fatherAge' : 'motherAge'] + a + 25, y)), 0))) {
     const gp = (f.gp ||= makeGrandparents(L.seed, f.grandparents));
     const alive = gp.filter(g => g.alive), g = alive[Math.floor(ctx.rand() * alive.length)];   // 개체 하나가 한 번만 죽는다(QA #7)
     g.alive = false; g.deathYear = y;
@@ -93,7 +117,7 @@ export function pre(L, ctx) {
     if (!c.alive) continue;
     const ca = y - c.birthYear;
     if (ctx.chance(qx(c.sex, ca, y))) {
-      c.alive = false;
+      c.alive = false; c.deathYear = y;
       ctx.sys('sys.fam.child_death', { childLabel: childLabel(L, c) }, sensFields(L, 'death'));
       continue;
     }
@@ -141,6 +165,7 @@ function birth(L, ctx) {
 
 export function step(L, ctx) {
   const f = L.family, a = L.age, y = L.year, fl = L.flags;
+  ensureKin(L);
   // 계획한 출산
   if (fl.childPlanned === y && married(L)) { fl.childPlanned = null; birth(L, ctx); }
   // 연애
@@ -218,9 +243,25 @@ export function step(L, ctx) {
   if (alone) L.tally.aloneYears = (L.tally.aloneYears || 0) + 1;
   // 돌봄·양육 연수(결산 careBurden)
   if (f.caringFor) L.tally.careYears = (L.tally.careYears || 0) + 1;
+  if (a >= 10 && a % 5 === 0 && !L.pending && !L.yr.asked && fl.familyTime !== y) {
+    const members = familyMembers(L).filter(x => x.member.alive !== false && x.age >= 4);
+    if (members.length) {
+      const i = R.int(R.makeRng(R.hashSeed(L.seed, 'family-time', y)), 0, members.length - 1), m = members[i];
+      fl.familyTime = y;
+      ctx.ask({ eventId: 'sys.fam.relationship', options: ['time', 'talk', 'later'], defaultId: 'talk', vars: { relative: m.label, relativeName: m.member.name || m.label }, data: { id: m.id } });
+    }
+  }
 }
 
 export const choices = {
+  'sys.fam.sibling_welcome'(L, ctx, opt, { id, ids = [id] }) {
+    for (const key of ids) changeBond(L, key, opt === 'help' ? 10 : opt === 'play' ? 6 : -6);
+    ctx.apply({ stats: { relations: opt === 'space' ? -1 : 2, leisure: opt === 'help' ? -3 : opt === 'space' ? 1 : -1 } }, { reason: opt === 'space' ? '동생과 거리를 두었다' : '동생과 보내는 시간이 늘었다' });
+  },
+  'sys.fam.relationship'(L, ctx, opt, { id }) {
+    changeBond(L, id, opt === 'time' ? 10 : opt === 'talk' ? 5 : -6);
+    ctx.apply({ stats: { relations: opt === 'later' ? -2 : 2, happiness: opt === 'time' ? 2 : 0, leisure: opt === 'time' ? -3 : opt === 'talk' ? -1 : 1 } }, { reason: opt === 'later' ? '가족과의 약속을 미뤘다' : '가족과 시간을 나눴다' });
+  },
   'sys.fam.marry'(L, ctx, opt, { partner }) {
     if (opt === 'marry') return ctx.act.marry(partner);
     if (opt === 'later') L.flags.marryLater = L.year + 2;
@@ -234,14 +275,17 @@ export const choices = {
   'sys.fam.divorce'(L, ctx, opt) {
     if (opt === 'divorce') return ctx.act.divorce();
     if (opt === 'counsel') {
+      if (L.family.partner) L.family.partner.bond = Math.min(100, (L.family.partner.bond ?? 65) + 10);
       L.flags.counselUntil = L.year + 3;
       ctx.act.spend(200);
       return ctx.apply({ stats: { happiness: 2 } }, { reason: '부부 상담을 받았다' });
     }
+    if (L.family.partner) L.family.partner.bond = Math.max(0, (L.family.partner.bond ?? 65) - 10);
     ctx.apply({ stats: { happiness: -4 } }, { reason: '삐걱거리는 결혼 생활을 이어 갔다' });
   },
   'sys.fam.parent_care'(L, ctx, opt, { who }) {
     if (!L.family.parents[who]?.alive) return;
+    changeBond(L, who, opt === 'home' ? 8 : 4);
     ctx.act.startCare(who);
     const eraI = yr(T('ERA_INCOME_INDEX'), L.year);
     if (opt === 'home') return ctx.apply({ issues: { care: 12 } }, { reason: `${WHO_LABEL[who]}를 직접 모셨다` });

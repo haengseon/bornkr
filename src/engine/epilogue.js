@@ -50,7 +50,7 @@ function facts(L) {
   const parGone = ['father', 'mother'].every(k => par[k] && !par[k].alive && par[k].deathYear != null && par[k].deathYear - by >= 20 && par[k].deathYear <= endYear);
   const job1 = hist[0] && !RANK.test(hist[0].title || '') ? hist[0].title : null;
   const c = {
-    name: L.name, by, age, endYear, urban: !!b.urban, q: b.quintile, sib: b.siblings ?? f.siblings ?? 0, care: b.care, tenure: b.tenure,
+    name: L.name, by, age, endYear, urban: !!b.urban, q: b.quintile, sib: f.siblingMembers ? f.siblingMembers.filter(s => s.birthYear <= endYear && !s.unborn).length : f.siblings ?? b.siblings ?? 0, care: b.care, tenure: b.tenure,
     single: !!b.parents?.singleParent, multi: !!b.parents?.multicultural, male: L.sex === 'M',
     edu: L.edu?.level, retake: (L.edu?.retake || 0) > 0, mil: L.mil?.status === 'done',
     jobs: hist.length, job1, job1Y: hist[0]?.from ?? 0, g: String(main?.code ?? '')[0] ?? '', long: !!main && span(main) >= 15,
