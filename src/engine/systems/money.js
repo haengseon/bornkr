@@ -5,6 +5,8 @@ import { annualIncome, econ, kidsAt, lean, otherIncome } from '../stats.js';
 import { medicalCost } from './health.js';
 import { houseChg, realReturns } from '../../data/market.js';
 import { RENTAL_YIELD, VACANCY, PRICE_BETA, RENT_TAX, SIDEJOB, PRIVATE_PENSION, INHERIT_TAX, taxKind } from '../../data/incomes.js';
+import { dailyEnabled, annualExpensePlan, recordAnnualLedger, timeBudget } from '../daily-life.js';
+import { foodPriceContext, mealExpenseAdjustment } from '../daily-transactions.js';
 
 const PAY_YEARS = { mortgage: 30, student: 10, credit: 5, business: 7, rental: 20 };   // rental = 세 주려고 산 부동산의 담보대출(20년 분할)
 const TUTOR_MONTHLY = [0, 20, 50, 100];
@@ -105,6 +107,7 @@ export function step(L, ctx) {
   }
 
   const m = L.money, h = L.home, p = L.family.partner;
+  const openingCash = m.assets;
   sideYear(L, ctx);
   const INC = annualIncome(L), ox = otherIncome(L);
   // 근로 외 소득은 세금을 따로 뗀다: 임대소득세(연도별 규칙)·부업 15%[추정]·연금소득세 4.4% [R17]
@@ -147,9 +150,25 @@ export function step(L, ctx) {
     }
   }
 
-  let surplus = disposable - living - debtCost - principal - kids - support - care - oop - pensIn;
+  // 새 모형에서는 총액 안의 주거·양육·의료 몫을 분리해 한 번만 차감한다.
+  // 구버전 재생과 1999년 이전에는 기존 계산을 유지한다. 항목 배분은 게임 가정이다.
+  const expenses = dailyEnabled(L) && y >= 1999
+    ? annualExpensePlan({ envelope: living, housing, children: kids * 2, medical: oop, support, care })
+    : null;
+  let mealAdjustment = { discount: 0 };
+  if (expenses) {
+    const food = foodPriceContext(L), time = timeBudget(L);
+    const reserved = L.dailyLife?.mealPolicy?.effectiveYear === y && L.dailyLife.mealPolicy.choiceId === 'cook' ? 30 : 0;
+    mealAdjustment = mealExpenseAdjustment(L, { living: expenses.living, foodReferenceAnnual: food.annualFoodReference,
+      availableCookingMinutes: time.unmetMinutes > 0 ? 0 : time.personal + reserved });
+    expenses.living -= mealAdjustment.discount;
+    expenses.consumption -= mealAdjustment.discount;
+  }
+  const consumption = expenses ? expenses.consumption : living + kids + support + care + oop;
+  let surplus = disposable - consumption - debtCost - principal - pensIn;
   // 모아 둔 돈으로 메울 수 없으면 먼저 씀씀이를 줄인다(최대 25%), 그래도 모자라면 신용대출 [추정: 빚 눈덩이 방지]
-  if (surplus < 0 && m.assets + surplus < 0) surplus += Math.min(-(m.assets + surplus), living * 0.25);
+  const reduction = surplus < 0 && m.assets + surplus < 0 ? Math.min(-(m.assets + surplus), (expenses ? expenses.living : living) * 0.25) : 0;
+  surplus += reduction;
   m.income = Math.round(INC); m.oop = oop; m.debtService = Math.round(debtCost + principal);
   m.livingRatio = disposable > 0 ? living / disposable : 1;
   m.assets = Math.round(m.assets + surplus);
@@ -159,9 +178,23 @@ export function step(L, ctx) {
     L.tally.deficit = (L.tally.deficit || 0) + 1;
     if (m.deficitYears === 2) ctx.sys('sys.money.deficit');
   } else m.deficitYears = 0;
+  const creditBefore = m.loans.credit || 0;
+  const fundingGap = Math.max(0, -m.assets);
   if (m.assets < 0) { addCredit(L, -m.assets); m.assets = 0; }
+  const creditAdded = Math.max(0, (m.loans.credit || 0) - creditBefore);
+  const cashBeforeReturn = m.assets;
   L.tally.finInc = (L.tally.finInc || 0) + rnd(m.assets * 0.01);
   m.assets = Math.round(m.assets * 1.01);
+  if (expenses) recordAnnualLedger(L, {
+    openingCash, income: INC, disposable,
+    expenses: { living: expenses.living - reduction, housing: expenses.housing,
+      children: expenses.children, medical: expenses.medical, care: expenses.care, support: expenses.support },
+    interest: debtCost, principal, pension: pensIn, consumption: consumption - reduction,
+    totalOutflow: consumption - reduction + debtCost + principal + pensIn,
+    adjustment: reduction, creditAdded, financialReturn: m.assets - cashBeforeReturn,
+    closingCash: m.assets, unresolved: Math.max(0, fundingGap - creditAdded), mealAdjustment,
+    note: '생활비 배분은 게임 모형. 개인연금은 세제효과를 포함한 순납입액. 대출 상한 초과 부족액은 미해결로 구분.',
+  });
   // 소득원 구성 기록(QA: tests/qa/income-mix.mjs)
   const T_ = L.tally;
   T_.workInc = (T_.workInc || 0) + rnd((INC - ox.total) * (working || p?.income ? 0.82 : 0.95));

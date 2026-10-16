@@ -1,3 +1,4 @@
+import { recordYear } from './chronicle.js';
 // 연간 진행 파이프라인·ctx·선택 처리(ARCHITECTURE §7, GDD §2.2).
 // 선택이 생기면 그 단계까지 하고 멈춘다(L.pending). 남은 단계는 choose()가 이어서 처리한다.
 // 진행 위치(L.yr.phase)와 난수 상태(L.rng, L.rngC)가 모두 L 안에 있어 직렬화·재현이 된다.
@@ -31,19 +32,48 @@ import { updateIssues } from './issues.js';
 import { compareStep } from './compare.js';
 import { deathStep, infantStep } from './death.js';
 import { jobCard } from './jobcard.js';
-import { traitPick, traitFit, mbtiNudge, fxScale } from './mbti.js';
+import { traitPick, traitFit, mbtiNudge, fxScale, growMbti, restoreMbti } from './mbti.js';
 import { concernWatch } from './concernwatch.js';
+import * as dailyLife from './daily-life.js';
+import { applyIdentityChoice, identityYear } from './identity.js';
+import * as wellbeing from './wellbeing.js';
+import * as dailyActivities from './daily-activities.js';
+import * as lifeCrisis from './life-crisis.js';
+import { authoredChoicePersonality } from '../content/identity-options.js';
 import { modifier } from '../content/job-perception.js';
 
 const SYSTEMS = [education, military, career, money, invest, housing, family, health, aging, milestones];
-const SYS_CHOICES = Object.assign({}, ...SYSTEMS.map(s => s.choices || {}));
+const SYS_CHOICES = Object.assign({}, ...SYSTEMS.map(s => s.choices || {}), dailyLife.choices, wellbeing.choices, dailyActivities.choices, lifeCrisis.choices);
 
 const PHASES = [
   ['pre', L => { L.derived = derive(L); family.pre(L, makeCtx(L)); }],   // 파생 상태: 그해 사건·이정표가 읽는다
   ...SYSTEMS.map(s => [s, L => s.step(L, makeCtx(L))]),
-  ['era', L => eraStep(L, makeCtx(L, 'c'))],
+  ['era', L => {
+    // 기존 yr.phase 번호를 유지한다. 생활 선택에서 멈추면 같은 단계로 돌아와 뉴스를 이어간다.
+    if (dailyLife.dailyEnabled(L) && !L.yr.dailyDone) {
+      L.yr.dailyDone = true;
+      dailyLife.step(L, makeCtx(L, 'c'));
+      if (L.pending) { L.yr.phase--; return; }
+    }
+    if (dailyLife.dailyEnabled(L) && !L.yr.wellbeingDone) {
+      L.yr.wellbeingDone = true;
+      wellbeing.step(L, makeCtx(L, 'c'));
+      if (L.pending) { L.yr.phase--; return; }
+    }
+    if (dailyLife.dailyEnabled(L) && !L.yr.activityDone) {
+      if (!L.yr.crisisDone) {
+        L.yr.crisisDone = true;
+        lifeCrisis.step(L, makeCtx(L, 'c'));
+        if (L.pending) { L.yr.phase--; return; }
+      }
+      L.yr.activityDone = true;
+      dailyActivities.step(L, makeCtx(L, 'c'));
+      if (L.pending) { L.yr.phase--; return; }
+    }
+    eraStep(L, makeCtx(L, 'c'));
+  }],
   ['chance', L => chanceStep(L, makeCtx(L, 'c'))],
-  ['drift', L => { driftStats(L); updateIssues(L); }],
+  ['drift', L => { driftStats(L); updateIssues(L); growMbti(L); }],
   ['concern', L => concernWatch(L, makeCtx(L, 'c'))],
   ['compare', L => compareStep(L, makeCtx(L, 'c'))],
   ['death', L => deathStep(L, makeCtx(L))],
@@ -105,7 +135,7 @@ export function apply(L, fx, meta = {}) {
     change(L, 'stats', k, dd, reason, src);
   }
   for (const [k, d] of Object.entries(fx.traits || {})) {     // 성향 Δ(사건당 ±5, 5~95)
-    if (k in L.traits && d) L.traits[k] = clamp(Math.round(L.traits[k] + clamp(d, -5, 5)), 5, 95);
+    if (k in L.traits && d && (L.age < 19 || k === 'sens')) L.traits[k] = clamp(Math.round(L.traits[k] + clamp(d, -5, 5)), 5, 95);
   }
   for (const [k, d] of Object.entries(fx.issues || {})) {
     if (k in L.issues && d) change(L, 'issues', k, clamp(d, -12, 12) * fxScale(L, 'issues', k), reason, src);
@@ -147,7 +177,14 @@ export function ask(L, req, ctx) {
   const st = stageOf(L.age).id, sc = L.stageChoices[st];
   const isSys = req.eventId.startsWith('sys.');
   const ct = isSys ? choiceText(req.eventId, { name: L.name, ...req.vars }, ctx) : null;
-  const options = req.options.map(o => typeof o === 'string' ? { id: o, label: fill(ct.labels[o] ?? o, { name: L.name, ...req.vars }) } : o);
+  const options = req.options.map(o => {
+    const option = typeof o === 'string' ? { id: o, label: fill(ct.labels[o] ?? o, { name: L.name, ...req.vars }) } : { ...o };
+    if (dailyLife.dailyEnabled(L) && L.age >= 19 && !option.personality) {
+      const personality = authoredChoicePersonality(req.eventId, option.id);
+      if (personality) option.personality = personality;
+    }
+    return option;
+  });
   const full = {
     eventId: req.eventId, prompt: req.prompt ?? ct?.prompt ?? '', options,
     defaultId: options.some(o => o.id === req.defaultId) ? req.defaultId : options[0].id,
@@ -159,7 +196,7 @@ export function ask(L, req, ctx) {
     ...(!isSys && req.topic && { topic: req.topic, major: true, chapter: chapterOf(L.age).n, timeoutMs: 20000 }),
   };
   if (isSys) { const tp = traitPick(L, req.eventId, options, full.defaultId); full.defaultId = tp.id; if (tp.mbti) full.mbti = tp.mbti; }   // 직접 고르지 않은 기본 행동은 성향이 정한다
-  if (isSys || req.topic) { const fit = traitFit(L, req.eventId, options); if (fit) { full.fit = fit; options.forEach(o => { if (o.id === fit) o.fit = true; }); } }   // '성향 적합' 표시(UI)
+  if ((isSys || req.topic) && !options.some(o => o.personality?.weights)) { const fit = traitFit(L, req.eventId, options); if (fit) { full.fit = fit; options.forEach(o => { if (o.id === fit) o.fit = true; }); } }   // 명시 가중치가 있으면 독립 적합도 UI만 사용
   const ji = jobInfoFor(L, req);
   if (ji) full.jobInfo = ji;
   if (isSys) decorate(L, full);                       // 이정표: major·topic·chapter·options[].effects/risk(PROCESS-V2)
@@ -174,24 +211,35 @@ export function ask(L, req, ctx) {
     return false;
   }
   L.yr.asked = true;
-  sc[isSys ? 'sys' : 'chance']++;
+  if (req.eventId.startsWith('LIFE-')) sc.life = (sc.life || 0) + 1; else sc[isSys ? 'sys' : 'chance']++;
   L.lastChoiceAge = L.age;
-  if (!isSys) L.lastChanceAge = L.age;
+  if (!isSys && !req.eventId.startsWith('LIFE-')) L.lastChanceAge = L.age;
   L.pending = full;
   return true;
 }
 
 function resolveChoice(L, req, optionId, { auto = false, forced = false } = {}) {
-  const opt = req.options.find(o => o.id === optionId) || req.options.find(o => o.id === req.defaultId);
+  const feasible = o => o && o.feasible !== false && o.disabled !== true;
+  const requested = req.options.find(o => o.id === optionId);
+  const opt = feasible(requested) ? requested : req.options.find(o => o.id === req.defaultId && feasible(o)) || req.options.find(feasible);
+  if (!opt) throw new Error('실행 가능한 선택지가 없습니다.');
+  if (!feasible(requested)) { auto = true; forced = true; }
   L.choices.push({ year: L.year, age: L.age, eventId: req.eventId, option: opt.id, auto: !!auto, ...(forced && { forced: true }) });
+  if (dailyLife.dailyEnabled(L) && L.age >= 19) applyIdentityChoice(L, req, opt, { auto, forced });
   if (!auto) mbtiNudge(L, req.eventId, opt.id);   // 직접 고른 선택은 성향을 조금 움직인다
   const ctx = makeCtx(L, 'c');
+  ctx.sourceEventId = req.eventId;
   const before = req.major ? { p: profileOf(L), s: snapOf(L) } : null;
   if (req.eventId.startsWith('sys.')) {
     const said = rawText(`${req.eventId}.${opt.id}`) ? text(`${req.eventId}.${opt.id}`, { name: L.name, ...req.vars }, ctx) : `${req.prompt} → ${opt.label}`;
     const entry = emit(L, { kind: forced ? 'system' : 'choice', id: req.eventId, text: said, option: opt.id, label: opt.label, auto: !!auto, ...(auto && req.mbti && opt.id === req.defaultId && { mbti: req.mbti }), ...(req.careTarget && { careTarget: req.careTarget }), ...(forced && !(auto && req.mbti && opt.id === req.defaultId) && { quiet: true }) });
     SYS_CHOICES[req.eventId]?.(L, ctx, opt.id, req.data || {});
     if (before) settle(L, ctx, req, opt, entry, before);
+  } else if (req.data?.lifeEventId) {
+    const result = dailyActivities.resolveLifeEvent(L, ctx, req, opt.id);
+    emit(L, { kind: 'choice', id: req.eventId, option: opt.id, label: opt.label, text: result.text,
+      auto: !!auto, execution: result.executed ? 'executed' : 'canceled' });
+    if (result.executed && result.followUp) dailyLife.queueDailyOutcome(L, result.followUp);
   } else {
     resolveEventChoice(L, ctx, req, opt.id, !!auto);
     if (req.topic) (L.decisions ||= []).push({ year: L.year, eventId: req.eventId, option: opt.id, label: opt.label, topic: req.topic, result: 'hold', execution: 'executed', risk: opt.risk ?? 'low', rippled: true, ...(opt.id === req.defaultId && { def: true }) });
@@ -359,6 +407,16 @@ function endYear(L) {
   m.assets = Math.round(m.assets);
   for (const k in m.loans) m.loans[k] = Math.round(m.loans[k]);
   m.debt = Object.values(m.loans).reduce((x, y) => x + y, 0);
+  if (dailyLife.dailyEnabled(L)) {
+    dailyLife.finishDailyYear(L);
+    lifeCrisis.finishYear(L, makeCtx(L, 'c'));
+    wellbeing.settleYear(L, makeCtx(L, 'c'));
+    if (L.age >= 19) identityYear(L);
+    wellbeing.finishYear(L, makeCtx(L, 'c'));
+    if (L.dailyLife.summary?.year === L.year) L.dailyLife.summary.time = dailyLife.timeBudget(L);
+    dailyLife.finalizeDailyLedger(L);
+  }
+  recordYear(L);
   L.hist[L.age] = { s: STAT_KEYS.map(k => L.stats[k]), i: ISSUE_KEYS.map(k => L.issues[k]) };
 }
 
@@ -392,11 +450,13 @@ export function advance(L) {
   return run(L, L.log.length);
 }
 function reseed(L) {
+  restoreMbti(L);
   L.rng = R.makeRng(R.hashSeed(L.seed, 's', L.age));
   L.rngC = R.makeRng(R.hashSeed(L.seed, 'c', L.age));
 }
 
 export function resolve(L, optionId, { auto = false } = {}) {
+  restoreMbti(L);
   const req = L.pending;
   if (!req) throw new Error('대기 중인 선택이 없습니다.');
   L.pending = null;

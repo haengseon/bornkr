@@ -245,6 +245,26 @@ const CALC = {
 const inYears = (y, r) => y >= r[0] && y <= r[1];
 export const stageOf = age => CONCERN_STAGES.find(s => age >= s.from && age <= s.to) || CONCERN_STAGES[CONCERN_STAGES.length - 1];
 
+// 별도 게임 상태다. 기존 고민 점수·통계 근거·레이더 축과 합산하지 않는다.
+export function identityConcernOf(L) {
+  if (!(L.modelVersion >= 2) || L.age < 19 || !L.identityStrain) return null;
+  const state = L.identityStrain, history = Array.isArray(state.history) ? state.history : [];
+  const finite = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : 0;
+  const stress = finite(state.stress, 20), confusion = finite(state.confusion, 10);
+  const stageLabel = {
+    conflict: '선택과 나다움 사이의 고민',
+    'low-energy-candidate': '일상에 힘을 내기 어려움',
+    'exhaustion-candidate': '일과 돌봄에서 쉬어 갈 여유가 필요함',
+  }[state.stage] ?? (stress || confusion ? '일시적인 마음의 부담' : '쌓인 선택 부담 없음');
+  const causes = history.filter(e => e.kind === 'choice' && e.year <= L.year).slice(-3).reverse().map(e => {
+    const log = (L.log || []).find(r => r.kind === 'choice' && r.year === e.year && (r.eventId ?? r.id) === e.eventId && r.option === e.optionId);
+    return { year: e.year, prompt: e.prompt || '', label: e.label || log?.label || '성향과 반대되는 선택', stress: finite(e.stress, 8), confusion: finite(e.confusion, 4) };
+  });
+  const recoveries = history.filter(e => e.kind === 'recovery' && e.year <= L.year && (e.stress < 0 || e.confusion < 0)).slice(-3).reverse()
+    .map(e => ({ year: e.year, natural: String(e.id).startsWith('identity:natural:'), stress: finite(-e.stress, 20), confusion: finite(-e.confusion, 10) }));
+  return { stress, confusion, stage: state.stage, stageLabel, concern: state.concern?.label || null, causes, recoveries, lastRecoveryYear: state.lastRecoveryYear };
+}
+
 export function concernsOf(L) {
   const st = stageOf(L.age), ctx = {}, y = L.year, items = [];
   for (const it of CONCERN_ITEMS[st.id]) {
@@ -255,5 +275,5 @@ export function concernsOf(L) {
       basis: { src: it.src, kind: it.kind, note: it.note }, ...(it.adultKey && { adultKey: it.adultKey }) });
   }
   const shown = new Set(items.map(i => i.adultKey));
-  return { stage: st.id, stageLabel: st.label, items, hiddenAdultKeys: ISSUE_KEYS.filter(k => !shown.has(k)) };
+  return { stage: st.id, stageLabel: st.label, items, hiddenAdultKeys: ISSUE_KEYS.filter(k => !shown.has(k)), identity: identityConcernOf(L) };
 }

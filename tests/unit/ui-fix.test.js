@@ -11,7 +11,7 @@ test('kindBadge: 출처 kind(official·secondary·game)와 표 kind(measured·pr
   assert.equal(lab('secondary'), '2차 자료');
   assert.equal(lab('game'), '게임 추정');
   assert.equal(lab('estimated'), '게임 추정');
-  assert.equal(lab('measured'), '실측');
+  assert.equal(lab('measured'), '통계');
   assert.equal(lab('projected'), '전망');
   assert.equal(lab('???'), '게임 추정');                                   // 모르는 값은 가장 보수적으로
   assert.equal(kindBadge('official').group, 'measured');                 // 도감 필터: 공식·2차 = 실측 출처

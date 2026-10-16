@@ -1,4 +1,4 @@
-// 생활 경험 A — 0~18세 아동·청소년의 일상 사건. 근거·확인/추정 구분: docs/research/R12-life-experiences-a.md
+// 생활 경험 A — 0~18세 아동·청소년의 일상 사건. 근거·확인/추정 구분: docs/research/life/R12-life-experiences-a.md
 // 학교 명칭은 쓰지 않고 '학교'로 통일(국민학교/초등학교 표기 시대차 회피). 시대 한정 사건은 years로 제한한다.
 const urb = L => L?.birth?.urban !== false;
 const rur = L => L?.birth?.urban === false;

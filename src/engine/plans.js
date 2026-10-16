@@ -7,7 +7,7 @@ import * as P from '../data/lifeplans.js';
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 const rnd = n => Math.round(n);
 const parentsAlive = L => [L.family.parents.father, L.family.parents.mother].some(p => p.alive);
-// 표 값(출처·추정 여부는 data/lifeplans.js note, docs/research/R15)
+// 표 값(출처·추정 여부는 data/lifeplans.js note, docs/research/finance/R15-investment-and-plans.md)
 const M = P.MOVE_COST.values;
 const moveCostOf = (L, newDep = 0) => clamp(rnd(M.base + homePrice(L) * M.perHome + newDep * M.broker), M.min, M.max);   // 포장이사 + 중개보수
 export const rentRate = y => yr(P.RENT_CONV.values, y);              // 보증금→월세 전환율(연)

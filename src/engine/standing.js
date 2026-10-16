@@ -45,11 +45,11 @@ function interpLog(x, pts) {
 
 // 1) 순자산: 같은 해·같은 연령대 가구 분포에서 아래쪽 비중(0~100)
 export function netWorthBottom(nw, headAge, year) {
+  if (!Number.isFinite(nw) || nw <= 0) return null; // 비양수 구간의 세부 분포가 없어 순위를 외삽하지 않는다.
   const B = T('NET_WORTH_BOUNDS'), A = ag(T('NET_WORTH_BY_AGE'), headAge);
   const s = A.median / B.P50 * yr(T('ERA_ASSET_INDEX'), year);
   const pts = Object.entries(B).map(([k, v]) => [+k.slice(1), v * s]);
   const neg = 100 * NET_WORTH_NONPOS.values, [p0, v0] = pts[0], [pn, vn] = pts.at(-1);
-  if (nw <= 0) return neg * Math.exp(nw / v0);                     // 부채가 클수록 아래로
   if (nw <= v0) return neg + (p0 - neg) * nw / v0;
   if (nw <= vn) return interpLog(nw, pts);
   const sigma = Math.sqrt(2 * Math.log(A.mean / A.median));       // 연령대 평균/중앙값 비 → 로그정규 σ(상위 꼬리)
@@ -160,10 +160,10 @@ export function standing(L, { at = 'now' } = {}) {
 
   // 순자산
   const nw = netWorthOf(L);
-  out.asset = item(netWorthBottom(nw, head, year),
+  if (age >= 19 && nw > 0) out.asset = item(netWorthBottom(nw, head, year),
     `${own ? '' : '부모 가구 기준 · '}가구주 ${ageBand(head)} 가구 순자산 분포(2025.3 가계금융복지조사 경계점·연령대 중앙값, ${year}년 수준 환산)`,
     year < 2012 || year > 2025);
-  if (year < 2012) notes.push('2012년 이전 순자산 분포는 조사 이전이라 2025 분포 모양에 시대 자산 지수를 곱해 추정했다.');
+  if (age >= 19 && nw > 0 && year < 2012) notes.push('2012년 이전 순자산 분포는 조사 이전이라 2025 분포 모양에 시대 자산 지수를 곱해 추정했다.');
 
   // 소득(본인 근로·사업소득)
   const j = L.job;

@@ -1,18 +1,21 @@
+import { openHistory } from './history.js';
+import { identityPreview } from '../engine/identity.js';
 // S04 진행 화면: HUD·피드·하단 바, 연 진행 루프(UI-SPEC §7.1), 선택 시트(S06), 비교 카드(S07),
 // 탭 숨김 멈춤(§7.7), 시간 상한(§7.8, 현재 없음), 사망 전환(§7.9).
 import { newLife, advanceYear, choose, runToEnd, compareCard, expectedRemainingYears, summarize, createClock } from '../engine/index.js';
 import { COMPARE_AGES, STATS, STAGES, SPEEDS, ISSUES } from '../engine/constants.js';
 import { S, $, $$, esc, show, go, announce, toast, sleep, reduced, setSetting, sheetOpen, sheetHeld, openSheet, closeSheet } from './dom.js';
 import { saveCurrent, clearCurrent, addRecord } from './store.js';
+import { dailyLifeHtml } from './daily-life.js';
 import { fxChips, sexLabel, regionShort, nativeAge, stageState, statLevel, josa, kindBadge } from './labels.js';
 import { openStats, gaugesHtml } from './sheets.js';
-import { profileOf, familyLines, familyText } from './profile.js';
+import { profileOf } from './profile.js';
 import { fmtWon, fmtIncome, fmtRent, nominal, money, tenureText, areaText, AREA_GUESS, deltaText } from './format.js';
 import { ringSvg, setRing, countTo, radarSvg, morphRadar, iconSvg, optionIcon } from './gauges.js';
 import { sceneHtml, mountScene, silhouetteSvg, topicSceneHtml, TOPIC_TITLE } from './scene.js';
 import { topicOf, topicOfId, isMajorEntry, isBigEntry, isMajorChoice, diffProfile, effectsOf, CHAPTERS, chapterOf, isShockEntry, riskOf, RESULT_LABEL, eventImpact } from './major.js';
 import { fastYear } from './motion.js';
-import { mbtiOf, mbtiText, traitChips } from './persona.js';
+import { personalityLabel } from './persona.js';
 import { getConcerns, valuesOf, axesOf, byValue, societyHtml } from './concerns-adapter.js';
 import { reactHtml, reactText } from './reaction-ui.js';
 import { standingOf, pctChip, pctText } from './standing-ui.js';
@@ -63,8 +66,8 @@ export function startNew(L) {
 }
 
 // 이어 하기: 같은 시드 + 기록된 선택으로 그 나이까지 다시 진행(엔진 결정성, ARCHITECTURE §14)
-export function restore({ seed, choices = [], age = 0, forcedYear }) {
-  const L = newLife({ seed, forced: forcedYear ? { year: forcedYear } : undefined });
+export function restore({ seed, choices = [], age = 0, forcedYear, modelVersion = 1 }) {
+  const L = newLife({ seed, modelVersion, forced: forcedYear ? { year: forcedYear } : undefined });
   const q = choices.filter(c => !c.forced);
   let i = 0;
   years: while (L.alive && L.age < age) {
@@ -122,10 +125,10 @@ function lifeHtml(L) {
       <div class="hud__id"><p class="hud__name">${esc(L.name)} <span class="tag">${sexLabel(L.sex)}</span></p>
         <p class="hud__meta"><span class="mono" data-hud="year">${L.year}</span>년 <span class="mono hud__month" data-hud="month">1</span>월 · <span data-hud="region"></span> 거주</p></div>
       <span class="tag tag--ink" data-hud="paused" role="status" hidden>일시정지됨</span>
-      <div class="hud__mbti" data-mbti></div>
+
     </div>
     <div class="persona" data-persona></div>
-    <ul class="sbar" aria-label="6지표">${STATS.map(s => `<li class="sbar__i" data-stat="${s.key}" title="${s.label}" aria-label="${s.label} ${L.stats[s.key]}">${ringSvg(s.key, L.stats[s.key])}<span class="sbar__v">${L.stats[s.key]}</span><span class="sbar__d" aria-hidden="true"></span></li>`).join('')}</ul>
+    <ul class="sbar" aria-label="6지표">${STATS.map(s => `<li class="sbar__i" data-stat="${s.key}" title="${s.label}" aria-label="${s.label} ${L.stats[s.key]}"><button class="sbar__button" type="button" data-tab="stats" aria-label="${s.label} 상세"><span class="sbar__label">${s.label}</span> <span class="sbar__v">${L.stats[s.key]}</span><span class="sbar__d" aria-hidden="true"></span></button></li>`).join('')}</ul>
     <div class="banner" role="status" hidden><span></span><button class="btn btn--sm btn--ink" type="button" data-act="resume">이어 가기</button></div>
   </header>
   ${sceneHtml(L)}
@@ -134,6 +137,7 @@ function lifeHtml(L) {
   </div>
   <div class="life__feed"><ol class="feed" aria-label="생애 기록"></ol>
   </div>
+  <details class="life-menu"><summary aria-label="메뉴 열기">⋯</summary><div class="life-menu__items"><button type="button" data-history="family">가족</button><button type="button" data-tab="traits">성향</button><button type="button" data-tab="issues">관심사</button><button type="button" data-tab="news">뉴스</button><button type="button" data-tab="peers">동갑내기</button></div></details>
   <button class="totop" type="button" aria-label="맨 위로" data-act="top" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
   <aside class="life__aux" aria-label="보조 패널"><details class="aux" open><summary>과거 신문</summary><div class="aux__news"></div></details><details class="aux" open><summary>지표</summary><div class="aux__stats"></div></details><details class="aux" open><summary>관심사·고민</summary><div class="aux__issues"></div></details><div class="aux"><button class="btn btn--block" type="button" data-aux-tab="peers">같은 날 태어난 사람들</button></div></aside>
   <nav class="lifebar" aria-label="진행 조작">
@@ -142,7 +146,6 @@ function lifeHtml(L) {
       <div class="seg seg--num" role="group" aria-label="배속">${SPEEDS.map(n => `<button class="seg__btn" type="button" data-speed="${n}" aria-pressed="${S.settings.speed === n}" aria-label="${n}배속">${n}×</button>`).join('')}</div>
       ${autoSwitch()}
     </div>
-    <div class="lifebar__tabs lifebar__tabs--4">${[['stats', '지표·성향'], ['issues', '관심사·고민'], ['peers', '동갑내기'], ['news', '신문']].map(([t, l]) => `<button class="tabbtn" type="button" id="lt-${t}" aria-haspopup="dialog" aria-pressed="false" data-tab="${t}">${l}</button>`).join('')}</div>
   </nav>
 </section>`;
 }
@@ -189,6 +192,9 @@ function entryHtml(e, req) {
     if (nc) cls.push('entry--concern');
     body = (nc ? `<span class="tag tag--concern entry__kind">${nc}</span>` : `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>`) + esc(e.text) + (e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : '') + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
   }
+  const category = /^sys\.fam\./.test(e.id) ? 'family' : /^sys\.health\./.test(e.id) ? 'health' : topicOf(e);
+  if (category) cls.push('entry--topic-' + category);
+  if (isMajorEntry(e)) cls.push('entry--important');
   if (e.sensitive) cls.push('entry--sensitive');
   return `<li class="${cls.join(' ')}"${e.kind === 'compare' ? ' data-cmp' : ''}>${body}</li>`;
 }
@@ -246,19 +252,27 @@ function refreshAux() {
 let personaKey = '', topPrev = null;
 function updatePersona(L) {
   const el = $('.life [data-persona]'); if (!el) return;
-  const c = getConcerns(L), top = byValue(c)[0], ch = traitChips(L.traits, 2), mb = mbtiOf(L.traits), txt = mbtiText(L.traits);
+  const c = getConcerns(L), top = byValue(c)[0], txt = personalityLabel(L);
   const d = topPrev && topPrev.key === top?.key ? top.value - topPrev.value : 0;
-  const key = txt + ch.map(x => x.label).join() + (top ? top.key + top.value : '') + d;
+  const key = txt + (top ? top.key + top.value : '') + d;
   if (key === personaKey) return;
   personaKey = key; if (top) topPrev = { key: top.key, value: top.value };
-  const mbEl = $('.life [data-mbti]'); if (mbEl) mbEl.innerHTML = `<button class="persona__mbti" type="button" data-tab="stats" title="나의 성향" aria-label="나의 성향 ${txt}">${mb.map(x => `<span${x.vague ? ' class="is-vague"' : ''}>${x.ch}</span>`).join('')}</button>`;
   el.innerHTML = ''
-    + ch.map(x => `<button class="persona__chip" type="button" data-tab="stats" aria-label="성향 ${esc(x.label)}">${esc(x.label)}</button>`).join('')
+    + `<button class="persona__chip persona__type" type="button" data-tab="traits" aria-label="성향 상세">${esc(txt)}</button>`
     + (top ? `<button class="persona__chip persona__chip--top" type="button" data-tab="issues" aria-label="가장 큰 고민 ${esc(top.label)} ${top.value}">고민 ${esc(top.label)} <b>${top.value}</b>${d ? `<span class="prof__arrow" data-dir="${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'}</span>` : ''}</button>` : '');
 }
 function updateHud(animate = true) {
   const L = S.L, root = $('.life');
   if (!root) return;
+  const dailyPanel = $('[data-daily-panel]', root), dailyBody = $('[data-daily-body]', root);
+  if (dailyPanel && dailyBody) {
+    const html = dailyLifeHtml(L);
+    dailyPanel.hidden = !html;
+    dailyBody.innerHTML = html;
+    const summary = L.dailyLife?.summary;
+    const line = $('[data-sum="daily"]', dailyPanel);
+    if (line) line.textContent = summary?.routine?.label || '수입·지출';
+  }
   refreshAux(); updatePersona(L);
   $('[data-hud="age"]', root).textContent = L.age;
   $('[data-hud="year"]', root).textContent = L.year;
@@ -328,7 +342,7 @@ function resumeHidden() {
 export function persist() {
   const L = S.L;
   if (!L?.alive || !S.clock) return;
-  saveCurrent({ forcedYear: S.forced?.year, seed: L.seed, choices: L.choices, elapsed: Math.round(S.clock.elapsed()), age: L.age, name: L.name, year: L.year, at: Date.now() });
+  saveCurrent({ forcedYear: S.forced?.year, seed: L.seed, modelVersion: L.modelVersion, choices: L.choices, elapsed: Math.round(S.clock.elapsed()), age: L.age, name: L.name, year: L.year, at: Date.now() });
 }
 
 let unbind = () => {};
@@ -369,6 +383,10 @@ function bind(run) {
   window.addEventListener('scroll', onScroll, { passive: true });
   unbind = () => { document.removeEventListener('visibilitychange', onVis); document.removeEventListener('keydown', onKey); window.removeEventListener('scroll', onScroll); };
   root.addEventListener('click', e => {
+    const menu = $('.life-menu', root);
+    if (menu?.open && !e.target.closest('.life-menu > summary')) menu.open = false;
+    const hb = e.target.closest('[data-history]');
+    if (hb) { openHistory(hb.dataset.history, syncClock); syncClock(); return; }
     const ct = e.target.closest('[data-card-toggle]');
     if (ct) { toggleCard(ct.dataset.cardToggle); return; }
     const nr = e.target.closest('.newsrow');
@@ -474,7 +492,7 @@ async function handle(r, run, req = null, shown = null) {
   await showMajor(r, run, req, { shown, soft: blocked });
   if (r.choice && run === S.run) {
     const ctxText = [...(r.entries || [])].reverse().find(e => e.id === r.choice.eventId && e.kind !== 'choice')?.text;
-    if (isMajorChoice(r.choice) && run === S.run) await chapterTitle(chapterOf(S.L, r.choice));
+    // 결정과 결과는 같은 창에서 표시한다. 별도 챕터 연출을 끼우지 않는다.
     const r2 = await runChoice(r.choice, run, ctxText);
     if (r2) await handle(r2, run, r.choice, r2.shown ?? null);
   }
@@ -516,7 +534,7 @@ function finishLife() {
   try { S.sum = summarize(L, { hideSensitiveCause: S.settings.hideSensitiveCause }); } catch (e) { console.error(e); S.sum = null; }
   const death = S.sum?.death ?? L.death ?? { age: L.age, year: L.year };
   addRecord({
-    id: `${L.seed}-${Date.now()}`, ...(S.forced?.year && { forcedYear: S.forced.year }), seed: L.seed, choices: L.choices, name: L.name, sex: L.sex,
+    id: `${L.seed}-${Date.now()}`, ...(S.forced?.year && { forcedYear: S.forced.year }), seed: L.seed, modelVersion: L.modelVersion, choices: L.choices, name: L.name, sex: L.sex,
     birthYear: L.birth.year, deathAge: death.age, deathYear: death.year, ...(death.horizon && { horizon: true }), verdictMain: S.sum?.verdict?.main ?? '', at: Date.now(),
     ...(L.flags?.capped != null && { capped: true }),
   });
@@ -733,7 +751,7 @@ const costHtml = (c, year) => {
 const CHEV = '<svg class="pcard__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 const cardOpen = k => { try { return JSON.parse(sessionStorage.getItem('hj.cards') || '{}')[k] === 1; } catch { return false; } };
 const cardSave = (k, v) => { try { const o = JSON.parse(sessionStorage.getItem('hj.cards') || '{}'); o[k] = v ? 1 : 0; sessionStorage.setItem('hj.cards', JSON.stringify(o)); } catch {} };
-const card = (k, title, inner) => { const o = cardOpen(k); return `<article class="pcard pcard--${k}${o ? ' is-open' : ''}" data-card="${k}"><button class="pcard__sum" type="button" aria-expanded="${o}" aria-controls="pc-${k}" data-card-toggle="${k}"><span class="pcard__t">${title}</span><span class="pcard__line" data-sum="${k}"></span>${CHEV}</button><div class="pcard__body" id="pc-${k}"${o ? '' : ' hidden'}>${inner}</div></article>`; };
+const card = (k, title, inner) => { const o = cardOpen(k); return `<article class="pcard pcard--${k}${o ? ' is-open' : ''}" data-card="${k}"><button class="pcard__sum" type="button" aria-expanded="${o}" aria-controls="pc-${k}" data-card-toggle="${k}"><span class="pcard__t">${title}</span><span class="pcard__line" data-sum="${k}"></span>${CHEV}</button><button class="pcard__history" type="button" data-history="${k}" aria-label="${title} 내역">내역</button><div class="pcard__body" id="pc-${k}"${o ? '' : ' hidden'}>${inner}</div></article>`; };
 function toggleCard(k) {
   const c = $(`.pcard[data-card="${k}"]`); if (!c) return;
   const open = !c.classList.contains('is-open');
@@ -744,7 +762,7 @@ function cardsHtml() {
   ${card('home', '거주', `<dl class="pcard__grid">${cell('home', '지역')}${cell('dwell', '주거')}</dl>`)}
   ${card('job', '직업', `<dl class="pcard__grid">${cell('job', '직업')}${cell('emp', '고용 형태')}${cell('pay', '연봉')}${cell('years', '연차')}${cell('rank', '직급')}${cell('bizkind', '업종')}${cell('bizyears', '업력')}${cell('sales', '월 매출')}${cell('profit', '월 순익')}</dl>`)}
   ${card('asset', '자산', `<dl class="pcard__grid">${cell('net', '순자산')}</dl><div class="pcard__wealth" data-wealth></div>`)}
-  ${card('family', '가족', `<ul class="pcard__family" data-family aria-label="가족과의 관계"></ul>`)}
+  ${card('daily', '일상', '<div data-daily-body></div>').replace('data-card="daily"', 'data-card="daily" data-daily-panel hidden')}
   </section>
   <p class="prof__note">금액: 당시 가격 · 작은 글씨: 2026년 환산</p>`;
 }
@@ -761,7 +779,7 @@ function updateProfile(L, animate = true) {
   const inc = v => fmtIncome(nominal(v, Y), incMode);
   const incCell = v => inc(v).replace(/^\S+ (약 )?/, '$1');
   const tdy = v => money(v, Y).today ?? '';
-  const tenure = p.home.tenure === 'monthly' && Y < 1985 ? '사글세' : p.home.tenureLabel;
+  const tenure = L.age < 19 && p.home.tenureLabel === '부모 집' ? '부모 집' : p.home.tenure === 'monthly' && Y < 1985 ? '사글세' : p.home.tenureLabel;
   const f = (k, html, show = true) => { const c = $(`[data-f="${k}"]`, root); c.hidden = !show; if (show && html != null) $('dd', c).innerHTML = html; return c; };
   // 숫자 칸: 값은 카운트 애니메이션, 아래 작은 줄은 2026년 환산
   const num = (k, label, v, fmt, extra = '', show = true, tdyFn = null) => {
@@ -783,7 +801,8 @@ function updateProfile(L, animate = true) {
   f('home', `${esc(p.home.regionLabel)} · ${p.home.area}<small>${esc(p.home.vibe || '')}<br>이사 ${p.home.moves}회${p.home.recentMove ? ' · 최근 이사' : ''}</small>`);
   const h = L.home || {};
   let dwell = esc(tenure);
-  if (p.home.tenure === 'jeonse') dwell += `<small>전세 ${mw(h.deposit || 0)}</small>`;
+  if (L.age < 19 && p.home.tenureLabel === '부모 집') { /* 부모의 점유 형태를 본인 소유처럼 표시하지 않는다. */ }
+  else if (p.home.tenure === 'jeonse') dwell += `<small>전세 ${mw(h.deposit || 0)}</small>`;
   else if (p.home.tenure === 'monthly') dwell += `<small>${fmtRent(nominal(h.deposit || 0, Y), nominal(h.rent || 0, Y))}</small>`;
   else if (p.home.tenure === 'own' && h.value) dwell += `<small>시세 ${mw(h.value)}</small>`;
   dwell += `<small>${areaText(AREA_GUESS[p.home.dwelling] ?? 59)}${ESTB}${p.home.dwelling === 'basement' ? ' · 반지하급' : ''}</small>`;
@@ -799,27 +818,25 @@ function updateProfile(L, animate = true) {
   num('bizyears', '업력', biz?.years ?? 0, n => `${Math.round(n)}년`, ESTB, !!biz);
   num('sales', '월 매출', biz?.monthlySales ?? 0, mw, ESTB, !!biz, tdy);
   num('profit', '월 순익', biz?.monthlyProfit ?? 0, mw, ESTB, !!biz, tdy);
-  { const fl = $('[data-family]', root); if (fl) { const ls = familyLines(L); fl.innerHTML = ls.map(x => `<li>${esc(familyText(x))}</li>`).join(''); fl.hidden = !ls.length; } }
-  const st = standingOf(L);        // 통계 위치(연 1회 계산·S.standing 캐시): 요약 줄·펼친 칸 옆 작은 칩
+  const rawStanding = standingOf(L);
+  const st = { ...rawStanding, asset: L.age >= 19 && (p.wealth?.net ?? (p.money.assets - p.money.debt)) > 0 ? rawStanding?.asset : undefined };
   { // 접힌 카드의 한 줄 요약(핵심 숫자는 줄이지 않고 보조 문구만 말줄임) + 큰 변화 강조(자동 펼침 없음)
     const net = p.wealth?.net ?? (p.money.assets - p.money.debt), debt = p.money.debt || 0, pay = p.biz ? p.biz.monthlyProfit : p.pay?.annual ?? 0;
     const ten = p.home.tenure === 'jeonse' ? `전세 ${mw(h0.deposit || 0)}` : p.home.tenure === 'monthly' ? `월세 ${mw(h0.rent || 0)}` : tenure;
     const prev = root._prev || {}, arrow = (k, v, thr) => { const o = prev[k]; if (o != null && o !== v) { if (Math.abs(v - o) >= thr) { const c = $(`.pcard[data-card="${prev.cardOf?.[k] ?? k}"]`); } sumArrow[k] = { dir: v > o ? 'up' : 'down', until: Date.now() + 6000 }; } return sumArrow[k] && Date.now() < sumArrow[k].until ? `<span class="prof__arrow" data-dir="${sumArrow[k].dir}">${sumArrow[k].dir === 'up' ? '▲' : '▼'}</span>` : ''; };
     const set = (k, main, key, extra = '') => { const el = $(`[data-sum="${k}"]`, root); if (el) el.innerHTML = `<span class="pcard__main">${esc(main)}</span>${key ? `<b class="pcard__key">${key}</b>` : ''}${extra}`; };
-    set('home', `${p.home.regionLabel} · ${p.home.tenureLabel}`, p.home.tenure === 'jeonse' || p.home.tenure === 'monthly' ? ten.replace(/^\S+ /, '') : '');
+    set('home', `${p.home.regionLabel} · ${p.home.tenureLabel}`, L.age >= 19 && (p.home.tenure === 'jeonse' || p.home.tenure === 'monthly') ? ten.replace(/^\S+ /, '') : '');
     set('job', `${jobS} · ${w.emp.label}`, p.pay || p.biz ? (p.biz ? `월 순익 ${mw(p.biz.monthlyProfit)}` : inc(p.pay.annual).replace(/^\S+ /, '')) : '', arrow('pay', pay, 1) + pctChip(st?.income));
-    set('asset', '순자산', mw(net), arrow('net', net, 1) + pctChip(st?.asset) + (debt > 0 ? `<small class="pcard__debt">부채 ${mw(debt)}</small>` : ''));
-    const members = familyLines(L).filter(x => x.bond != null);
-    set('family', members.slice(0, 3).map(x => x.rel).join(' · '), `${members.length}명`);
+    set('asset', '순자산', L.age < 19 ? '성년 이후 집계' : mw(net), L.age < 19 ? '' : arrow('net', net, 1) + (net > 0 ? pctChip(st?.asset) : `<span class="pct">${net === 0 ? '집계 중' : '순위 산정 제외'}</span>`) + (debt > 0 ? `<small class="pcard__debt">부채 ${mw(debt)}</small>` : ''));
     const flash = (k, c) => { const el = $(`.pcard[data-card="${c}"]`, root); if (el) { el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); } };
     if (prev.home != null && prev.home !== p.home.regionLabel + p.home.tenure) flash('home', 'home');
     if (prev.job != null && prev.job !== jobS) flash('job', 'job');
     if (prev.net != null && Math.abs(net - prev.net) >= Math.max(500, Math.abs(prev.net) * 0.2)) flash('net', 'asset');
     root._prev = { home: p.home.regionLabel + p.home.tenure, job: jobS, net, pay };
   }
-  num('net', '순자산', p.wealth?.net ?? (p.money.assets - p.money.debt), mw, ESTB, true, tdy);
+  num('net', '순자산', p.wealth?.net ?? (p.money.assets - p.money.debt), mw, ESTB, L.age >= 19, tdy);
   for (const [k, it] of [['net', st?.asset], ['pay', st?.income]]) { const t = $(`[data-f="${k}"] [data-t]`, root); if (!t) continue; let c = t.previousElementSibling?.classList.contains('pct') ? t.previousElementSibling : null; if (!c) { t.insertAdjacentHTML('beforebegin', '<span class="pct"></span>'); c = t.previousElementSibling; } c.textContent = pctText(it); c.hidden = !it; }
-  $('[data-wealth]', root).innerHTML = assetRows(p.wealth, Y, mw);
+  $('[data-wealth]', root).innerHTML = L.age < 19 ? '<p class="cap">개인 자산은 성년 이후 집계해.</p>' : assetRows(p.wealth, Y, mw);
   { // 나이대가 바뀌면 축이 달라진다: 축 목록이 다르면 그래프를 새로 그린다
     const c = getConcerns(L), sv = $('.radar--issue', root), keys = c.items.map(i => i.key).join(',');
     if (sv && sv.dataset.keys !== keys) { sv.outerHTML = radarSvg('issue', valuesOf(c), { size: 210, aria: '관심사·고민 지도', axes: axesOf(c) }); }
@@ -835,17 +852,18 @@ function assetRows(w, Y, mw) {
   return `<dl class="arows">`
     + r('금융자산', b(w.fin.total), w.fin.total > 0) + r('현금성', mw(w.fin.cash), w.fin.cash > 0) + r('예금·적금', mw(w.fin.deposit), w.fin.deposit > 0) + r('투자·연금', mw(w.fin.invest), w.fin.invest > 0)
     + r('부동산(자가)', b(w.nonfin.estate), w.nonfin.estate > 0) + r('보증금', b(w.nonfin.jeonse), w.nonfin.jeonse > 0)
+    + r('임대자산·개인연금', b(w.extra || 0), w.extra > 0)
     + r('부채', b(w.debt.total), w.debt.total > 0) + r('주택담보', mw(w.debt.mortgage), w.debt.mortgage > 0) + r('전세대출', mw(w.debt.jeonse), w.debt.jeonse > 0) + r('학자금', mw(w.debt.student), w.debt.student > 0) + r('신용·기타', mw(w.debt.credit), w.debt.credit > 0)
     + r('월 원리금', w.debt.total ? b(w.monthlyService) : '없음') + r('저축률', w.saveRate == null ? '—' : `${w.saveRate}%`) + r('연금 예상', w.pension.monthly ? `월 ${mw(w.pension.monthly)}` : (w.pension.accrued ? `적립 ${mw(w.pension.accrued)}` : '아직 없음'))
     + `</dl><p class="cap">구성은 나이·소득·직업을 바탕으로 한 값입니다(엔진 값이 있으면 그 값).</p>`;
 }
 
 // ───────── S06 선택 시트 ─────────
-// 성향 적합(엔진 req.fit = 추천 id, option.fit = boolean; 아직 없으면 표시 없음). '기본'과 겹치면 한 태그로 합친다.
-const fitOf = (o, req) => o.fit ?? (req.fit != null && o.id === req.fit);
-const sideTag = (isDef, fit) => !isDef && !fit ? ''
-  : fit ? `<span class="tag tag--fit${isDef ? ' is-def' : ''}" role="note" aria-label="${isDef ? '기본 행동, ' : ''}내 성향에 맞는 선택: ${esc(fit)}">${isDef ? '기본 · ' : ''}${esc(fit)}</span>`
-  : '<span class="tag">기본</span>';
+// 선택별 명시 가중치만 독립 평가. 종전 최상위 한 개 추천과 섞지 않는다.
+const sideTag = (isDef, preview) => (isDef ? '<span class="tag">기본</span>' : '')
+  + (preview.visible ? `<span class="tag identity-fit identity-fit--${preview.alignment}">${esc(preview.label)}</span>` : '');
+const identityHint = preview => !preview.visible || preview.alignment !== 'opposed' ? ''
+  : `<span class="option__identity">${preview.stress || preview.confusion ? `직접 선택 시 정체성 부담: 스트레스 +${preview.stress} · 혼란 +${preview.confusion}` : '현재 정체성 추가 부담 없음'}${preview.constrained ? ' · 강제 상황 또는 대안 없음' : ''}</span>`;
 export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice.mjs 가 합성 선택지로 직접 그린다
   return new Promise(resolve => {
     P.choice = true;
@@ -854,25 +872,25 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
     const T0 = S.settings.auto && !req.sensitive ? 1200 : (req.timeoutMs || 12000);
     let left = T0, ringPaused = false, done = false, armed = false, timer, fin = false, ce0 = null;
     const maj = isMajorChoice(req), topic = req.topic ?? topicOfId(req.eventId) ?? 'housing';
-    const def = req.options.find(o => o.id === req.defaultId) || req.options[0];
-    const josaTail = josa(def.label, '으로').slice(def.label.length);
-    const fitText = req.mbti?.label ? `${req.mbti.label} 적합` : '성향 적합';
+    const def = req.options.find(o => o.id === req.defaultId && o.disabled !== true && o.feasible !== false)
+      || req.options.find(o => o.disabled !== true && o.feasible !== false);
+    if (!def) { P.choice = false; resolve(null); return; }
+    const previews = new Map(req.options.map(o => [o.id, L.modelVersion >= 2 ? identityPreview(L, req, o) : { visible: false }]));
+    const identityVisible = [...previews.values()].some(p => p.visible);
     const el = openSheet({
       cls: `choice${maj ? ' choice--major' : ''}`, closable: false,
       label: '.choice__prompt', focus: '.choice__prompt',
-      html: `${maj ? `<div class="major__scene">${topicSceneHtml(topic, L)}</div>` : ''}
+      html: `
       <div class="choice__top">${maj ? `<p class="major__badge">중대한 결정 · ${esc(TOPIC_TITLE[topic] ?? '')}</p>` : ''}<p class="choice__meta">${req.age ?? L.age}세 · <span class="mono">${req.year ?? L.year}</span>년 · 선택</p></div>
       <div class="sheet__body">
         ${ctxText ? `<p class="choice__text">${esc(ctxText)}</p>` : ''}
         <h2 class="choice__prompt">${esc(req.prompt || '어떻게 할까?')}</h2>
+        ${identityVisible ? '<p class="choice__identity-note">성향과 반대되는 선택은 스트레스와 정체성 혼란을 늘릴 수 있어. 이런 선택이 반복되면 행복과 건강에도 부담이 쌓여. 빨간 테두리는 실패를 뜻하지 않으며, 자동·강제 선택에는 정체성 부담이 없어.</p>' : ''}
         ${jobInfoHtml(req.jobInfo)}
-        <ol class="options is-arming">${req.options.map((o, i) => `<li style="--i:${i}"><button class="option${o.id === def.id ? ' is-default' : ''}" type="button" data-opt="${esc(o.id)}"><span class="option__ico">${iconSvg(optionIcon(o.label))}</span><span class="option__label">${esc(o.label)}</span><span class="option__side"><span class="option__no">${i + 1}</span>${sideTag(o.id === def.id, fitOf(o, req) && fitText)}</span>${o.hint ? `<span class="option__hint">${esc(o.hint)}</span>` : ''}${o.cost ? costHtml(o.cost, req.year ?? L.year) : ''}${(() => { const ef = effectsOf(o.effects), rk = riskOf(o); return ef.length || rk ? `<span class="option__eff">${rk ? `<span class="risk risk--${o.risk}">${iconSvg(rk.icon)}<span>${rk.label}</span><span class="risk__bars" aria-hidden="true"><i></i><i></i><i></i></span></span>` : ''}${ef.length ? '<span class="option__lead">예상</span>' : ''}${ef.map(effChip).join('')}</span>` : ''; })()}</button></li>`).join('')}</ol>
-        <p class="choice__status" aria-live="polite">시간이 다 되면 '${esc(def.label)}'${josaTail} 정합니다.</p>
-        ${S.choiceHinted ? '' : '<p class="choice__hint cap">선택 시간은 12초이며, 배속과 상관없습니다. 시간이 다 되면 ‘기본’ 표시 행동이 선택됩니다. 자동결정을 켜면 1.2초 뒤 기본 행동으로 진행합니다. 자동결정이 꺼져 있으면 창을 여는 동안 진행이 멈춥니다.</p>'}
+        <ol class="options is-arming">${req.options.map((o, i) => `<li style="--i:${i}"><button class="option${previews.get(o.id).visible ? ` identity-option--${previews.get(o.id).alignment}` : ''}${o.id === def.id ? ' is-default' : ''}" type="button" data-opt="${esc(o.id)}"${o.disabled === true || o.feasible === false ? ' disabled' : ''}><span class="option__ico">${iconSvg(optionIcon(o.label))}</span><span class="option__label">${esc(o.label)}</span><span class="option__side"><span class="option__no">${i + 1}</span>${sideTag(o.id === def.id, previews.get(o.id))}</span>${identityHint(previews.get(o.id))}${o.hint ? `<span class="option__hint">${esc(o.hint)}</span>` : ''}${o.cost ? costHtml(o.cost, req.year ?? L.year) : ''}${(() => { const ef = effectsOf(o.effects), rk = riskOf(o); return ef.length || rk ? `<span class="option__eff">${rk ? `<span class="risk risk--${o.risk}">${iconSvg(rk.icon)}<span>${rk.label}</span><span class="risk__bars" aria-hidden="true"><i></i><i></i><i></i></span></span>` : ''}${ef.length ? '<span class="option__lead">예상</span>' : ''}${ef.map(effChip).join('')}</span>` : ''; })()}</button></li>`).join('')}</ol>
       </div>
       <div class="sheet__foot choice__foot"><button class="ring" type="button" aria-pressed="false" style="--k:1"><svg class="ring__svg" viewBox="0 0 44 44" aria-hidden="true"><circle class="ring__track" cx="22" cy="22" r="19"/><circle class="ring__prog" cx="22" cy="22" r="19"/></svg><span class="ring__num" aria-hidden="true">${Math.ceil(T0 / 1000)}</span></button>${autoSwitch()}</div>`,
     });
-    S.choiceHinted = true;   // 첫 선택에서만 시간 제한·기본 행동 안내
     syncClock();
     if (maj && ( S.settings.auto)) el.classList.add('no-beat');
     const ring = $('.ring', el), num = $('.ring__num', el), opts = $('.options', el);
@@ -889,7 +907,7 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
     setTimeout(() => { armed = true; opts.classList.remove('is-arming'); }, 120);
     const onKey = e => {
       const n = +e.key;
-      if (armed && n >= 1 && n <= req.options.length) pick(req.options[n - 1].id, false);
+      if (!el.hidden && armed && n >= 1 && n <= req.options.length) pick(req.options[n - 1].id, false);
     };
     document.addEventListener('keydown', onKey);
     el.addEventListener('click', e => {
@@ -915,6 +933,8 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
 
     function pick(id, isAuto, now = false) {
       if (done) return;
+      const selected = req.options.find(o => o.id === id);
+      if (!selected || selected.disabled === true || selected.feasible === false) return;
       done = true; clearTimeout(timer);
       let r2;
       try { r2 = choose(L, id, isAuto ? { auto: true } : undefined); } catch (err) { console.error(err); r2 = { entries: [] }; }
@@ -933,14 +953,13 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
       pk.innerHTML = `<dt>고른 행동</dt><dd>${esc(picked?.label ?? parts.label ?? '')}</dd>`;
       opts.replaceWith(pk);
       ring.remove();
-      $('.choice__status', el).remove();
       // 결과 상태: 같은 시트 안에서 결과를 본문 맨 위로(선택지는 접힘). [확인]은 푸터(시트 맨 아래)에 있어 본문을 가리지 않는다.
       el.classList.add('is-resolved');
       const body = $('.sheet__body', el), foot = $('.choice__foot', el), rv = document.createElement('div');
       if (maj) {
         const res = ce?.result ?? r2?.result, why = ce?.why ?? r2?.why;
         rv.className = 'reveal'; rv.setAttribute('role', 'status');
-        rv.innerHTML = `<div class="reveal__card"><div class="reveal__back">${iconSvg(riskOf(picked)?.icon ?? 'dice')}</div><div class="reveal__front">${resultTag(ce ?? r2, res, (ce ?? r2)?.resultLabel, (ce ?? r2)?.execution) || '<span class="reveal__tag reveal__tag--none">선택 완료</span>'}<p class="reveal__text">${esc(parts.result || parts.label || '')}</p>${reactHtml(ce ?? r2, S.L)}${factsHtml(ce ?? r2)}</div></div>${ce ? impactHtml(ce) : ''}${whyHtml(why)}`;
+        rv.innerHTML = `<div class="reveal__card"><div class="reveal__front">${resultTag(ce ?? r2, res, (ce ?? r2)?.resultLabel, (ce ?? r2)?.execution) || '<span class="reveal__tag reveal__tag--none">선택 완료</span>'}<p class="reveal__text">${esc(parts.result || parts.label || '')}</p>${reactHtml(ce ?? r2, S.L)}${factsHtml(ce ?? r2)}</div></div>${ce ? impactHtml(ce) : ''}${whyHtml(why)}`;
       } else {
         rv.className = 'choice__result'; rv.setAttribute('role', 'status');
         rv.innerHTML = `<span class="choice__rlabel">결과</span>${isAuto ? ' <span class="tag">기본 행동</span> ' : ''}<p class="choice__rtext">${esc(parts.result || parts.label || '')}</p>`;

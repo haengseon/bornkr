@@ -1,3 +1,6 @@
+import { deathContext } from '../data/death-context.js';
+import { familyMembers } from './kin.js';
+import { josa } from './text.js';
 // 사망 인과 체인(결산 판정문용): 사망 연도·직접 사인 + 그 사인에 실제로 이어진 상태·이력만 시간순으로.
 // 사실만 쓴다: 진단 연도·흡연·음주·요양등급·거주 여건·직업 위험 등 L에 기록된 값. 자해 사망은 원인 나열 없이 연도만(safety).
 import { COND_LABEL } from './act.js';
@@ -24,9 +27,9 @@ export function deathStory(L) {
   if (SMOKY.has(c)) {
     ev('sys.health.smoke_start', e => `${e.age}세에 담배를 시작했다`);
     ev('sys.health.quit', e => `${e.age}세에 담배를 끊었지만 흡연 이력은 남았다`);
-    if (L.health.smoker === 1) F.push([d.year, '끝내 담배를 끊지 못했다']);
+    if (L.health.smoker === 1) F.push([d.year, '마지막 기록에도 흡연 중인 상태였다']);
   }
-  if (DRINKY.has(c) && L.health.drinker) F.push([L.birth.year + 30, '고위험 음주 습관이 길게 이어졌다']);
+  if (DRINKY.has(c) && L.health.drinker) F.push([d.year, '마지막 건강 기록에 고위험 음주가 남아 있었다']);
   for (const k of REL[c] || (c === 'sepsis' || c === 'covid' ? L.health.conditions.filter(x => x.active).map(x => x.key) : [])) {
     for (const x of L.health.conditions.filter(y => y.key === k)) {
       const lab = COND_LABEL[k] || k, yrs = (x.until ?? d.year) - x.since;
@@ -34,17 +37,20 @@ export function deathStory(L) {
     }
   }
   const g = L.aging || {};
-  if (FRAIL.has(c) && g.ltc) F.push([d.year - 1, `장기요양 ${g.ltc}등급의 돌봄이 필요했다`]);
-  if (FRAIL.has(c) && g.isolated && d.age >= 60) F.push([d.year - 2, '홀로 지내는 날이 길어졌다']);
-  if (d.age >= 60 && L.family?.widowed && !L.family?.partner && (FRAIL.has(c) || c === 'senility')) F.push([d.year - 3, '배우자를 먼저 보냈다']);
+  if (FRAIL.has(c) && g.ltc) F.push([d.year, `장기요양 ${g.ltc}등급의 돌봄이 필요했다`]);
+  if (FRAIL.has(c) && g.isolated && d.age >= 60) F.push([d.year, '마지막 기록에는 사회적 고립이 남아 있었다']);
+  if (d.age >= 60 && L.family?.widowed && !L.family?.partner && (FRAIL.has(c) || c === 'senility')) F.push([d.year, '배우자와 사별한 뒤의 삶이었다']);
   if (FAR.has(c) && L.birth.healthAccess < 35 && !L.birth.urban) F.push([L.birth.year, '가까운 병원이 멀리 있는 동네에서 살았다']);
-  if (ACCIDENT.has(c) && (L.job?.hazard ?? 0) >= 2) F.push([d.year - 1, '위험이 따르는 일터에서 일하고 있었다']);
+  if (ACCIDENT.has(c) && ['employed', 'self'].includes(L.job?.status) && (L.job?.hazard ?? 0) >= 2) F.push([d.year, '마지막 직업 기록에는 업무상 위험이 있는 일이 남아 있었다']);
   if ((c === 'tb' && d.year < 1995) || (c === 'infectious' && d.year < 1980)) F.unshift([d.year, c === 'tb' ? '결핵이 아직 흔한 병이던 때였다' : '감염병이 아직 흔하던 시절이었다']);   // R14 시대 사인
   if (c === 'covid' && d.year <= 2024) F.unshift([d.year, `${d.year}년 감염병이 번지던 때였다`]);
-  if (L.stats.health < 40 && d.age >= 20) F.push([d.year, '몸을 돌볼 겨를이 적었던 해들이 쌓여 있었다']);
-  if (c === 'perinatal' || d.age === 0) F.push([d.year, '태어난 해, 몸이 아주 작고 약했다']);
+  if (!ACCIDENT.has(c) && L.stats.health < 40 && d.age >= 20) F.push([d.year, '마지막 해의 건강 지표가 낮아져 있었다']);
+  if (c === 'perinatal' || (d.age === 0 && L.birth.lowBirthWeight)) F.push([d.year, '태어난 해, 몸이 아주 작고 약했다']);
   if (d.age >= 85 && (c === 'senility' || !F.length)) F.push([d.year, `${d.age}년의 세월이 몸에 쌓여 있었다`]);
   const seen = new Set();
-  const chain = F.filter(([, s]) => !seen.has(s) && seen.add(s)).sort((a, b) => a[0] - b[0]).map(([, s]) => s).slice(0, 5);
-  return { ...base, chain };
+  const chain = F.filter(([year]) => year >= L.birth.year && year <= d.year).filter(([, s]) => !seen.has(s) && seen.add(s)).sort((a, b) => a[0] - b[0]).map(([, s]) => s).slice(0, 5);
+  const event = c === 'transport' ? '운수사고로 일상이 멈췄다.' : c === 'fall' ? '추락 사고로 생이 멈췄다.' : c === 'external' ? '예기치 못한 사고로 생이 멈췄다.' : `${josa(d.causeLabel, '으로')} 생이 멈췄다.`;
+  const close = familyMembers(L).filter(({ member: p }) => p.alive !== false && (p.bond ?? 65) >= 50).slice(0, 3).map(x => x.label);
+  const narrative = `${d.year}년, ${d.age === 0 ? '첫 생일을 맞기 전' : d.age + '세'}. ${event} ` + (d.age < 5 ? '막 시작된 삶의 다음 계절은 오지 못했다.' : '이어질 줄 알았던 하루는 더 이어지지 못했다.') + (close.length ? ` 마지막 가족 기록에는 ${close.join('·')}와의 가까운 관계가 남았다.` : '');
+  return { ...base, chain, narrative, statistic: deathContext(c) };
 }

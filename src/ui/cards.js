@@ -1,3 +1,8 @@
+import { profileOf, familyLines, familyText } from './profile.js';
+import { money } from './format.js';
+import { personalityLabel } from './persona.js';
+import { STATS } from '../engine/constants.js';
+import { lifeStoryOf } from '../engine/life-story.js';
 // 공유 카드 3종(UI-SPEC §8): 1080×1350 캔버스 + 공유 시트(S11).
 // wrap·pickTimeline·shareText·cardAlt는 순수 함수(Node 테스트), 나머지는 DOM.
 import { S, $, $$, openSheet, copyText, toast } from './dom.js';
@@ -59,7 +64,8 @@ export function shareText(kind, d) {
   if (kind === 'birth') return `${b.year}년 ${regionOnly(d.cert)}에서 태어났다. ${noDot(d.cert.homeLine)}. 어떤 삶이 될까.\n${SIGN}`;
   if (kind === 'verdict') {
     const v = d.sum.verdict, ep = d.sum.epilogue;
-    return ['인생 판정문', ep && `《${ep.title}》`, v.main, SIGN].filter(Boolean).join('\n');
+    const moments = lifeStoryOf(d.L).highlights.filter(r => cardSafe(r.text)).map(r => `${r.year}년 · ${r.text}`);
+    return ['인생 판정문', ep && `《${ep.title}》`, v.main, ...moments, SIGN].filter(Boolean).join('\n');
   }
   const rows = pickTimeline(d.sum.timeline, 5).map(t => `· ${t.age}세 ${t.text}`);
   return [`${d.L.name}의 생애 연표(${b.year}–${death.year})`, ...rows, SIGN].join('\n');
@@ -67,7 +73,7 @@ export function shareText(kind, d) {
 export function cardAlt(kind, d) {
   const { b, death } = lifeOf(d);
   if (kind === 'birth') return `출생 신고서 카드. ${regionOnly(d.cert)}, ${noDot(d.cert.homeLine)}.`;
-  if (kind === 'verdict') return `인생 판정문 카드. ${d.sum.epilogue ? `《${d.sum.epilogue.title}》 ` : ''}${d.sum.verdict.main}`;
+  if (kind === 'verdict') return `직업·거주·자산·가족과 관계·성향·지표를 담은 인생 기록 카드. ${d.sum.epilogue ? `《${d.sum.epilogue.title}》 ` : ''}${d.sum.verdict.main}`;
   const n = pickTimeline(d.sum.timeline, 8).length;
   return `생애 연표 카드. ${b.year}–${death.year}, 연표 ${n}줄.`;
 }
@@ -116,7 +122,7 @@ function frame(p, C, no) {
   p.box(52.5, 52.5, 975, 1245, C.ink, 1);
   p.text(`■ 태어나보니 대한민국 [별지 제${no}호서식]`, 88, 112, p.f(400, 22, 'sans'), C.ink3);
   p.hline(88, 992, 1206, C.rule);
-  p.text('태어나보니 대한민국', 88, 1252, p.f(400, 22, 'sans'), C.ink3);
+  p.text('한 번뿐인 인생', 88, 1252, p.f(400, 22, 'sans'), C.ink3);
   p.text('태어나보니 대한민국 · bornkr.click', 992, 1252, p.f(700, 24, 'sans'), C.ink, 'right');
 }
 
@@ -156,45 +162,46 @@ function drawBirth(p, C, ctx, d) {
 }
 
 function drawVerdict(p, C, ctx, d) {
-  const { L, sum } = d, b = L.birth, death = sum.death ?? L.death;
+  const { L, sum } = d, death = sum.death ?? L.death, ep = sum.epilogue;
+  const profile = profileOf(L), fam = familyLines(L), won = n => money(n, death.year).nominal;
   frame(p, C, 2);
-  p.text('인 생 판 정 문', 540, 204, p.f(800, 72, 'serif'), C.ink, 'center');
-  p.text('사건', 88, 286, p.f(400, 24, 'sans'), C.ink3);
-  p.text(`${death.year}생애${mmdd(b)}`, 232, 286, p.f(400, 28, 'num'), C.ink);
-  p.text('당사자', 88, 330, p.f(400, 24, 'sans'), C.ink3);
-  const pf = p.f(400, 28, 'sans');
-  p.text(p.fit(`${L.name} (${dateDotSp(b)}생 · ${ageText(death.age, death.horizon)})`, 760, pf), 232, 330, pf, C.ink);
-  p.hline(88, 992, 362, C.rule);
-  const ep = sum.epilogue;
-  if (ep) {                                   // 회고문: 별명 + 첫 문단 발췌 + 한 줄 총평
-    const tf = p.f(800, 50, 'serif'), title = wrap(`《${ep.title}》`, 904, 2, p.measureWith(tf));
-    title.forEach((l, i) => p.text(l, 540, 440 + 68 * i, tf, C.ink, 'center'));
-    let y = 440 + 68 * (title.length - 1) + 84;
-    const bf = p.f(400, 32, 'serif');
-    wrap(ep.paragraphs[0], 904, 4, p.measureWith(bf)).forEach(l => { p.text(l, 88, y, bf, C.ink2); y += 52; });
-    const ds = sum.deathStory, cause = ds && !ds.sensitive && !S.settings?.hideSensitiveCause ? ds.causeLabel : null;
-    if (ds) {                                 // 사망 연도·직접 사인·인과 체인(자해·숨김 설정이면 연도만)
-      y += 24;
-      const df = p.f(700, 30, 'sans');
-      p.text(p.fit(`${ds.year}년, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${cause}` : ''}`, 904, df), 88, y, df, C.ink);
-      y += 46;
-      const cf2 = p.f(400, 26, 'sans');
-      if (cause && ds.steps?.length) wrap(ds.steps.join(' → '), 904, 3, p.measureWith(cf2)).forEach(l => { p.text(l, 88, y, cf2, C.ink2); y += 40; });
-    }
-    p.hline(400, 680, y + 8, C.rule);
-    const cf = p.f(700, 40, 'serif');
-    wrap(sum.verdict.main, 904, y + 124 <= 1056 ? 2 : 1, p.measureWith(cf)).forEach((l, i) => p.text(l, 540, y + 68 + 56 * i, cf, C.ink, 'center'));
-  } else {
-    const mf = p.f(800, 54, 'serif');
-    wrap(sum.verdict.main, 904, 3, p.measureWith(mf)).forEach((l, i) => p.text(l, 88, 498 + 76 * i, mf, C.ink));
-  }
-  p.text(`${death.year}년`, 840, 1102, p.f(400, 28, 'num'), C.ink2, 'right');
-  p.text('태어나보니 대한민국 · bornkr.click', 840, 1156, p.f(800, 38, 'serif'), C.ink, 'right');
-  p.turned(920, 1124, 4, () => {
-    ctx.strokeStyle = C.seal; ctx.lineWidth = 6; ctx.strokeRect(-64, -64, 128, 128);
-    const sf = p.f(800, 46, 'serif');
-    [['인', -32, -16], ['생', 32, -16], ['판', -32, 48], ['정', 32, 48]].forEach(([c, x, yy]) => p.text(c, x, yy, sf, C.seal, 'center'));
+  p.text('나의 인생 기록', 88, 190, p.f(800, 58, 'serif'), C.ink);
+  p.text(p.fit(L.name, 380, p.f(800, 40, 'sans')), 992, 190, p.f(800, 40, 'sans'), C.ink, 'right');
+  p.text(L.birth.year + ' – ' + death.year + ' · ' + ageText(death.age, death.horizon), 88, 245, p.f(500, 28, 'num'), C.ink2);
+  if (death.causeLabel && !death.sensitive && !S.settings?.hideSensitiveCause) p.text(p.fit('마지막 기록 · ' + death.causeLabel, 904, p.f(400, 24, 'sans')), 88, 284, p.f(400, 24, 'sans'), C.ink3);
+  const tf = p.f(800, 42, 'serif');
+  p.text(p.fit(ep?.title || '한 사람의 생애', 904, tf), 88, 325, tf, C.ink);
+  const rows = [
+    ['거주', profile.home.regionLabel + ' · ' + profile.home.tenureLabel],
+    ['직업', L.job.history?.at(-1)?.title || profile.work.school || profile.work.emp.label],
+    ['순자산', won(profile.money.net)], ['자산 / 부채', won(profile.money.assets) + ' / ' + won(profile.money.debt)],
+    ['마지막 급여', profile.pay ? '연 ' + won(profile.pay.annual) : '근로 소득 없음'],
+    ['성향', personalityLabel(L)],
+  ];
+  rows.forEach(([label, value], i) => {
+    const x = 88 + (i % 2) * 460, y = 365 + Math.floor(i / 2) * 106;
+    p.rect(x, y, 444, 94, C.shade);
+    p.text(label, x + 16, y + 30, p.f(500, 21, 'sans'), C.ink3);
+    const f = p.f(700, 27, 'sans');
+    p.text(p.fit(value, 412, f), x + 16, y + 69, f, C.ink);
   });
+  const sf = p.f(500, 24, 'sans');
+  p.text(STATS.map(x => x.label + ' ' + L.stats[x.key]).join(' · '), 88, 725, sf, C.ink2);
+  p.text('가족과의 관계', 88, 785, p.f(700, 26, 'sans'), C.ink);
+  const ff = p.f(400, 24, 'sans');
+  wrap(fam.map(familyText).join(' / ') || '기록된 가족 없음', 904, 3, p.measureWith(ff)).forEach((line, i) => p.text(line, 88, 827 + i * 36, ff, C.ink2));
+  const story = lifeStoryOf(L).highlights;
+  const choice = ep?.choices?.at(-1);
+  const milestone = choice ? choice.year + '년 · ' + choice.label : (sum.timeline || []).findLast(t => t.kind !== 'death' && t.kind !== 'birth')?.text;
+  if (story.length) {
+    p.text('내가 남긴 생활 기록', 88, 962, p.f(700, 25, 'sans'), C.ink);
+    story.slice(0, 3).forEach((r, i) => p.text(p.fit(`${r.year}년 · ${r.text}`, 904, ff), 88, 999 + i * 32, ff, C.ink2));
+  } else if (milestone) {
+    p.text('기록에 남은 순간', 88, 970, p.f(700, 25, 'sans'), C.ink);
+    wrap(milestone, 904, 2, p.measureWith(ff)).forEach((line, i) => p.text(line, 88, 1010 + i * 34, ff, C.ink2));
+  }
+  const cf = p.f(700, 30, 'serif');
+  wrap(sum.verdict.main, 904, 2, p.measureWith(cf)).forEach((line, i) => p.text(line, 88, 1120 + i * 43, cf, C.ink));
 }
 
 function drawTimeline(p, C, ctx, d) {

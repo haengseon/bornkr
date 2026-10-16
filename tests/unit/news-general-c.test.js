@@ -82,7 +82,7 @@ test('링크 조건 안전성(300개 표본 L)·연결 비율', () => {
 });
 
 test('문서: 인과 샘플 10건 이상', () => {
-  const doc = readFileSync(new URL('../../docs/research/R16-news-general-c.md', import.meta.url), 'utf8');
+  const doc = readFileSync(new URL('../../docs/research/news/R16-news-general-c.md', import.meta.url), 'utf8');
   const rows = doc.split('\n').filter(l => /^\|\s*ng\.\d{4}\.\w+\s*\|/.test(l));
   assert.ok(rows.length >= 10, `샘플 ${rows.length}`);
   for (const r of rows) assert.ok(A.some(n => r.includes(n.id)), `없는 id: ${r}`);

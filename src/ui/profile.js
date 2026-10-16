@@ -1,3 +1,4 @@
+import { otherAssets } from '../engine/stats.js';
 // 프로필 한눈 패널의 값. 순수 함수(DOM 없음): profileOf(L) → 표시용 값. 엔진이 직접 주지 않는 값(직급·매출 등)은 L에서 파생·추정하고 est 로 표시한다.
 // 금액은 모두 만원, 2025년 물가 기준(엔진 단위). 순위·백분위·평가어는 만들지 않는다(ARCHITECTURE §15).
 import { REGIONS } from '../engine/constants.js';
@@ -87,12 +88,12 @@ export function dwellingOf(L) {
 const END = { widowed: '사별', divorced: '이혼' };
 export function familyLines(L) {
   const f = L?.family || {}, out = [];
-  familyMembers(L).forEach(({ label, member: m, age }) => out.push({ rel: label, name: m.name || '', age, bond: m.alive === false ? null : (m.bond ?? 65), from: m.birthYear, to: m.alive === false ? m.deathYear : null, end: m.alive === false ? '별세' : m.care || m.ltc ? '돌봄 중' : '' }));
+  familyMembers(L).forEach(({ label, member: m, age }) => out.push({ rel: label, name: m.name || '', age, bond: m.bond ?? 65, from: m.birthYear, to: m.alive === false ? m.deathYear : null, end: m.alive === false ? '별세' : m.care || m.ltc ? '돌봄 중' : '' }));
   (f.spouses || []).filter(s => s.end).forEach(s => out.push({ rel: '이전 배우자', name: s.name || '', from: s.since, to: s.until, end: END[s.end] || '' }));
   (f.gp || []).forEach(g => out.push({ rel: g.label, name: '', from: null, to: g.alive ? null : g.deathYear, end: g.alive ? '' : '별세' }));
   return out;
 }
-export const familyText = x => `${x.rel}${x.name ? ' ' + x.name : ''}${x.end === '별세' ? ` · ${x.to ? x.to + '년 ' : ''}별세` : `${Number.isFinite(x.age) ? ` · ${x.age}세` : ''}${x.bond != null ? ` · ${bondLabel(x.bond)}` : ''}${x.end ? ` · ${x.end}` : ''}`}${x.rel === '이전 배우자' && x.from ? ` (${x.from}~${x.to || ''})` : ''}`;
+export const familyText = x => `${x.rel}${x.name ? ' ' + x.name : ''}${x.end === '별세' ? ` · ${x.to ? x.to + '년 ' : ''}별세${x.bond != null ? ` · ${bondLabel(x.bond)} (${x.bond})` : ''}` : `${Number.isFinite(x.age) ? ` · ${x.age}세` : ''}${x.bond != null ? ` · ${bondLabel(x.bond)} (${x.bond})` : ''}${x.end ? ` · ${x.end}` : ''}`}${x.rel === '이전 배우자' && x.from ? ` (${x.from}~${x.to || ''})` : ''}`;
 // 이 동네 그 시대 시세 한 줄(R13 시군구 시세): 자가·가족 집 = 매매, 임차 = 전세. 군 지역(basis house)은 단독주택 시세.
 export function marketLineOf(L) {
   const h = L.home || {}, own = !['jeonse', 'monthly', 'public', 'dorm'].includes(h.tenure);
@@ -122,11 +123,11 @@ export function profileOf(L) {
   const last = (h.moves || []).at(-1);
   const emp = employmentOf(L), working = j.status === 'employed' || j.status === 'self';
   const biz = bizOf(j), rank = rankOf(j);
-  const assets = (mo.assets || 0) + (tenure === 'own' ? (h.value || 0) : 0) + ((tenure === 'jeonse' || tenure === 'monthly') ? (h.deposit || 0) : 0);
+  const assets = (mo.assets || 0) + otherAssets(L) + (tenure === 'own' ? (h.value || 0) : 0) + ((tenure === 'jeonse' || tenure === 'monthly') ? (h.deposit || 0) : 0);
   return {
     home: {
       region, regionLabel: homeLabel(L) || (rg?.label ?? region ?? ''), vibe: vibeOf(h.sigungu, h.dong), area: b.urban === false ? '농촌' : '도시',
-      tenure, tenureLabel: TENURE_LABEL[tenure] ?? '', dwelling: dwellingOf(L),
+      tenure, tenureLabel: L.age < 19 && h.parents !== false && !['facility', 'dorm'].includes(tenure) ? '부모 집' : TENURE_LABEL[tenure] ?? '', dwelling: dwellingOf(L),
       moves, recentMove: !!last && L.year - last.year <= 2, lastMoveYear: last?.year ?? null,
       market: marketLineOf(L),
     },
@@ -170,9 +171,10 @@ export function wealthOf(L) {
   const inc = mo.income > 0 ? mo.income : (L.job?.wage || 0);
   const save = inc > 0 ? (mo.livingRatio > 0 ? 1 - mo.livingRatio : Math.min(0.4, Math.max(-0.1, (L.stats?.wealth ?? 50) / 200 - 0.05 + j(3) * 0.1))) : null;
   const pension = Math.round((ag.pensionMonthly || 0) + (ag.basic || 0));
-  const totalAssets = fin + estate + jeonseDep, net = totalAssets - debt;
+  const extra = otherAssets(L);
+  const totalAssets = fin + estate + jeonseDep + extra, net = totalAssets - debt;
   return {
-    est: true, loanEst, fin: { total: fin, deposit: depA, cash: cashA, invest: invA }, nonfin: { estate, jeonse: jeonseDep, total: estate + jeonseDep },
+    est: true, loanEst, extra, fin: { total: fin, deposit: depA, cash: cashA, invest: invA }, nonfin: { estate, jeonse: jeonseDep, total: estate + jeonseDep },
     debt: { total: debt, mortgage: mort, jeonse: jeo, student: stu, credit: cre }, net, totalAssets,
     monthlyService: Math.round(annualService / 12), rate: debt ? Math.round(rate * 1000) / 10 : 0,
     saveRate: save == null ? null : Math.round(save * 100),

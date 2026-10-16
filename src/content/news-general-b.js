@@ -1,5 +1,5 @@
 // 종합 뉴스 B: 1990~2009(연 8~10건). 형식은 news-general.js 주석. 실명(기업·개인) 없음, 참사·정치는 사실·중립.
-// links: 위에서부터 처음 맞는 하나가 적용(상태별 인과) → 마지막은 조건 없는 '그 시대 보통 사람' 반응. 출처 연표: docs/research/R16-news-general-b.md
+// links: 위에서부터 처음 맞는 하나가 적용(상태별 인과) → 마지막은 조건 없는 '그 시대 보통 사람' 반응. 출처 연표: docs/research/news/R16-news-general-b.md
 const W = (...a) => a.map(x => (typeof x === 'number' ? `https://ko.wikipedia.org/wiki/${x}년` : `https://ko.wikipedia.org/wiki/${x}`));
 const st = L => L.job?.status;
 const emp = L => st(L) === 'employed';

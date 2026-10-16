@@ -1,12 +1,13 @@
 // R09 CSV -> src/data/jobs.js 변환기. 사용: node tools/build-jobs.mjs  (--check: 커밋된 결과와 일치하는지만 확인)
-// 입력: docs/research/R09-jobs.csv(1,270행), R09-core150.csv. 출력: src/data/jobs.js (GDD §10.1 스키마).
+// 입력: docs/research/employment/R09-jobs.csv(1,270행), R09-core150.csv. 출력: src/data/jobs.js (GDD §10.1 스키마).
 // 모든 추정 규칙(시대 존재 범위·자영 비율·위험도·w 보정)은 이 파일 한 곳에 있다. 결과 JS를 커밋한다.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { everydayJobName } from './job-names.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const rd = f => readFileSync(path.join(root, 'docs/research', f), 'utf8');
+const rd = f => readFileSync(path.join(root, 'docs/research/employment', f), 'utf8');
 
 function parseCsv(t) {
   const rows = []; let r = [], f = '', q = false;
@@ -230,7 +231,7 @@ const W_SCALE = parseRules(`
 37239:0.1 34051:0.4 34052:0.25 3Z001:0.5
 25413:0.25 25414:0.25 25419:0.2 25491:0.25 25492:0.25 25499:0.25
 `);
-const displayName = (code, name) => DISPLAY[code] ?? name.replace(/^그 외 /, '');
+const displayName = (code, name) => everydayJobName(code, name, DISPLAY[code] ?? name);
 const q = s => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 const out = [];
 for (const x of rows) {
@@ -266,8 +267,10 @@ out.sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
 
 const fmt = r => `  { code: ${q(r.code)}, name: ${q(r.name)}, major: ${q(r.major)}, sub: ${q(r.sub)}, minor: ${q(r.minor)}, skill: ${r.skill}, edu: ${q(r.edu)}, license: ${r.license ? q(r.license) : 'null'}, band: ${r.band}, ai: ${q(r.ai)}, female: ${r.female}, w: ${r.w}, selfShare: ${r.selfShare}, hazard: ${r.hazard}, rural: ${r.rural}, public: ${r.public}, since: ${r.since}, until: ${r.until ?? 'null'}, core: ${r.core}${r.legacy ? ', legacy: true' : ''}${r.official && r.official !== r.name ? `, official: ${q(r.official)}` : ''} },`;
 
+const titleAliases = Object.fromEntries(out.flatMap(r => [[r.official ?? r.name, r.name], [DISPLAY[r.code] ?? (r.official ?? r.name).replace(/^그 외 /, ''), r.name]]).filter(([a, b]) => a !== b));
+
 const js = `// 자동 생성 — tools/build-jobs.mjs (R09-jobs.csv 1,270행 + 확장 ${LEGACY.length}행). 직접 수정 금지, 규칙은 스크립트에서 바꾼다.
-// GDD §10.1. 공식 필드(code·name·major·sub·minor·skill)는 KSCO 8차, 나머지는 R09 §3 추정 + 이 스크립트의 추정 규칙(note 참고).
+// GDD §10.1. name은 일상 표시명, 공식 분류명은 official ?? name. code·major·sub·minor·skill은 KSCO 8차, 나머지는 R09 §3 추정 + 이 스크립트의 추정 규칙(note 참고).
 // 단위: w = 소분류 취업자(천명, 2025.4) ÷ 소분류 내 세세분류 수(일부 소분류는 비현실적 균등 분할을 피하려 비율 보정). 금액·시점과 무관.
 export const JOBS = {
   src: 'R09.S1', year: 2025, kind: 'estimated',
@@ -276,6 +279,8 @@ export const JOBS = {
 ${out.map(fmt).join('\n')}
   ],
 };
+// 이전 저장의 정확한 직업명만 변환한다. 서사 문장·직급·공식 분류는 덮어쓰지 않는다.
+export const JOB_TITLE_ALIASES = ${JSON.stringify(titleAliases)};
 `;
 const outFile = path.join(root, 'src/data/jobs.js');
 if (process.argv.includes('--check')) {   // 커밋된 jobs.js가 스크립트 결과와 같은지 확인(테스트용)

@@ -1,5 +1,5 @@
 // 종합 뉴스 C: 2010~2026 실제 뉴스 + 2027~2080 가상 시나리오(scenario:true). 형식은 news-general.js 주석.
-// 근거·인과 표는 docs/research/R16-news-general-c.md. 실존 기업·개인 실명 없이, 정치·참사는 사실만 쓴다.
+// 근거·인과 표는 docs/research/news/R16-news-general-c.md. 실존 기업·개인 실명 없이, 정치·참사는 사실만 쓴다.
 // 링크는 위에서부터 처음 맞는 하나가 적용되므로 좁은 조건을 위에, 조건 없는 일반 링크를 맨 끝에 둔다.
 
 const W = y => `https://ko.wikipedia.org/wiki/${y}년_대한민국`;

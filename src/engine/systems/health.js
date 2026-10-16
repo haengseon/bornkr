@@ -3,6 +3,7 @@ import { T, yr, ag } from '../tables.js';
 import { COND_LABEL } from '../act.js';
 import { sensFields } from '../safety.js';
 import { incQuint, leanOdds } from '../stats.js';
+import { lifeRiskOf } from '../life-risk.js';
 
 const CHRONIC = new Set(['hypertension', 'diabetes', 'arthritis']);
 const CARDIO = new Set(['heart', 'stroke']);
@@ -54,7 +55,7 @@ export function step(L, ctx) {
     }
     if (!active(L, 'cancer') && ctx.chance(ag(T('CANCER_INCIDENCE')[sex], a) * (smoke ? 1.6 : 1))) dx(L, ctx, 'cancer');
     if (!active(L, 'dementia') && ctx.chance(ag(T('DEMENTIA_INCIDENCE'), a))) dx(L, ctx, 'dementia');
-    if (!active(L, 'depression') && ctx.chance(T('DEPRESSION_INCIDENCE')[sex] * (L.stats.happiness < 35 ? 2 : 1) * leanOdds(L, 'happiness', -1))) dx(L, ctx, 'depression');
+    if (!active(L, 'depression') && ctx.chance(T('DEPRESSION_INCIDENCE')[sex] * (L.stats.happiness < 35 ? 2 : 1) * leanOdds(L, 'happiness', -1) * lifeRiskOf(L).illness)) dx(L, ctx, 'depression');
     if ((L.job.status === 'employed' || L.job.status === 'self') && (L.job.hazard ?? 1) >= 2 && ctx.chance(0.03)) dx(L, ctx, 'injury');
   }
   // 미충족 의료(GDD §5.7)

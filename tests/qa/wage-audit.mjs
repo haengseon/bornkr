@@ -1,7 +1,7 @@
 // 연봉 현실 대조(R20). 실행: node tests/qa/wage-audit.mjs [N=3000]
 // 생애마다 해마다 L.job.wage(연, 2025 실질 만원)를 기록 → (1) 직업군 × 연령(25·35·45·55 ±2) 중앙값을 그해 ERA_INCOME_INDEX로 나눈
 // "2025 수준 환산" 연봉과 실제 2024~25 통계 비교, (2) 연도별 평균 임금을 그해 명목(÷CPI_MULT)으로 바꿔 실제 명목 평균 월급과 비교.
-// 실제 값 출처: docs/research/R20-wage-and-price-audit.md §1.
+// 실제 값 출처: docs/research/validation/R20-wage-and-price-audit.md §1.
 import { isMainThread, pool, serve } from './lib/pool.mjs';
 import * as E from '../../src/engine/index.js';
 import { advance, resolve } from '../../src/engine/life.js';

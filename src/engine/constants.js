@@ -81,7 +81,7 @@ export const REGIONS = [
 export const SENSITIVE = ['violence', 'selfharm', 'abuse', 'sexual', 'illness', 'death', 'disaster'];
 
 // 데이터 구분 라벨
-export const KINDS = { measured: '실측', projected: '전망', estimated: '게임 추정' };
+export const KINDS = { measured: '통계', projected: '전망', estimated: '게임 추정' };
 
 // 금액 단위: 엔진 내부는 2025년 실질 가치 '만원'.
 export const MONEY_UNIT = '만원';

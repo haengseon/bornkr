@@ -6,6 +6,7 @@ import { econ } from './stats.js';
 import { CLASS_CAL } from './tuning.js';
 import { spouseName } from './kin.js';
 import { regionalPrice } from '../data/housing-regional.js';
+import { withTransactionJournal } from './transactions.js';
 
 export const LOAN_LABEL = { credit: '신용대출', mortgage: '주택담보대출', jeonse: '전세자금대출', student: '학자금 대출', business: '사업자 대출' };
 export const TENURE_LABEL = { own: '자가', jeonse: '전셋집', monthly: '월셋집', public: '공공임대', family: '부모님 집', dorm: '기숙사', facility: '요양시설' };
@@ -362,7 +363,7 @@ export function makeAct(L, ctx) {
     L.flags.paidOff = L.year;
     if (kind !== 'jeonse') ctx.sys('sys.money.paid_off', { kindLabel: LOAN_LABEL[kind] }, { quiet: true });
   }
-  return act;
+  return withTransactionJournal(L, act, ctx);
 }
 
 const spouseRef = p => ({ no: p.no, name: p.name, since: p.since });

@@ -63,7 +63,8 @@ test('variantText: 같은 시드·해에는 같은 결과, 변형이 없거나 �
   const id = 'youth.friends.meet';
   const a = variantText(id, L, null, 'BASE'), b = variantText(id, L, null, 'BASE');
   assert.equal(a, b);
-  assert.ok(VARIANTS[id].some(v => v.text === a));
+  // 형성 중인 성향이 문구 조건을 충족하지 않으면 원문을 유지한다.
+  assert.ok(a === 'BASE' || VARIANTS[id].some(v => v.text === a));
   assert.equal(variantText('no.such.event', L, null, 'BASE'), 'BASE');
   assert.equal(variantText('youth.pregnant.work', { ...L, sex: 'M', year: 2005 }, null, 'BASE').includes('아내'), true);
   assert.equal(variantText(id, null, null, 'BASE'), 'BASE');

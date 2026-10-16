@@ -12,7 +12,9 @@
     "build": "node tools/build-artifact.mjs",
     "build:artifact": "node tools/build-artifact-files.mjs",
     "build:site": "node tools/build-site.mjs",
-    "test:slow": "node --test \"tests/unit/*.test.js\""
+    "test:slow": "node --test \"tests/unit/*.test.js\"",
+    "collect:kosis": "node tools/collect-kosis.mjs",
+    "test:collector": "node --test tests/tools/kosis.test.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

@@ -1,0 +1,26 @@
+{
+  "archives": {
+    "publisher": "국가기록원",
+    "title": "연표와 기록",
+    "url": "https://theme.archives.go.kr/next/chronology/menuIntro.do",
+    "template": "https://theme.archives.go.kr/next/chronology/yearRecord.do?year={year}",
+    "scope": "1950~2003-02; 공식 연표의 날짜와 짧은 사건 제목",
+    "license": "rights-unconfirmed",
+    "licenseUrl": "https://www.archives.go.kr/next/neworgan/copyrightProtection.do"
+  },
+  "wikipedia": {
+    "publisher": "한국어 위키백과 기여자",
+    "url": "https://ko.wikipedia.org/w/api.php",
+    "scope": "2003~2025년 연도 문서의 후보 사건명과 날짜; 개정별 URL은 events.json",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "policyUrl": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+  },
+  "wikidata": {
+    "publisher": "Wikidata contributors",
+    "url": "https://www.wikidata.org/w/api.php",
+    "scope": "한국어 label, QID, P585/P580 날짜 검증",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing"
+  }
+}

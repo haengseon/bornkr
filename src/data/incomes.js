@@ -1,5 +1,5 @@
 // 근로 외 소득원(임대·부업·사적연금·상속) 표 [R17]. 형식은 market.js와 같다({ src, year, kind, note, values }); index.js에는 넣지 않는다.
-// 금액은 2025년 실질 만원. RENTAL_YIELD는 연도 사이 선형 보간(yr), 세율·공실 같은 제도 표는 계단(그해부터 적용, ag). 출처·확인/추정 구분은 docs/research/R17-income-sources.md.
+// 금액은 2025년 실질 만원. RENTAL_YIELD는 연도 사이 선형 보간(yr), 세율·공실 같은 제도 표는 계단(그해부터 적용, ag). 출처·확인/추정 구분은 docs/research/finance/R17-income-sources.md.
 
 export const RENTAL_YIELD = {
   src: 'R17.S1', year: 2025, kind: 'estimated',

@@ -1,3 +1,4 @@
+import { recordYear } from './chronicle.js';
 // 출생 생성(GDD §3). 추출 순서가 상관을 만든다: 연도 → 날짜 → 성별 → 시도·도시 → 분위 → 모 연령 → 부모 학력 → 고용 → 한부모·다문화 → 형제 → 주거 → 돌봄 → 저체중·장애 → 의료접근성 → 성향 → 이름.
 import * as R from './rng.js';
 import { T, D, yr, REGION, isCapital, regionGroup } from './tables.js';
@@ -6,6 +7,8 @@ import { SURNAMES, GIVEN_NAMES } from '../content/names.js';
 import { signalValue } from './issues.js';
 import { makeGrandparents, ensureKin } from './kin.js';
 import { initMbti } from './mbti.js';
+import { ensureDailyLife, MODEL_VERSION } from './daily-life.js';
+import { ensureIdentity } from './identity.js';
 import { pickSigungu, place, quintileAdjust, bias, TRANSIT_ACCESS, placeLabel } from './sigungu.js';
 import { REGION_SHARE_BY_YEAR } from '../data/region-share.js';
 
@@ -36,7 +39,7 @@ function eduDist(cohort, female) {
 const quantile = (dist, u) => { let c = 0; for (let i = 0; i < dist.length; i++) { c += dist[i]; if (u < c) return EDU[i]; } return EDU[EDU.length - 1]; };
 const eduGroup = e => (e === 'mid' ? 'mid' : e === 'high' ? 'high' : 'college');
 
-export function newLife({ seed, forced = {} } = {}) {
+export function newLife({ seed, forced = {}, modelVersion = MODEL_VERSION } = {}) {
   // ponytail: seed 없이 부르면 결정적 카운터 시드. UI는 crypto로 만든 seed를 넘긴다.
   seed = (seed ?? R.hashSeed('life', ++counter)) >>> 0;
   const s = R.makeRng(R.hashSeed(seed, 'birth'));
@@ -141,7 +144,7 @@ export function newLife({ seed, forced = {} } = {}) {
   const minute = R.int(R.makeRng(R.hashSeed(seed, 'minute')), 0, 1439);
 
   const L = {
-    v: 1, seed, rng: { a: 0 }, rngC: { a: 0 },
+    v: 1, modelVersion: modelVersion >= MODEL_VERSION ? MODEL_VERSION : 1, seed, rng: { a: 0 }, rngC: { a: 0 },
     name: surname + given, surname, given, sex,
     birth: {
       year, month, day, minute, region, sigungu: pl.sigungu, dong: pl.dong, transit: pl.transit, urban, quintile: q, parents, tenure, care, lowBirthWeight, disability, healthAccess,
@@ -170,6 +173,7 @@ export function newLife({ seed, forced = {} } = {}) {
     yr: { phase: 0, asked: false, start: 0, mark: 0, oop: 0, compare: null },
   };
   initMbti(L, sensBase);   // L.mbti·L.traits(호환 접근자)·L.mbtiType
+  if (L.modelVersion >= MODEL_VERSION) { ensureDailyLife(L); ensureIdentity(L); }
   ensureKin(L);
   // 이슈 초기값: 전 축 10, 지역·생활비는 신호의 50%(GDD §3.4)
   L.family.gp = makeGrandparents(seed, L.family.grandparents);      // 조부모 개체(친가/외가·성별). 숫자 grandparents는 생존 수로 유지
@@ -178,5 +182,6 @@ export function newLife({ seed, forced = {} } = {}) {
   L.hist[0] = { s: STAT_KEYS.map(k => L.stats[k]), i: ISSUE_KEYS.map(k => L.issues[k]) };
   L.log.push({ year, age: 0, kind: 'birth', id: 'birth', text: `${year}년 ${month}월 ${day}일, ${placeLabel(region, pl.sigungu, pl.dong, year)}에서 태어났다.` });
   L.yr.mark = 1;
+  recordYear(L);
   return L;
 }

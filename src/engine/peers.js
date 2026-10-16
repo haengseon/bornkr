@@ -22,7 +22,7 @@ function state(L) {
     let P;
     // 다양성 제약: 마지막 동료를 결정적으로 최대 5번 다시 뽑는다
     for (let reroll = 0; reroll < 5; reroll++) {
-      P = newLife({ seed: hashSeed(L.seed, 'peer', i, reroll), forced: { year: b.year, month: b.month, day: b.day } });
+      P = newLife({ seed: hashSeed(L.seed, 'peer', i, reroll), modelVersion: L.modelVersion ?? 1, forced: { year: b.year, month: b.month, day: b.day } });
       if (i < 2 || diverse([L, ...lives, P])) break;
     }
     lives.push(P);

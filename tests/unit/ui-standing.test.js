@@ -12,7 +12,8 @@ test('standingHtml: 순서·라벨·막대, 금액·분위·[추정] 없음', ()
     assert.equal(standingOf(L, 'end'), st, '같은 생애·시점은 S.standing 캐시 재사용');
     assert.equal(S.standing.v, st);
     assert.match(h, /이 생애의 위치/);
-    assert.match(h, /data-stand="asset"[\s\S]*상위 \d/);
+    if (st.asset) assert.match(h, /data-stand="asset"[\s\S]*(상위|하위) \d/);
+    else assert.doesNotMatch(h, /data-stand="asset"/);
     assert.ok(!/\d+\s*(만\s*)?원|억|분위|\[추정\]/.test(h.replace(/<[^>]+>/g, ' ')), h);
     if (L.death?.sensitive) assert.ok(!/data-stand="cause"/.test(h));
   }

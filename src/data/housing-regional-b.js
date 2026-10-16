@@ -1,6 +1,6 @@
-// 거주지 지역별·시대별 부동산 가격 B (부산·대구·광주·대전·울산·세종·강원·충북·충남·제주). 근거·한계: docs/research/R13-regional-prices-b.md
+// 거주지 지역별·시대별 부동산 가격 B (부산·대구·광주·대전·울산·세종·강원·충북·충남·제주). 근거·한계: docs/research/housing/R13-regional-prices-b.md
 // 단위 만원, 명목, 전용 84㎡ 아파트 환산. 시군구 실측 시계열은 확보 못해 전부 estimated(시도 지수 × 구 등급 배수). 존재하지 않던 시기는 null.
-// R20(2026-10): 시도 평균을 KB 평균 아파트값 앵커에 맞춰 연도별 배율 조정, 2022·2023(고점·하락) 연도 추가. docs/research/R20-wage-and-price-audit.md §2
+// R20(2026-10): 시도 평균을 KB 평균 아파트값 앵커에 맞춰 연도별 배율 조정, 2022·2023(고점·하락) 연도 추가. docs/research/validation/R20-wage-and-price-audit.md §2
 
 export const HOUSING_REGIONAL_B = {
   meta: { unit: "만원, 해당 연도 명목, 전용 84㎡ 환산 아파트 평균(군 지역은 tier-est: 시도 지수×등급 배수)", years: [1990,1995,2000,2005,2010,2015,2020,2022,2023,2025,2026], src: ["R13.B1","R13.B2","R13.B3","R13.B4","R20.S2"] },

@@ -79,7 +79,8 @@ export function otherIncome(L) {
   return { rent, side, pens, total: rent + side + pens };
 }
 // 집 밖의 자산: 세 준 부동산 가치 + 사적연금 적립금(대출은 money.loans에 있어 debt로 빠진다)
-export const otherAssets = L => (L.rentals || []).reduce((s, r) => s + (r.value || 0), 0) + (L.pension2?.balance || 0);
+export const otherAssets = L => (L.rentals || []).reduce((s, r) => s + (r.value || 0), 0) + (L.pension2?.balance || 0)
+  + (L.dailyLife?.personalLoans || []).reduce((s, loan) => s + (loan.status === 'outstanding' ? Math.max(0, loan.outstanding || 0) : 0), 0);
 
 // 소득 5분위(아동은 가구 q, 성인은 INCpos 5분위, 50세+는 근로기 평균 INCpos와 지금 순자산 위치의 평균 — 은퇴 후 소득만으로 계층이 지워지지 않게, QA-S-04) — 사망·발병 배수용
 export function incQuint(L) {

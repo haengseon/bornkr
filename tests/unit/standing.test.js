@@ -20,7 +20,7 @@ test('표 형식: { src, year, kind, note, values }, src는 SOURCES에 있음', 
 
 test('단조성: 자산·소득·집값이 클수록 상위 %가 작다', () => {
   const xs = [-5000, 0, 500, 3000, 10000, 30000, 80000, 200000, 1e6];
-  for (const [f, ys] of [[x => netWorthBottom(x, 45, 2025), xs], [x => wageBottom(x, 2010), xs.filter(x => x >= 0)], [x => housingBottom(x, 40, 2000), xs.filter(x => x >= 0)]]) {
+  for (const [f, ys] of [[x => netWorthBottom(x, 45, 2025), xs.filter(x => x > 0)], [x => wageBottom(x, 2010), xs.filter(x => x >= 0)], [x => housingBottom(x, 40, 2000), xs.filter(x => x >= 0)]]) {
     const b = ys.map(f);
     for (let i = 1; i < b.length; i++) assert.ok(b[i] >= b[i - 1], `${ys[i]}`);
     assert.ok(b.every(v => v >= 0 && v <= 100));
@@ -68,9 +68,21 @@ test('3,000개 샘플에서 예외 없이 유한값·금지어 없음 · 자산 
         assert.equal(typeof r[k].est, 'boolean');
       }
       for (const t of texts(r)) assert.ok(!FORBID.test(t), `금지어: ${t}`);
-      sum += r.asset.pct; cnt++;
+      if (r.asset) { sum += r.asset.pct; cnt++; }
     }
   }
   const mean = sum / cnt;
   assert.ok(mean >= 35 && mean <= 65, `자산 상위 % 평균 ${mean.toFixed(1)}`);
+});
+
+test('미성년·0원·음수 순자산의 순위는 공표 분포 없이 산정하지 않는다', () => {
+  const L = E.newLife({ seed: 23 });
+  assert.equal(E.standing(L).asset, undefined);
+  L.age = 30; L.year = 2025; L.home.parents = false; L.flags.indep = 2025;
+  L.home.owned = false; L.home.deposit = 0; L.money.assets = 0; L.money.debt = 0;
+  assert.equal(E.standing(L).asset, undefined);
+  L.money.debt = 5000;
+  assert.equal(E.standing(L).asset, undefined);
+  assert.equal(netWorthBottom(-5000, 30, 2025), null);
+  assert.equal(netWorthBottom(0, 30, 2025), null);
 });

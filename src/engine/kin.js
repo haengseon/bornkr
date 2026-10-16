@@ -45,7 +45,7 @@ export function siblingLabel(L, s) {
   if (s.birthYear >= L.birth.year) return s.sex === 'M' ? '남동생' : '여동생';
   return s.sex === 'M' ? (L.sex === 'M' ? '형' : '오빠') : (L.sex === 'M' ? '누나' : '언니');
 }
-export const bondLabel = n => n >= 75 ? '돈독함' : n >= 50 ? '가까움' : n >= 30 ? '서먹함' : '갈등';
+export const bondLabel = n => n >= 75 ? '돈독함' : n >= 50 ? '가까움' : n >= 30 ? '서먹함' : n >= 10 ? '갈등' : '절연';
 export function familyMembers(L) {
   const f = L.family || {}, rows = [];
   for (const [id, p] of Object.entries(f.parents || {})) if (!p.away) rows.push({ id, label: id === 'father' ? '아버지' : '어머니', member: p, age: p.age });

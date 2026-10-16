@@ -2,6 +2,7 @@
 const K = { records: 'hj.v1.records', settings: 'hj.v1.settings', current: 'hj.v1.current' };
 export const MAX_RECORDS = 30;
 import { SPEEDS } from '../engine/constants.js';
+import { restoreJobNames } from './job-names.js';
 export const DEFAULTS = { speed: 1, auto: false, theme: 'system', seen19: false, reduceMotion: false, hideSensitiveCause: false };
 
 function get(key, fallback) {
@@ -20,13 +21,13 @@ export const saveSettings = s => put(K.settings, s);
 
 export function loadRecords() {
   const r = get(K.records, []);
-  return Array.isArray(r) ? r.filter(x => x && x.seed != null) : [];
+  return Array.isArray(r) ? r.filter(x => x && x.seed != null).map(restoreJobNames) : [];
 }
 // 최신이 앞, 같은 id는 교체, 최대 30개
 export const pushRecord = (list, rec) => [rec, ...list.filter(r => r.id !== rec.id)].slice(0, MAX_RECORDS);
 export function addRecord(rec) { const l = pushRecord(loadRecords(), rec); put(K.records, l); return l; }
 export const clearRecords = () => put(K.records, null);
 
-export const loadCurrent = () => { const c = get(K.current, null); return c && c.seed != null ? c : null; };
+export const loadCurrent = () => { const c = get(K.current, null); return c && c.seed != null ? restoreJobNames(c) : null; };
 export const saveCurrent = c => put(K.current, c);
 export const clearCurrent = () => put(K.current, null);

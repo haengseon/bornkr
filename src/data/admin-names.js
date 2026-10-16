@@ -1,4 +1,4 @@
-// 시대별 행정구역 명칭(거주지 표기 전용). 조사: docs/research/R21-admin-names.md
+// 시대별 행정구역 명칭(거주지 표기 전용). 조사: docs/research/population/R21-admin-names.md
 // 표기 규칙: 시·자치구(+시의 일반구)까지, 군은 읍까지(면·리·동 미표시). 연도 단위(시행일이 연중이면 그해부터).
 // 출처: SRC 키 → URL. 연도는 위키백과 목록 기준, 개별 동의 소속 이력 중 일부는 추정(est, 문서 표 참조).
 import { REGIONS_A } from './regions-a.js';

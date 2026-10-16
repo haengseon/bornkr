@@ -11,6 +11,10 @@ const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 http.createServer(async (req, res) => {
   const url = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  // Never serve dotfiles (including local credentials) from the project root.
+  if (url.split(/[\\/]/).some(segment => segment.startsWith('.'))) {
+    return res.writeHead(403).end('forbidden');
+  }
   const file = PUBLIC_FILES.includes(url.slice(1)) ? path.join(root, 'src/static', url.slice(1)) : path.join(root, url.endsWith('/') ? url + 'index.html' : url);
   if (!file.startsWith(root)) return res.writeHead(403).end();
   try {

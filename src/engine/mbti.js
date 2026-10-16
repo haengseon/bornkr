@@ -1,6 +1,6 @@
 // 게임용 성향(MBTI 풍, 실제 검사 아님). 핵심 상태 L.mbti = { EI, SN, TF, JP }(0~100, 50 기준 E·N·F·J 쪽이 높음).
 // L.traits 는 호환 레이어: extra←EI, open←SN, agree←TF, consc←JP 를 그대로 읽고 쓰는 접근자, sens 는 '예민도'(타고난 값 + N·F·I 가중).
-// 근거·분포: docs/research/R18-mbti.md, 설계: docs/impl/mbti-notes.md.
+// 근거·분포: docs/research/personality/R18-mbti.md, 설계: docs/impl/mbti-notes.md.
 import * as R from './rng.js';
 import { LEAN, LETTER_LABEL, KR_TYPES, KR_SEX_AXIS, optionLean, JOB_LEAN, ODDS_LEAN, FX_SCALE } from '../content/mbti-lean.js';
 
@@ -38,9 +38,17 @@ export function birthMbti(seed, sex) {
   return Object.fromEntries(AXES.map((k, i) => [k, Math.round(clamp(50 + ('ENFJ'.includes(ty[i]) ? 1 : -1) * (2 + 16 * Math.abs(R.normal(r))), 5, 95))]));
 }
 export function initMbti(L, sensBase) {
-  L.mbti = birthMbti(L.seed, L.sex);
+  const base = birthMbti(L.seed, L.sex);
+  L.mbti = Object.fromEntries(AXES.map(k => [k, 50 + Math.sign(base[k] - 50) * Math.max(1, Math.round(Math.abs(base[k] - 50) / 3))]));
   L.traits = bindTraits(L.mbti, sensBase);
   Object.defineProperty(L, 'mbtiType', { enumerable: false, configurable: true, get() { return typeOf(this.mbti); } });
+}
+
+// JSON으로 복원된 상태에서도 traits와 mbti가 서로 다른 객체로 갈라지지 않게 한다.
+export function restoreMbti(L) {
+  if (!L.mbti || Object.getOwnPropertyDescriptor(L.traits || {}, 'extra')?.get) return;
+  const m = L.mbti, base = (L.traits?.sens ?? 50) - .2 * (m.SN - 50) - .2 * (m.TF - 50) + .2 * (m.EI - 50);
+  L.traits = bindTraits(m, base);
 }
 
 // 선택지 점수: 그 선택이 이 사람 성향에 얼마나 어울리나. lean = 'NE' 또는 {N:1,E:0.5}
@@ -69,7 +77,7 @@ export function traitFit(L, eventId, options) {
 // 직접 고른 시스템 선택은 그 선택의 성향 쪽으로 축을 조금(글자당 1) 움직인다.
 export function mbtiNudge(L, eventId, optId) {
   const lean = LEAN[eventId]?.[optId];
-  if (!lean || !L.mbti) return;
+  if (!lean || !L.mbti || L.age >= 19) return;
   for (const ch of typeof lean === 'string' ? lean : Object.keys(lean)) { const [k, d] = LETTER[ch]; L.mbti[k] = clamp(L.mbti[k] + d, 5, 95); }
 }
 // 결과 오즈(stats.leanOdds 가 곱함): 지표 쪽 성향 보정 ×0.8~×1.25 정도
@@ -81,4 +89,21 @@ export function fxScale(L, group, k) {
   const base = group === 'stats' && (k === 'happiness' || k === 'relations') ? 0.85 + 0.3 * (L.traits?.sens ?? 50) / 100 : 1;
   const lean = FX_SCALE[group]?.[k];
   return lean ? base * (1 + score(L, lean)) : base;
+}
+
+// 성장기의 환경만 성향 형성에 반영. 성인 이후 네 축은 고정한다.
+export function growMbti(L) {
+  if (!L.mbti || L.age < 1 || L.age >= 19) return;
+  const r = R.makeRng(R.hashSeed(L.seed, 'mbti-growth', L.age));
+  const env = {
+    EI: ((L.stats.relations ?? 50) - 50) / 70,
+    SN: ((L.stats.intellect ?? 50) - 50) / 75,
+    TF: ((L.stats.relations ?? 50) - 50) / 100 + ((L.family.parents?.mother?.bond ?? 65) - 65) / 100,
+    JP: ((L.edu.score ?? 50) - 50) / 80,
+  };
+  const predisposition = birthMbti(L.seed, L.sex);
+  for (const k of AXES) {
+    const delta = clamp(Math.round((predisposition[k] - 50) / 20 + env[k] + R.normal(r, 0, .65)), -2, 2);
+    L.mbti[k] = clamp(L.mbti[k] + delta, 5, 95);
+  }
 }

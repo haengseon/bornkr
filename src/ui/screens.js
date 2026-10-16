@@ -196,11 +196,11 @@ routes.death = () => {
       <p class="death__cause">${deathLine({ ...L.death, ...d, sensitive: sens }, S.settings.hideSensitiveCause)}</p>
     </div>
     <div class="actionbar actionbar--single">
-      ${sens ? '' : '<p class="actionbar__note">8초 뒤 결산으로 넘어갑니다. <span class="timer-line"><span class="timer-line__fill" style="--k:1"></span></span></p>'}
+      ${sens ? '' : '<p class="actionbar__note"><span class="timer-line"><span class="timer-line__fill" style="--k:1"></span></span></p>'}
       <button class="btn btn--ink btn--block" type="button" data-act="sum">결산 보기</button>
     </div></section>`);
   $('[data-act="sum"]', el).addEventListener('click', () => go('summary'));
-  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda);
+  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda, sum?.deathStory);
   if (sens) return;                                  // 민감 원인이면 자동 넘김 없음
   const fill = $('.timer-line__fill', el);
   let left = 8000;
@@ -217,9 +217,13 @@ routes.death = () => {
 
 // 사망 에필로그: 출생 막처럼 검은 화면에 연도·나이 → 이름 → 마지막 한 줄(민감 사망은 생략)이 차례로 뜨고, 걷히면 사망 카드.
 // 하단 [결산 보기]·8초 자동 넘김은 그대로(막은 actionbar 위까지만). 탭하면 건너뛴다. 모션 끔/줄임이면 한 번에 보이고 짧게 페이드.
-function deathCine(el, L, d, coda) {
+function deathCine(el, L, d, coda, story) {
   const lines = [`${d.year}년 · ${ageText(d.age, d.horizon)}`, L.name, coda].filter(Boolean);
+  const cause = d.horizon ? '' : causeLabel({ ...L.death, ...d }, S.settings.hideSensitiveCause);
+  const stat = cause ? story?.statistic : null;
+  const info = cause ? `<div class="dcine__details"><p>사망 원인 · ${esc(cause)}</p>${stat ? `<p class="dcine__stat">${stat.year}년 전국 사망자 중 ${esc(stat.label || cause)} ${stat.percent}%<small>${stat.count.toLocaleString()}명 / 전체 ${stat.total.toLocaleString()}명<br>${esc(stat.source)} · 게임 속 사망 연도와 다른 참고 통계</small></p>` : '<p class="dcine__stat">해당 사인 분류의 공식 비율 자료 없음</p>'}</div>` : '';
   el.insertAdjacentHTML('beforeend', `<div class="dcine" data-dcine><div class="dcine__lines" role="status">${lines.map((t, i) => `<p class="dcine__line${i === 1 ? ' dcine__name' : ''}">${esc(t)}</p>`).join('')}</div>
+    ${info}
     <button class="cine__tap" type="button" aria-label="에필로그 건너뛰기"><span class="cine__skip">화면을 누르면 건너뜁니다</span></button></div>`);
   const cine = $('[data-dcine]', el), still = reduced() || document.documentElement.dataset.motion === 'off', ts = [];
   const end = () => { ts.forEach(clearTimeout); cine.classList.add('is-out'); setTimeout(() => cine.remove(), 700); };
@@ -259,14 +263,16 @@ function summaryHtml(L, sum, archive) {
       <h1 class="lifehead__name" id="sum-name">${esc(L.name)}</h1>
       <p class="lifehead__years">${dateDot(b)} – ${d.year} · ${ageText(d.age, d.horizon)}${d.horizon ? ' · 관찰 종료' : cause ? ' · ' + esc(cause) : ''}</p>
     </header>
+    <button class="btn btn--primary btn--block summary__share" type="button" aria-haspopup="dialog" data-card="verdict">내 인생 카드 저장·공유</button>
     <article class="doc verdict epi" aria-labelledby="verdict-title">
       <p class="doc__formno">■ 태어나보니 대한민국 [별지 제2호서식]</p>
       <h2 class="verdict__title" id="verdict-title">인생 판정문</h2>
       ${ep ? `<p class="epi__title">${esc(ep.title)}</p>
       <p class="epi__who">${esc(L.name)} · ${b.year}–${d.year}</p>
       <div class="epi__body">${ep.paragraphs.map((t, i) => `<p style="--i:${i}">${esc(t)}</p>`).join('')}</div>
-      <p class="verdict__main epi__coda">${esc(v.main)}</p>` : `<p class="verdict__main">${esc(v.main)}</p>`}
-      ${ds ? `<section class="epi__death" aria-label="사망 기록"><p class="epi__deathline"><span class="mono">${ds.year}년</span>, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${esc(cause)}` : ''}</p>${cause && ds.steps?.length ? `<p class="epi__chain">${ds.steps.map(esc).join('<span class="epi__arrow" aria-hidden="true"> → </span>')}</p>` : ''}</section>` : ''}
+      ${ep.lifeStory?.paragraphs.length ? `<section class="epi__body" aria-label="선택과 생활의 기록"><h3>선택이 남긴 기록</h3>${ep.lifeStory.paragraphs.map(t => `<p>${esc(t)}</p>`).join('')}</section>` : ''}
+      ${ep.choices?.length ? `<section class="epi__choices"><h3>내가 고른 순간들</h3><ol>${ep.choices.map(e => `<li><b>${e.year}년 · ${e.age}세</b> ${esc(e.label)}${e.result ? `<p>${esc(e.result)}</p>` : ''}</li>`).join('')}</ol></section>` : ''}<p class="verdict__main epi__coda">${esc(v.main)}</p>` : `<p class="verdict__main">${esc(v.main)}</p>`}
+      ${ds ? `<section class="epi__death" aria-label="사망 기록"><p class="epi__deathline"><span class="mono">${ds.year}년</span>, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${esc(cause)}` : ''}</p>${ds.narrative && cause ? `<p class="epi__narrative">${esc(ds.narrative)}</p>` : ''}${ds.statistic && cause ? `<p class="epi__stat">통계 · ${ds.statistic.year}년 전국 사망자 중 ${esc(cause)} 관련 분류 ${ds.statistic.percent}%<small>전체 사망자 ${ds.statistic.total.toLocaleString()}명 기준 · 게임 속 사망 연도와는 별개인 참고 통계<br><a href="${esc(ds.statistic.url)}" target="_blank" rel="noopener">${esc(ds.statistic.source)}</a></small></p>` : ''}${cause && ds.steps?.length ? `<p class="epi__chain">${ds.steps.map(esc).join('<span class="epi__arrow" aria-hidden="true"> → </span>')}</p>` : ''}</section>` : ''}
       ${sum.capNotice ? `<p class="cap verdict__cap">${esc(sum.capNotice)}</p>` : ''}
       <div class="verdict__sign"><p class="mono">${d.year}년</p><p class="verdict__org">태어나보니 대한민국</p><span class="seal seal--square" aria-hidden="true"><span>인</span><span>생</span><span>판</span><span>정</span></span></div>
     </article>
@@ -298,11 +304,11 @@ function summaryHtml(L, sum, archive) {
     </section>
     <details class="birth-again"><summary>출생 신고서 다시 보기</summary>${certForm(sum.birthCert ?? S.cert ?? {}, L, false)}</details>
     <section class="rest" aria-labelledby="sum-share">
-      <p class="rest__text">잠시 쉬었다가, 원하면 카드로 남겨 두세요.</p>
+      <p class="rest__text">이름부터 가족·자산까지, 나의 생애를 한 장에 남겨보세요.</p>
       <h2 class="sr-only" id="sum-share">카드로 남기기</h2>
       <div class="cardpick">
         <button class="linkrow" type="button" aria-haspopup="dialog" data-card="birth"><span><span class="linkrow__title">출생 신고서</span><span class="linkrow__desc">어떤 조건에서 시작했는가</span></span></button>
-        <button class="linkrow" type="button" aria-haspopup="dialog" data-card="verdict"><span><span class="linkrow__title">인생 판정문</span><span class="linkrow__desc">한 편의 회고로 남긴 이 생애</span></span></button>
+        <button class="linkrow" type="button" aria-haspopup="dialog" data-card="verdict"><span><span class="linkrow__title">내 인생 카드 공유하기</span><span class="linkrow__desc">직업·거주·자산·가족·선택을 한 장에</span></span></button>
         <button class="linkrow" type="button" aria-haspopup="dialog" data-card="timeline"><span><span class="linkrow__title">생애 연표</span><span class="linkrow__desc">무엇을 감당했고, 무엇을 남겼는가</span></span></button>
       </div>
     </section>
@@ -353,7 +359,7 @@ routes.archive = () => {
     const rec = recs[+i];
     pushScreen('detail');
     try {
-      const L = replay(rec.seed, rec.choices, rec.forcedYear ? { forced: { year: rec.forcedYear } } : undefined);
+      const L = replay(rec.seed, rec.choices, { ...(rec.forcedYear ? { forced: { year: rec.forcedYear } } : {}), modelVersion: rec.modelVersion ?? 1 });
       if (rec.capped) L.flags.capped = L.age;       // 시간 상한 고지는 replay가 복원하지 않으므로 기록의 표시로(QA-E-02)
       showSummary(L, summarize(L, opts()), true);
     } catch (err) { console.error(err); summaryFail(rec, true); }
@@ -392,7 +398,7 @@ routes.codex = async () => {
   const el = show('codex', `<section class="screen screen--paper" data-screen="codex">
     <header class="topbar"><button class="back" type="button" data-go="home">홈</button><h1 class="topbar__title">통계 도감</h1></header>
     <div class="screen__body">
-      <div class="seg filter" role="group" aria-label="구분">${[['all', '전체'], ['measured', '실측'], ['projected', '전망']].map(([k, l], i) => `<button class="seg__btn" type="button" data-filter="${k}" aria-pressed="${i === 0}">${l}</button>`).join('')}</div>
+      <div class="seg filter" role="group" aria-label="구분">${[['all', '전체'], ['measured', '통계'], ['projected', '전망']].map(([k, l], i) => `<button class="seg__btn" type="button" data-filter="${k}" aria-pressed="${i === 0}">${l}</button>`).join('')}</div>
       <div data-codex><p class="cap cap--pad">불러오는 중입니다.</p></div>
     </div></section>`);
   const mods = Object.fromEntries((await Promise.allSettled(MODS.map(m => import(`../data/${m}.js`)))).map((r, i) => [MODS[i], r.value || {}]));
@@ -443,9 +449,9 @@ routes.settings = () => {
     <div class="screen__body">
       <div class="setting setting--stack"><div class="setting__text"><p class="setting__label" id="st-theme">화면 밝기</p></div>
         <div class="seg" role="group" aria-labelledby="st-theme">${[['system', '기기 따라'], ['light', '밝게'], ['dark', '어둡게']].map(([k, l]) => `<button class="seg__btn" type="button" data-theme-set="${k}" aria-pressed="${(s.theme === 'light' || s.theme === 'dark' ? s.theme : 'system') === k}">${l}</button>`).join('')}</div></div>
-      <div class="setting setting--stack"><div class="setting__text"><p class="setting__label" id="st-speed">기본 배속</p><p class="setting__desc">선택 카운트다운(12초)은 배속과 상관없습니다. 자동결정이 꺼져 있으면 시트·설정·문서를 여는 동안 진행이 멈춥니다.</p></div>
+      <div class="setting setting--stack"><div class="setting__text"><p class="setting__label" id="st-speed">기본 배속</p><p class="setting__desc">한 해가 흐르는 속도를 정합니다.</p></div>
         <div class="seg seg--num" role="group" aria-labelledby="st-speed">${SPEEDS.map(k => `<button class="seg__btn" type="button" data-speed-set="${k}" aria-pressed="${s.speed === k}">${k}×</button>`).join('')}</div></div>
-      ${sw('auto', '자동결정', '선택지를 1.2초 보여 준 뒤 기본 행동으로 정합니다. 켜 두면 창이 떠 있어도 진행됩니다. 민감한 선택은 제외.')}
+      ${sw('auto', '자동결정', '기본 행동을 자동으로 선택합니다. 민감한 선택은 제외합니다.')}
       ${sw('reduceMotion', '모션 줄이기', '기기에서 동작 줄이기를 켰다면 늘 적용됩니다.')}
       ${sw('hideSensitiveCause', '민감한 사망 원인 숨기기', '사망 화면·결산에 원인 대신 "세상을 떠났습니다"로 적습니다. 공유 카드에는 원인을 늘 적지 않습니다.')}
       <div class="setting"><div class="setting__text"><p class="setting__label">기록 초기화</p><p class="setting__desc">${n ? `기록관의 기록 ${n}개를 지웁니다.` : '지울 기록이 없습니다.'}</p></div>

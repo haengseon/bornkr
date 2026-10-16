@@ -1,5 +1,5 @@
-// R13 거주지 가격 C(전북·전남·경북·경남 77곳). 전 값 estimated: 공개 확정 시계열을 직접 확인하지 못해 도·등급 지수로 역산. 문서 docs/research/R13-regional-prices-c.md
-// R20(2026-10): 시도 평균을 KB 평균 아파트값 앵커에 맞춰 연도별 배율 조정, 2022·2023(고점·하락) 연도 추가. docs/research/R20-wage-and-price-audit.md §2
+// R13 거주지 가격 C(전북·전남·경북·경남 77곳). 전 값 estimated: 공개 확정 시계열을 직접 확인하지 못해 도·등급 지수로 역산. 문서 docs/research/housing/R13-regional-prices-c.md
+// R20(2026-10): 시도 평균을 KB 평균 아파트값 앵커에 맞춰 연도별 배율 조정, 2022·2023(고점·하락) 연도 추가. docs/research/validation/R20-wage-and-price-audit.md §2
 
 export const HOUSING_REGIONAL_C = {
   meta: { unit: "만원, 해당 연도 명목, 전용 84㎡ 환산 아파트 평균(basis:apt84) 또는 읍·면 단독·농가주택 평균(basis:house)", years: [1990,1995,2000,2005,2010,2015,2020,2022,2023,2025,2026], src: ["R13.C1","R13.C2","R13.C3","R20.S2"] },

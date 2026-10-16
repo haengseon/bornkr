@@ -1,4 +1,4 @@
-// 생활 경험 B — 청년·초중년(19~44세) 개인 경험 사건. 형식: ARCHITECTURE §8, 조사: docs/research/R12-life-experiences-b.md
+// 생활 경험 B — 청년·초중년(19~44세) 개인 경험 사건. 형식: ARCHITECTURE §8, 조사: docs/research/life/R12-life-experiences-b.md
 // 톤: 평가 없이 사실·상태 중심. 정답/오답 없음. 같은 주제는 cooldown으로 몰림 방지. tags는 ['life'] 고정.
 const st = L => L?.job?.status;
 const working = L => st(L) === 'employed' || st(L) === 'self';

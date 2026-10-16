@@ -113,7 +113,7 @@ test('연결 비율: 상태별(조건부) 링크가 맞는 비율 ≥ 60%', () =
 });
 
 test('조사 문서: 인과 샘플 10건 이상', () => {
-  const doc = readFileSync(new URL('../../docs/research/R16-news-general-b.md', import.meta.url), 'utf8');
+  const doc = readFileSync(new URL('../../docs/research/news/R16-news-general-b.md', import.meta.url), 'utf8');
   const samples = doc.split('\n').filter(l => /^- `(ng|era)\.[\w.]+`.*→/.test(l));
   assert.ok(samples.length >= 10, `샘플 ${samples.length}`);
 });

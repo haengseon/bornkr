@@ -45,7 +45,7 @@ export function pushScreen(lv) {
 
 // 화면 하나만 #app에 둔다. body[data-screen]은 디버그·E2E용.
 export function show(name, html, { focus = true } = {}) {
-  closeSheet(true);
+  while (sheetOpen()) closeSheet(true);
   if (!SUBS.includes(name) && !(name === 'summary' && nav.lv === 'detail')) nav.lv = '';
   const app = $('#app');
   app.innerHTML = html;
@@ -82,27 +82,30 @@ export function toast(text, ms = 2400) {
 // 바텀시트(UI-SPEC §7.5). 한 번에 하나. closable=false(선택 시트)면 스크림·Esc로 닫히지 않는다(Esc = 접기).
 // 진행 화면에서는 하단 바(.lifebar)를 inert 에서 빼서 시트가 떠 있어도 누를 수 있다.
 // 닫을 수 없는 시트(선택·큰 사건) 위에 다른 시트를 열면 그 시트는 숨겨 두었다가(held) 위 시트가 닫히면 되살린다.
-let sheet = null, held = null;
+let sheet = null;
+const suspended = [];
 // 브라우저·안드로이드 뒤로 가기로 시트 닫기: 닫을 수 있는 시트가 떠 있는 동안 이력 한 칸(현재 state 복제)을 쌓는다.
 // 시트끼리 바뀌어도 칸은 하나. 다른 방법으로 닫히면 setTimeout 뒤에 그 칸을 history.back()으로 걷는다.
 // popstate 가 시트 닫기에 쓰였으면 nav.sheetPop = true → main.js 의 화면 이력 처리가 무시한다.
 let histPushed = false, skipPops = 0;
 const histPush = () => { if (histPushed) return; try { history.pushState({ ...(history.state || {}), hjSheet: 1 }, ''); histPushed = true; } catch {} };
-const histPop = () => setTimeout(() => { if (histPushed && !sheet && !held) { histPushed = false; if (!history.state?.hjSheet) return; skipPops++; try { history.back(); } catch { skipPops--; } } }, 0);
+const histPop = () => setTimeout(() => { if (histPushed && !sheet && !suspended.length) { histPushed = false; if (!history.state?.hjSheet) return; skipPops++; try { history.back(); } catch { skipPops--; } } }, 0);
 if (typeof addEventListener === 'function') addEventListener('popstate', () => {
   if (skipPops) { skipPops--; nav.sheetPop = true; return; }
   if (histPushed) { histPushed = false; nav.sheetPop = true; if (sheet?.closable) closeSheet(); else if (sheet) histPush(); }
 });
-export const sheetOpen = () => !!sheet || !!held;
-export const sheetHeld = () => !!held;
+export const sheetOpen = () => !!sheet || !!suspended.length;
+// 정보 창 아래 숨겨진 결정만 카운트다운을 멈춘다. 결정 아래의 정보 창은 영향을 주지 않는다.
+export const sheetHeld = () => suspended.some(s => !s.closable);
 const inertTargets = () => { const l = $('#app .life'); return l ? $$('#app .life > :not(.lifebar)') : [$('#app')]; };
 const setInert = (list, v) => list.forEach(n => { if (n) n.inert = v; });
 export function openSheet({ html, cls = '', label, focus, closable = true, onClose }) {
-  if (sheet && !sheet.closable && !held) {            // 선택·큰 사건 위에 정보 시트: 잠시 숨김
-    held = sheet; sheet = null;
-    held.el.hidden = true; held.scrim.hidden = true;
-  } else closeSheet(true);
   const opener = document.activeElement;
+  if (sheet?.closable && closable) closeSheet(true);
+  if (sheet) {
+    sheet.el.hidden = true; sheet.scrim.hidden = true;
+    suspended.push(sheet); sheet = null;
+  }
   const scrim = document.createElement('div');
   scrim.className = 'scrim';
   const el = document.createElement('section');
@@ -116,7 +119,7 @@ export function openSheet({ html, cls = '', label, focus, closable = true, onClo
   document.body.classList.add('is-locked');
   const targets = inertTargets();
   setInert(targets, true);
-  const onKey = e => { if (e.key === 'Escape' && closable) closeSheet(); };
+  const onKey = e => { if (!el.hidden && e.key === 'Escape' && closable) closeSheet(); };
   $('.sheet__handle', el)?.addEventListener('click', () => closeSheet());
   if (closable) scrim.addEventListener('click', () => closeSheet());
   $$('.sheet__close', el).forEach(b => b.addEventListener('click', () => closeSheet()));
@@ -151,7 +154,7 @@ export function openSheet({ html, cls = '', label, focus, closable = true, onClo
   }
   document.addEventListener('keydown', onKey);
   if (closable) histPush();
-  sheet = { el, scrim, opener, onKey: e => { onKey(e); }, trap, onClose, closable, targets };
+  sheet = { el, scrim, opener, onKey, trap, onClose, closable, targets };
   const f = (focus && $(focus, el)) || title;
   if (f) { if (!f.matches('button, a, input, textarea')) f.tabIndex = -1; f.focus({ preventScroll: true }); }
   return el;
@@ -159,7 +162,8 @@ export function openSheet({ html, cls = '', label, focus, closable = true, onClo
 // only: 이 요소의 시트만 닫는다(숨겨 둔 시트가 대상이면 그것을 정리). 없으면 현재 시트.
 export function closeSheet(silent = false, only = null) {
   if (only && sheet?.el !== only) {
-    if (held?.el === only) { const h = held; held = null; h.el.remove(); h.scrim.remove(); document.removeEventListener('keydown', h.onKey); document.removeEventListener('keydown', h.trap); if (!sheet) { document.body.classList.remove('is-locked'); setInert(h.targets, false); } h.onClose?.(); }
+    const i = suspended.findIndex(s => s.el === only);
+    if (i >= 0) { const [h] = suspended.splice(i, 1); h.el.remove(); h.scrim.remove(); document.removeEventListener('keydown', h.onKey); document.removeEventListener('keydown', h.trap); h.onClose?.(); }
     return;
   }
   if (!sheet) return;
@@ -168,11 +172,11 @@ export function closeSheet(silent = false, only = null) {
   el.remove(); scrim.remove();
   document.removeEventListener('keydown', onKey); document.removeEventListener('keydown', trap);
   histPop();
-  if (held) {
-    sheet = held; held = null;
+  if (suspended.length) {
+    sheet = suspended.pop();
     sheet.el.hidden = false; sheet.scrim.hidden = false;
     onClose?.();
-    const f = $('.choice__prompt, .major__ok, .shock__ok', sheet.el); f?.focus({ preventScroll: true });
+    const f = opener?.isConnected && sheet.el.contains(opener) ? opener : $('.choice__prompt, .major__ok, .shock__ok, .sheet__title', sheet.el); f?.focus({ preventScroll: true });
     return;
   }
   document.body.classList.remove('is-locked');

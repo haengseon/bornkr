@@ -8,6 +8,7 @@ import { REGION } from './tables.js';
 import { SGG, placeLine } from './sigungu.js';
 import { sidoAt } from '../data/admin-names.js';
 import * as P from '../content/epilogue.js';
+import { lifeStoryOf } from './life-story.js';
 
 const MAX_PARA = 220;
 const TENS = ['', '열', '스물', '서른', '마흔', '쉰', '예순', '일흔', '여든', '아흔'];
@@ -59,12 +60,14 @@ function facts(L) {
     moves: moves.length, jeonse: everTo('jeonse'), monthly: everTo('monthly'), pub: everTo('public'),
     owned: !!home.owned || moves.some(m => m.to === 'own'), fraud: !!L.flags?.fraud,
     toCapital: !!L.flags?.toCapital && !REGION[b.region]?.capital,
-    married, divorced: !!f.divorced || spouses.some(s => s.end === 'divorce'), widowed: !!f.widowed,
+    married, divorced: !!f.divorced || spouses.some(s => ['divorce', 'divorced'].includes(s.end)), widowed: !!f.widowed,
     kids: (f.children || []).length, grand: (f.grandchildren || 0) > 0, parentsGone: parGone,
     spouseCare: married && !f.widowed && age >= 65 && (f.caringFor === 'spouse' || !!f.partner?.ltc),
     top, trait: Math.abs(tdev) >= 12 ? `${tk}${tdev > 0 ? '+' : '-'}` : 'mid', extraHi: (tr.extra ?? 50) >= 60,
     diabetes: !!L.health?.dx?.diabetes, ltc: !!L.aging?.ltc, alone: !!f.livingAlone,
     horizon: !!L.death?.horizon, sens: !!L.death?.sensitive,
+    siblingClose: (f.siblingMembers || []).some(s => s.birthYear <= endYear && (s.bond ?? 65) >= 50),
+    partnerClose: !!f.partner && (f.partner.bond ?? 65) >= 50,
     sudden: ['transport', 'fall', 'external'].includes(L.death?.cause),   // 사고사엔 '조용히 눈을 감았다'류를 쓰지 않는다(deathStory와 모순 방지)
   };
   c.vars = {
@@ -97,9 +100,9 @@ export function epilogueOf(L, opts = {}) {
 
   const paras = [];
   if (c.age < 5) {
-    paras.push([take(P.OPEN, c.by), take(P.HOME, c.by)]);
-    paras.push([take(P.INFANT), take(P.INFANT)]);
-    paras.push([take(P.INFANT), take(endPool)]);
+    paras.push([take(P.OPEN, c.by), '그때 한 사람의 시간이 시작됐다.']);
+    paras.push([c.age === 0 ? '첫 생일을 맞기 전에 생이 멈췄다. 스스로 고르는 일보다 돌봄이 필요한 시간이 전부였던 아이였다.' : `${koNum(c.age)} 살, 자라나는 시간 한가운데에서 생이 멈췄다. 그의 하루는 아직 돌봄 속에서 자라나는 시간이기도 했다.`]);
+    paras.push(['함께할 내일은 더 이어지지 못했다. 머문 시간도 한 사람의 온전한 삶이었다.']);
   } else if (c.age < 19) {
     paras.push([take(P.OPEN, c.by), take(P.HOME, c.by), take(P.CHILD, ref(c.by + 8))]);
     paras.push(c.age >= 13 ? [take(P.SCHOOL, ref(c.by + 16)), take(P.KID)] : [take(P.KID), take(P.KID)]);
@@ -124,6 +127,10 @@ export function epilogueOf(L, opts = {}) {
     return ss.join(' ');
   });
 
+  // 실제 선택과 결과는 회고문 아래 독립된 기록으로 보여준다.
+  const decisions = (L.log || []).filter(e => e.kind === 'choice' && !e.auto && !e.sensitive && e.age <= c.age && e.label);
+  const choices = decisions.slice(-5).map(e => ({ year: e.year, age: e.age, label: e.label, result: String(e.text || '').includes(' → ') ? '' : e.text, execution: e.execution }));
+
   // 별명
   const spec = P.TITLES_SPECIAL[c.sens ? 'sensitive' : c.age < 5 ? 'infant' : c.age < 19 ? 'young' : ''];
   const titles = spec ? spec : [...P.TITLES.filter(([f]) => f(c)).map(([, t]) => t), ...(c.horizon ? P.TITLES_SPECIAL.horizon : [])];
@@ -136,5 +143,7 @@ export function epilogueOf(L, opts = {}) {
       : [...(c.horizon ? P.CODA.horizon : []), ...(c.top === 'job' && !c.jobs ? [] : P.CODA[c.top] || []), ...P.CODA.general];
   const fresh = codas.filter(t => !recent.includes(t));
   const coda = R.pick(s, fresh.length ? fresh : codas);
-  return { title, paragraphs, coda };
+  const lifeStory = lifeStoryOf(L);
+  // 날짜가 있는 실제 기록은 UI의 독립 영역에서 보여주고 회고문 분량은 유지한다.
+  return { title, paragraphs, coda, choices, lifeStory };
 }

@@ -5,6 +5,7 @@ export function mbtiOf(t = {}) {
   return AX.map(([k, tk, hi, lo]) => { const v = t[k] ?? t[tk] ?? 50; return { ch: v >= 50 ? hi : lo, vague: Math.abs(v - 50) < 5, v }; });
 }
 export const mbtiText = t => mbtiOf(t).map(x => x.ch).join('');
+export const personalityLabel = L => L.age < 19 ? '성향 형성 중' : mbtiText(L.mbti ?? L.traits);
 const HI = { open: '직관형(N)', consc: '계획형(J)', extra: '외향형(E)', agree: '감정형(F)', sens: '예민함' };
 const LO = { open: '현실형(S)', consc: '즉흥형(P)', extra: '내향형(I)', agree: '사고형(T)', sens: '무던함' };
 // 값 ≥65 또는 ≤35 인 축 중 50에서 먼 순 상위 n개

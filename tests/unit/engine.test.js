@@ -49,12 +49,12 @@ test('선택: 해마다 1건, 구간 상한 이하, 5세까지 첫 선택', () =
     const perYear = {}, perStage = {};
     for (const c of mine) {
       perYear[c.age] = (perYear[c.age] || 0) + 1;
-      const st = stageOf(c.age).id, k = c.eventId.startsWith('sys.') ? 'sys' : 'chance';
-      (perStage[st] ||= { sys: 0, chance: 0 })[k]++;
+      const st = stageOf(c.age).id, k = c.eventId.startsWith('sys.') ? 'sys' : c.eventId.startsWith('LIFE-') ? 'life' : 'chance';
+      (perStage[st] ||= { sys: 0, chance: 0, life: 0 })[k]++;
     }
     assert.ok(Object.values(perYear).every(n => n === 1), `seed ${seed} 한 해 2건`);
     for (const [st, n] of Object.entries(perStage)) {
-      assert.ok(n.sys <= STAGE_CAP[st].sys && n.chance <= STAGE_CAP[st].chance, `seed ${seed} ${st} ${JSON.stringify(n)}`);
+      assert.ok(n.sys <= STAGE_CAP[st].sys && n.chance <= STAGE_CAP[st].chance && n.life <= (L.modelVersion >= 2 ? 1 : 0), `seed ${seed} ${st} ${JSON.stringify(n)}`);
     }
     if (L.death.age >= 6) { reached6++; if (mine.some(c => c.age <= 5)) first++; }
   }

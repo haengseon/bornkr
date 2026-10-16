@@ -5,6 +5,7 @@ import { incQuint } from './stats.js';
 import { helpFor } from './safety.js';
 import { fill, text } from './text.js';
 import { HORIZON_YEAR } from './constants.js';
+import { lifeRiskOf } from './life-risk.js';
 
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
@@ -69,6 +70,7 @@ export function mult(L, age = L.age) {
   if (age >= 50 && L.aging.isolated) m *= 1.15;
   if (L.aging.ltc) m *= L.aging.ltc <= 2 ? AGING_CAL.ltcMort * 1.3 : AGING_CAL.ltcMort;   // 장기요양 인정자 사망 위험(QA-S-08: 유병이 누적되지 않게)
   if (age >= 60 && L.family.widowed && !L.family.partner) m *= 1.1;
+  if (age >= 19) m *= lifeRiskOf(L).mortality;
   m = clamp(m, 0.3, 6);
   const b = band10(age);
   const [sx, ck] = normKey(L);
@@ -111,7 +113,7 @@ export function histWeights(L) {
   };
 }
 
-// 사인(GDD §6.3). 자살은 성·연령·연도 통계 비율만(어떤 상태로도 가중하지 않음).
+// 사인: 모델1은 기존 통계 비율만. 모델2의 검증된 장기 복합 위기 보정은 별도 게임 가정.
 // HIST 가중은 사망자 평균으로 나눠(CAUSE_NORM) 전체 사인 구성비가 CAUSE_SHARE에서 벗어나지 않게 한다.
 function cause(L, ctx, age) {
   const band = causeBand(age);
@@ -122,6 +124,7 @@ function cause(L, ctx, age) {
     if (c === 'suicide' && age < 10) continue;
     const cs = ca[EA.groups[c] ?? c];
     w[c] = s * (era[c] ? yr(era[c], L.year) : 1) * (cs ? yr(cs, L.year) : 1) * (c === 'suicide' ? 1 : (H[c] ?? 1) / (nm[c] ?? 1));
+    if (c === 'suicide' && age >= 19) w[c] *= lifeRiskOf(L).selfharmCause;
   }
   return ctx.weighted(w) || 'other';
 }

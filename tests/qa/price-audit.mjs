@@ -1,7 +1,7 @@
 // 부동산 가격 현실 대조(R20). 실행: node tests/qa/price-audit.mjs [N=600]
 // (1) 시도·구 단위 게임 매매·전세가(priceAt / regionalPrice, 그해 명목 만원, 시군구 인구 가중 평균)를 KB 평균 아파트값과 비교
 // (2) 등급표(HOME_PRICE_TIER × 곡선)와 월세(rentAt) 표 값, (3) N생애 시뮬레이션의 PIR·RIR(2020~2025 독립 가구)을 주거실태조사와 비교.
-// 실제 값 출처: docs/research/R20-wage-and-price-audit.md §2.
+// 실제 값 출처: docs/research/validation/R20-wage-and-price-audit.md §2.
 import { isMainThread, pool, serve } from './lib/pool.mjs';
 import * as E from '../../src/engine/index.js';
 import { advance, resolve } from '../../src/engine/life.js';

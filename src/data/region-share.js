@@ -1,6 +1,6 @@
 // 출생지역 분포 — 센서스 기반 시도 인구 → 출생아 분포 (1960~1985), 도시 비중, 시도 내 시군구 가중.
 // 한계: 시도별 센서스 원표(KOSIS)는 조사 한도 내 웹 접근 불가 → 아래 POP 는 (a)검증 앵커(서울 1960/70/80/90, 1985 대도시, 수도권 비중 20.8/28.3/35.5/39.1/42.8,
-// 전국 총인구, 1966~90 시도 인구밀도표[theme.archives.go.kr/KOSIS])에 맞춘 추정치이며 경북은 '전국−나머지' 잔차. 자세한 구분은 docs/research/R10-region-share.md.
+// 전국 총인구, 1966~90 시도 인구밀도표[theme.archives.go.kr/KOSIS])에 맞춘 추정치이며 경북은 '전국−나머지' 잔차. 자세한 구분은 docs/research/population/R10-region-share.md.
 import { REGIONS } from '../engine/constants.js';
 import { REGIONS_A } from './regions-a.js';
 import { REGIONS_B } from './regions-b.js';
