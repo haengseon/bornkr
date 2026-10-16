@@ -5,9 +5,8 @@
 <title>태어나보니 대한민국</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google-adsense-account" content="ca-pub-5950509303749076">
-<!-- AdSense 사이트 확인용 코드(Google 안내). 광고 게재는 결과 화면의 광고 단위만 사용하며 자동 광고는 AdSense 관리 화면에서 꺼 둔다. -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5950509303749076"
-     crossorigin="anonymous"></script>
+<!-- 사이트 소유 확인은 메타 태그·ads.txt로 한다. 게임 문서에서는 광고 SDK를 로드하지 않는다. -->
+<link rel="canonical" href="https://bornkr.click/">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FBFAF5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1A2722" media="(prefers-color-scheme: dark)">
@@ -16,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- 글꼴은 렌더를 막지 않는다(QA-E-12): preload 후 로드되면 스타일시트로. 늦거나 실패하면 시스템 글꼴 폴백(--font-* 스택) -->
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Black+Han+Sans&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Black+Han+Sans&display=swap"></noscript>
+<noscript><style>#splash{display:none!important}</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&family=Black+Han+Sans&display=swap"></noscript>
 <link rel="manifest" href="src/static/manifest.webmanifest">
 <link rel="icon" href="src/static/icon.svg" type="image/svg+xml">
 <link rel="icon" href="src/static/icon-192.png" type="image/png" sizes="192x192">
@@ -79,14 +78,14 @@ try { if (new URLSearchParams(location.search).get('motion') === 'off') document
   </svg>
   <p class="sp__t" aria-hidden="true"><span style="--i:0">태</span><span style="--i:1">어</span><span style="--i:2">나</span><span style="--i:3">보</span><span style="--i:4">니</span><span style="--i:5">&nbsp;</span><span style="--i:6">대</span><span style="--i:7">한</span><span style="--i:8">민</span><span style="--i:9">국</span></p>
   <p class="sp__s" aria-hidden="true">한 번뿐인 인생 · 약 7~25분</p>
-  <p class="sp__hint" aria-hidden="true">화면을 터치해 시작하세요</p>
+  <p class="sp__hint" aria-hidden="true">한 사람의 일생을 펼칩니다</p>
   <div class="sp__bar" aria-hidden="true"><i></i></div>
 </div>
 <script>
 (function () {
   var d = document, root = d.documentElement, el = d.getElementById('splash'); if (!el) return;
   var skip = false;
-  try { if (navigator.webdriver && !/[?&]splash=1/.test(location.search)) skip = true; if (sessionStorage.getItem('hj.splash')) skip = true; sessionStorage.setItem('hj.splash', '1'); } catch (e) {}
+  try { if (sessionStorage.getItem('hj.splash')) skip = true; sessionStorage.setItem('hj.splash', '1'); } catch (e) {}
   if (skip) { el.remove(); return; }
   var reduce = !!(root.dataset.motion) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches), resume = false;
   try { resume = !!localStorage.getItem('hj.v1.current'); } catch (e) {}
@@ -101,14 +100,22 @@ try { if (new URLSearchParams(location.search).get('motion') === 'off') document
     d.body.classList.add('splash-out');
     setTimeout(function () { el.remove(); d.body.classList.remove('splash-out'); var h = d.querySelector('#app h1'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }, reduce ? 220 : 520);
   }
-  // 자동으로 넘어가지 않는다: 화면을 터치(클릭)하거나 Enter/Space를 눌러야 시작.
-  window.__splashReady = function () {};
+  // 모든 이용자에게 같은 화면을 제공하며, 준비가 끝나면 가림막을 걷는다.
+  window.__splashReady = finish;
+  setTimeout(finish, 2400);
   el.addEventListener('click', finish);
   el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); finish(); } });
   try { el.focus({ preventScroll: true }); } catch (e) {}
 })();
 </script>
-  <div class="app" id="app"><section class="screen" data-screen="boot"><div class="screen__body"><p class="cap">불러오는 중입니다.</p></div></section></div>
+  <div class="app" id="app"><section class="screen" data-screen="boot"><div class="screen__body">
+    <h1>태어나보니 대한민국</h1>
+    <p>한국의 한 가정에서 태어나 학교와 일터, 집과 가족을 거쳐 마지막 순간까지 살아 보는 생애 시뮬레이션입니다. 출생 시대와 가정환경은 삶의 출발점을 만들고, 진학·취업·결혼·주거의 선택은 이후의 생활에 남습니다.</p>
+    <h2>한 번의 생애는 어떻게 진행되나요?</h2>
+    <p>출생신고서에서 태어난 지역과 가족환경을 확인한 뒤 생애를 시작합니다. 한 해씩 쌓이는 개인 기록을 읽고 중요한 갈림길에서 행동을 고릅니다. 직업과 소득, 거주지, 가족 관계가 바뀌는 과정을 따라가고, 생애가 끝나면 회고와 연표를 돌아봅니다. 돈을 많이 모으는 것만이 정답인 게임은 아닙니다.</p>
+    <p>배속·일시정지·자동결정을 조절할 수 있습니다. 진행과 지난 생애는 이 브라우저에 저장됩니다. 게임을 실행하려면 JavaScript가 필요하지만 아래의 가이드와 데이터 설명은 바로 읽을 수 있습니다.</p>
+    <nav aria-label="게임 안내"><p><a href="guide.html">이용 가이드</a> · <a href="how-it-works.html">생애를 만드는 규칙과 자료</a> · <a href="about.html">제작 소개</a> · <a href="contact.html">문의</a> · <a href="privacy.html">개인정보 처리방침</a></p></nav>
+  </div></section></div>
   <div id="layer"></div>
   <p class="sr-only" id="live" role="status" aria-live="polite"></p>
   <noscript><p class="cap">이 게임은 자바스크립트가 켜져 있어야 동작합니다.</p></noscript>

@@ -17,6 +17,7 @@ import { standingOf, standingHtml } from './standing-ui.js';
 import { ERAS, decadeBirthsAvg, pickYear, manText } from './era.js';
 
 const PRIV = '<a class="privlink" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>';
+const SITE_NAV = '<nav class="site-links" aria-label="게임 안내"><a href="guide.html">이용 가이드</a><a href="how-it-works.html">규칙·자료</a><a href="about.html">제작 소개</a><a href="contact.html">문의</a></nav>';
 const meter = v => `<span class="meter meter--lg"><span class="meter__fill" style="--v:${v}"></span></span>`;
 const opts = () => ({ hideSensitiveCause: S.settings.hideSensitiveCause });
 
@@ -27,6 +28,7 @@ routes.home = () => {
     <p class="home__formno">생애 시뮬레이션 · 1회 배속에 따라 약 7~25분 <span class="tag">19세 이상</span></p>
     <h1 class="home__title">태어나보니 대한민국</h1>
     <p class="home__sub">한 번뿐인 인생</p>
+    ${SITE_NAV}
     <p class="home__lede">대한민국 어딘가에서 무작위로 태어나, 한 번의 생을 마지막 순간까지 삽니다. 태어날 곳은 고를 수 없고, 고를 수 있는 건 생각보다 적습니다.</p>
     <dl class="facts"><div><dt>소요</dt><dd>약 10~30분</dd></div><div><dt>끝</dt><dd>사망할 때까지</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
     ${cur ? `<div class="resume"><div class="resume__text"><p class="resume__title">하던 생애가 있습니다</p><p class="cap">${esc(cur.name ?? '')} · ${cur.age}세(${cur.year ?? ''}년)</p></div><button class="btn" type="button" data-go="resume">이어 하기</button></div>

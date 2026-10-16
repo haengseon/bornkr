@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { PUBLIC_FILES } from '../src/site/pages.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = f => readFile(path.join(root, f), 'utf8');
@@ -14,7 +15,9 @@ const { outputFiles } = await build({
 await mkdir(path.join(root, 'dist'), { recursive: true });
 await writeFile(path.join(root, 'dist', 'app.js'), outputFiles[0].text);
 await writeFile(path.join(root, 'dist', 'app.css'), await read('styles.css'));
-await writeFile(path.join(root, 'dist', 'privacy.html'), await read('src/static/privacy.html'));
+const adsBuild = await build({ entryPoints: [path.join(root, 'src/site/ads.js')], bundle: true, format: 'iife', minify: true, target: 'es2022', write: false });
+await writeFile(path.join(root, 'dist', 'content-ads.js'), adsBuild.outputFiles[0].text);
+for (const f of PUBLIC_FILES) await writeFile(path.join(root, 'dist', f), (await read(`src/static/${f}`)).replaceAll('src/site/ads.js', 'content-ads.js'));
 for (const f of ['manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png']) await writeFile(path.join(root, 'dist', f), await readFile(path.join(root, 'src/static', f)));
 
 await writeFile(path.join(root, 'dist', 'favicon.ico'), await readFile(path.join(root, 'src/static/icon-192.png')));

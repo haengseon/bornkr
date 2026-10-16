@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { PUBLIC_FILES } from '../src/site/pages.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = f => readFile(path.join(root, f), 'utf8');
@@ -16,6 +17,8 @@ const { outputFiles } = await build({
 });
 const js = outputFiles[0].text, css = await read('styles.css');
 const jsName = `app.${hash(js)}.js`, cssName = `app.${hash(css)}.css`;
+const adsBuild = await build({ entryPoints: [path.join(root, 'src/site/ads.js')], bundle: true, format: 'iife', minify: true, target: 'es2022', write: false, legalComments: 'none', charset: 'utf8' });
+const adsJs = adsBuild.outputFiles[0].text, adsName = `content-ads.${hash(adsJs)}.js`;
 
 const html = (await read('index.html'))
   .replaceAll('src/static/', '')
@@ -31,8 +34,9 @@ await Promise.all([
   writeFile(path.join(out, 'index.html'), html),
   writeFile(path.join(out, jsName), js),
   writeFile(path.join(out, cssName), css),
+  writeFile(path.join(out, adsName), adsJs),
   writeFile(path.join(out, 'ads.txt'), 'google.com, pub-5950509303749076, DIRECT, f08c47fec0942fa0\n', 'utf8'),
-  writeFile(path.join(out, 'privacy.html'), await read('src/static/privacy.html')),
+  ...PUBLIC_FILES.map(async f => writeFile(path.join(out, f), (await read(`src/static/${f}`)).replaceAll('src/site/ads.js', adsName))),
   writeFile(path.join(out, 'favicon.ico'), await readFile(path.join(root, 'src/static/icon-192.png'))),   // /favicon.ico 403 방지(PNG 데이터, 브라우저는 내용으로 판별)
   ...STATIC.map(async f => writeFile(path.join(out, f), await readFile(path.join(root, 'src/static', f)))),
 ]);
