@@ -61,7 +61,7 @@ export const LIFE_EVENTS = [
       {
         "id": "b",
         "label": "보호자에게 요청한다",
-        "text": "분담 협의·지급 전 현금 유지",
+        "text": "버스비를 보태 줄 수 있는지 물어본다. 받을 수 있을지는 아직 모른다.",
         "personality": {
           "weights": {},
           "rationale": "특정 성향과의 연관이 약해 중립",
@@ -77,7 +77,7 @@ export const LIFE_EVENTS = [
           "cost": 0
         },
         "effect": {
-          "description": "분담 협의·지급 전 현금 유지",
+          "description": "버스비를 보태 줄 수 있는지 물어본다. 받을 수 있을지는 아직 모른다.",
           "applyAutomatically": false
         },
         "followUp": {
@@ -90,7 +90,7 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "분담 협의·지급 전 현금 유지 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "hint": "버스비를 보태 줄 수 있는지 물어본다. 받을 수 있을지는 아직 모른다. · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
       },
       {
         "id": "c",

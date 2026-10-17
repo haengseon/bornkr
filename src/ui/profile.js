@@ -88,8 +88,8 @@ export function dwellingOf(L) {
 const END = { widowed: '사별', divorced: '이혼' };
 export function familyLines(L) {
   const f = L?.family || {}, out = [];
-  familyMembers(L).forEach(({ label, member: m, age }) => out.push({ rel: label, name: m.name || '', age, bond: m.bond ?? 65, from: m.birthYear, to: m.alive === false ? m.deathYear : null, end: m.alive === false ? '별세' : m.care || m.ltc ? '돌봄 중' : '' }));
-  (f.spouses || []).filter(s => s.end).forEach(s => out.push({ rel: '이전 배우자', name: s.name || '', from: s.since, to: s.until, end: END[s.end] || '' }));
+  familyMembers(L).forEach(({ id, label, member: m, age }) => out.push({ id, rel: label, name: m.name || '', age, bond: m.bond ?? 65, from: m.birthYear, to: m.alive === false ? m.deathYear : null, end: m.alive === false ? '별세' : m.care || m.ltc ? '돌봄 중' : '' }));
+  (f.spouses || []).filter(s => s.end).forEach(s => out.push({ id: `spouse.${s.no}`, rel: '이전 배우자', name: s.name || '', from: s.since, to: s.until, end: END[s.end] || '' }));
   (f.gp || []).forEach(g => out.push({ rel: g.label, name: '', from: null, to: g.alive ? null : g.deathYear, end: g.alive ? '' : '별세' }));
   return out;
 }
@@ -133,7 +133,7 @@ export function profileOf(L) {
     },
     work: {
       status: j.status ?? 'none', emp, jobLine: jobLineOf(L), jobTitle: working || j.status === 'seeking' || j.status === 'retired' ? (j.title || '') : '',
-      school: j.status === 'student' || L.age < 19 ? (schoolLabel(L, L.edu?.stage) || SCHOOL_LABEL[L.edu?.stage] || '') : '',
+      school: j.status === 'student' || L.age < 19 ? (schoolLabel(L, L.edu?.stage) || SCHOOL_LABEL[L.edu?.stage] || '') + (L.edu?.leave ? ' · 휴학 중' : '') : '',
       major: MAJOR_LABEL[j.major] ?? '', firmSize: working ? j.firmSize : null,
     },
     pay: working ? { annual: Math.round(j.wage || 0), label: biz ? '연 순익' : '연봉', est: !!biz } : null,

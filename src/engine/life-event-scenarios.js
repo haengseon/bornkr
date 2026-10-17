@@ -79,7 +79,7 @@ export const SCENARIO_RATE = .22; // 게임의 연간 장면 예산. 현실 발�
 // FNV 시드를 확률값으로 직접 쓰면 인접 연도의 결과가 강하게 묶인다. 독립 로컬 난수로 섞는다.
 const hash = (...v) => rand(makeRng(hashSeed(...v)));
 const scopeSnapshot = (L, scope) => ({ scope, jobCode: L.job?.code, jobStatus: L.job?.status,
-  partnerNo: L.family?.partner?.no, region: L.home?.region, moves: L.home?.moves?.length || 0,
+  partnerNo: L.family?.partner?.no ?? null, region: L.home?.region, moves: L.home?.moves?.length || 0,
   education: L.edu?.stage, actorId: L.name });
 const sameScope = (L, s) => s && (!s.personId || list(L.dailyLife?.people).some(p => p.id === s.personId && p.alive === true)) &&
   (!s.targetItemId || list(world(L).inventory).some(i => i.id === s.targetItemId && i.owned !== false && !(Number.isFinite(i.disposedYear) && i.disposedYear <= L.year))) &&
@@ -88,7 +88,7 @@ const sameScope = (L, s) => s && (!s.personId || list(L.dailyLife?.people).some(
   (s.scope !== 'job' || s.jobCode === L.job?.code && s.jobStatus === L.job?.status) &&
   (s.scope !== 'education' || s.education === L.edu?.stage && s.region === L.home?.region && s.moves === (L.home?.moves?.length || 0)) &&
   (s.scope !== 'home' || s.region === L.home?.region && s.moves === (L.home?.moves?.length || 0)) &&
-  (s.scope !== 'family' || s.partnerNo === L.family?.partner?.no);
+  (s.scope !== 'family' || (s.partnerNo ?? null) === (L.family?.partner?.no ?? null));
 
 export function scenarioAvailableMinutes(L) {
   if (L.dailyLife?.summary?.year === L.year) return Math.max(0, L.dailyLife.summary.time?.personal || 0);
@@ -132,7 +132,7 @@ export function scenarioChoiceDetails(L, event, choice) {
   const profile = SCENARIO_PROFILES[event.id];
   const rule = resolvedRule(L, event, profile.steps[event.choices.findIndex(c => c.id === choice.id)]);
   return { ...choice, operation: { ...choice.operation, ...rule },
-    hint: `${choice.text} · 시간 ${rule.minutes}분${rule.cost ? ` · ${rule.cost}만 원${rule.kind === 'request' ? '(승인 뒤)' : ''}` : ' · 추가 비용 없음'}` };
+    hint: `${choice.playerHint ?? choice.label} · 시간 ${rule.minutes}분${rule.cost ? ` · ${rule.cost}만 원${rule.kind === 'request' ? '(승인 뒤)' : ''}` : ' · 추가 비용 없음'}` };
 }
 
 export function scenarioChoiceAvailable(L, event, choice) {

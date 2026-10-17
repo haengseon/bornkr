@@ -41,14 +41,15 @@ test('값 범위: 6지표·이슈는 해마다 0~100 정수, 모든 생애가 �
   }
 });
 
-test('선택: 해마다 1건, 구간 상한 이하, 5세까지 첫 선택', () => {
+test('중대 선택: 해마다 1건, 구간 상한 이하, 5세까지 일상 첫 선택', () => {
   let reached6 = 0, first = 0;
   for (let seed = 200; seed < 300; seed++) {
     const L = life(seed);
-    const mine = L.choices.filter(c => !c.forced);
+    const mine = L.choices.filter(c => !c.forced && !c.routine);
     const perYear = {}, perStage = {};
     for (const c of mine) {
       perYear[c.age] = (perYear[c.age] || 0) + 1;
+      if (c.cadence) continue; // 주기적 생활 선택은 중대 결정의 구간 예산과 별도다.
       const st = stageOf(c.age).id, k = c.eventId.startsWith('sys.') ? 'sys' : c.eventId.startsWith('LIFE-') ? 'life' : 'chance';
       (perStage[st] ||= { sys: 0, chance: 0, life: 0 })[k]++;
     }
@@ -56,7 +57,7 @@ test('선택: 해마다 1건, 구간 상한 이하, 5세까지 첫 선택', () =
     for (const [st, n] of Object.entries(perStage)) {
       assert.ok(n.sys <= STAGE_CAP[st].sys && n.chance <= STAGE_CAP[st].chance && n.life <= (L.modelVersion >= 2 ? 1 : 0), `seed ${seed} ${st} ${JSON.stringify(n)}`);
     }
-    if (L.death.age >= 6) { reached6++; if (mine.some(c => c.age <= 5)) first++; }
+    if (L.death.age >= 6) { reached6++; if (L.choices.some(c => !c.forced && c.age <= 5)) first++; }
   }
   assert.equal(first, reached6, '6세 이상 산 생애는 모두 5세까지 첫 선택');
 });

@@ -44,7 +44,7 @@ export default [
       prompt: '무엇을 그릴까?',
       options: [
         { id: 'house', label: '우리 집', fx: { stats: { happiness: 2, relations: 1, leisure: -2 }, traits: { consc: 1 } }, result: '엄마가 그림을 냉장고에 붙여 주었다.' },
-        { id: 'monster', label: '상상 속 괴물', fx: { stats: { intellect: 3, happiness: 2, relations: -1 }, traits: { open: 2 } }, result: '선생님이 무엇이냐고 물었고, 나는 길게 설명했다.' },
+        { id: 'monster', label: '상상 속 괴물', fx: { stats: { intellect: 3, happiness: 2 }, traits: { open: 2 } }, result: '선생님이 무엇이냐고 물었고, 나는 길게 설명했다.' },
         { id: 'friend', label: '짝꿍 얼굴', fx: { stats: { relations: 3, happiness: 1, leisure: -1 }, traits: { agree: 2 } }, result: '짝꿍은 자기 얼굴이라며 좋아했다.' },
       ],
       default: 'house',
@@ -73,7 +73,7 @@ export default [
       options: [
         { id: 'eat', label: '내가 먹는다', fx: { stats: { happiness: 3, relations: -2, leisure: 1 }, traits: { agree: -1 } }, result: '간식은 달았고, 옆 아이는 말없이 접시를 보았다.' },
         { id: 'split', label: '반으로 나눈다', fx: { stats: { relations: 2, happiness: 1 }, traits: { agree: 1 } }, result: '반쪽은 작았지만 둘 다 웃었다.', hint: '흔한 행동' },
-        { id: 'give', label: '양보한다', fx: { stats: { relations: 3, happiness: -2, leisure: -1 }, traits: { agree: 2 } }, result: '그 애가 먹었고, 나는 손가락을 오래 보았다.' },
+        { id: 'give', label: '양보한다', fx: { stats: { relations: 3, happiness: 1, leisure: 3 }, traits: { agree: 2 } }, result: '그 애에게 건네고 먼저 놀러 갔다.' },
       ],
       default: 'split',
     },

@@ -5,7 +5,7 @@ const live = L => L?.alive === true && L.modelVersion >= 2 && L.dailyLife;
 
 function consent(L, input) {
   return arr(L.choices).some(c => c.year === L.year && c.eventId === input.sourceEventId &&
-    c.option === input.choiceId && !c.forced && !c.auto);
+    c.option === input.choiceId && !c.forced && (!c.auto || c.routine));
 }
 
 /** 집 안에서 가능한 동작 범위를 직접 살펴본 현재 선택을 기록한다. 치료 효과를 뜻하지 않는다. */
@@ -107,7 +107,7 @@ export function collectDailyFacts(L) {
   const access = arr(d.access).find(a => a.kind === 'safe-movement-space' && a.confirmed === true &&
     a.year <= L.year && a.validUntil >= L.year && a.homeRegion === L.home?.region && a.homeTenure === L.home?.tenure &&
     a.homeSigungu === L.home?.sigungu && a.homeDong === L.home?.dong && a.moveCount === (L.home?.moves?.length ?? 0) &&
-    arr(L.choices).some(c => c.eventId === a.sourceEventId && c.option === a.choiceId && c.year === a.year && !c.forced && !c.auto));
+    arr(L.choices).some(c => c.eventId === a.sourceEventId && c.option === a.choiceId && c.year === a.year && !c.forced && (!c.auto || c.routine)));
   if ((!exercise || exercise.status === 'paused') && access) put('routine.exercise-inactive');
   if (access) put('access.safe-movement-space', { accessId: access.id });
   if (time?.personal >= 15) put('schedule.available-time', { minutes: time.personal });

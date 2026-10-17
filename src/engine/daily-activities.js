@@ -30,7 +30,7 @@ export function step(L, ctx) {
   if (L.age < 19 || L.year < 1999 || !d.routines.length || d.nextActivityYear > L.year || L.stageChoices[stage].sys >= STAGE_CAP[stage].sys) return;
   ctx.ask({ eventId: 'sys.daily.activity', prompt: '남겨 둔 개인 시간에 오늘 할 수 있는 일을 하나 골라 볼까?',
     options: [
-      { id: 'access', label: '집 안에서 무리 없이 움직일 공간을 살핀다', hint: '공간 확인만 기록하고 운동·치료 효과는 지급하지 않는다.', personality: { weights: { S: .4, J: .2 } } },
+      { id: 'access', label: '집 안에서 무리 없이 움직일 공간을 살핀다', hint: '집 안에서 가볍게 움직일 자리가 있는지 살핀다.', personality: { weights: { S: .4, J: .2 } } },
       { id: 'media', label: '개인 시간 15분을 미디어 감상에 쓴다', feasible: d.summary.time.personal >= 15, personality: { weights: { I: .4 } } },
       { id: 'keep', label: '이번에는 따로 활동을 정하지 않는다', personality: { weights: {} } },
     ], defaultId: 'keep' });

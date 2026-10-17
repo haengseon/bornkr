@@ -222,7 +222,7 @@ export function step(L, ctx) {
     ctx.ask({ eventId: 'sys.daily.meal', prompt: `${L.year}년 식료품 연평균 물가지수가 지난해보다 ${Math.round(food.rise * 1000) / 10}% 올랐다. 다음 해 식사비용 원칙을 어떻게 정할까?`,
       options: [
         { id: 'budget', label: '더 저렴한 메뉴를 우선 살핀다', hint: '다음 해 생활비 일부를 작게 줄이는 게임 가정이 적용된다.', personality: { weights: { S: .4 } } },
-        { id: 'cook', label: '조리 시간을 하루 30분 더 배정한다', hint: '시간 여유가 있을 때만 작은 절약을 적용한다. 실제 식사를 완료했다는 뜻은 아니다.', feasible: time.personal >= 30, personality: { weights: { J: .5 } } },
+        { id: 'cook', label: '조리 시간을 하루 30분 더 배정한다', hint: '하루 30분을 요리에 더 쓴다. 그날 일정에 여유가 있어야 한다.', feasible: time.personal >= 30, personality: { weights: { J: .5 } } },
         { id: 'keep', label: '지금 비용 원칙을 유지한다', personality: { weights: {} } },
       ], defaultId: 'keep', data: { daily: true, rise: food.rise, sourceYear: L.year } });
     return;

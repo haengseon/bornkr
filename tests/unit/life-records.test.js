@@ -6,7 +6,7 @@ import { growMbti, mbtiNudge } from '../../src/engine/mbti.js';
 import { apply } from '../../src/engine/life.js';
 import { epilogueOf } from '../../src/engine/epilogue.js';
 import { deathStory } from '../../src/engine/deathstory.js';
-import { familyLines, familyText } from '../../src/ui/profile.js';
+import { profileOf, familyLines, familyText } from '../../src/ui/profile.js';
 import { historyRows } from '../../src/ui/history.js';
 import { familySeries, familyChartHtml } from '../../src/ui/family-chart.js';
 
@@ -88,8 +88,23 @@ test('가족 차트는 개별 가족 시리즈로 기록 공백과 사후 구간
   assert.equal(mother.points.at(-1).gap, true);
   const html = familyChartHtml(L);
   assert.match(html, /현재 기준 관계/);
+  const legend = html.split('<figcaption>')[1];
+  assert.equal((legend.match(/어머니/g) || []).length, 1);
+  assert.equal((html.match(/<ul /g) || []).length, 1);
   assert.doesNotMatch(html, /history-list|연도별 기록/);
   assert.match(html, /절연·갈등·서먹함·가까움·돈독함/);
   assert.doesNotMatch(html, /checkbox|data-series-toggle|관계 65|\(65\)/);
   assert.equal((html.match(/<svg /g) || []).length, 1);
+});
+
+test('휴학 학적은 현재 직업 패널과 해당 연도 내역에 함께 표시된다', () => {
+  const L = E.newLife({ seed: 50 });
+  L.age = 21; L.year = L.birth.year + 21;
+  Object.assign(L.edu, { stage: 'college', leave: 1 });
+  L.job.status = 'student'; recordYear(L);
+  assert.match(profileOf(L).work.school, /휴학 중/);
+  assert.match(historyRows(L, 'job')[0].text, /휴학 중/);
+  L.edu.leave = 0;
+  assert.match(historyRows(L, 'job')[0].text, /휴학 중/);
+  assert.doesNotMatch(profileOf(L).work.school, /휴학 중/);
 });

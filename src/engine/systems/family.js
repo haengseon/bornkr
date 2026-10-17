@@ -28,9 +28,11 @@ export function pre(L, ctx) {
     p.age++;
     const q = qx(who === 'father' ? 'M' : 'F', p.age, y) * T('MORT_Q')[L.birth.quintile] * (p.care ? 1.5 : 1);
     if (ctx.chance(q)) {
-      p.alive = false; p.deathYear = y;
+      p.alive = false; p.deathYear = y; p.deathEventId = `parent-death:${who}:${y}`;
       if (f.caringFor === who) ctx.act.endCare('death');
-      ctx.sys('sys.fam.parent_death', { parentLabel: WHO_LABEL[who], pAge: p.age }, sensFields(L, 'death'));
+      ctx.sys('sys.fam.parent_death', { parentLabel: WHO_LABEL[who], pAge: p.age }, { ...sensFields(L, 'death'), parentId: who, transitionId: p.deathEventId });
+      p.funeralYear = y;
+      ctx.sys('sys.fam.parent_funeral', { parentLabel: WHO_LABEL[who] }, { essential: true, parentId: who, causeEventId: p.deathEventId, ...sensFields(L, 'death') });
       const orphan = !f.parents.father.alive && !f.parents.mother.alive;
       const atHome = orphan && a >= 19 && L.home.parents;
       if (atHome) becomeIndependent(L, ctx);          // 부모 집에 살던 성인: 이제 그 집의 가구주(QA-S-32)
@@ -84,7 +86,7 @@ export function pre(L, ctx) {
     }
   }
   f.siblings = f.siblingMembers.filter(s => s.alive && s.birthYear <= y).length;
-  if (a >= 1 && a <= 18 && !L.birth.parents.singleParent && !fl.parentsDivorced && ctx.chance(yr(T('DIVORCE_MARRIED'), y))) {
+  if (a >= 1 && a <= 18 && !L.birth.parents.singleParent && f.parents.father.alive && f.parents.mother.alive && !fl.parentsDivorced && ctx.chance(yr(T('DIVORCE_MARRIED'), y))) {
     fl.parentsDivorced = y;
     L.household.income = Math.round(L.household.income * 0.75);
     ctx.sys('sys.fam.parents_divorce');
@@ -96,11 +98,19 @@ export function pre(L, ctx) {
     f.grandparents = gp.filter(x => x.alive).length;
     ctx.sys('sys.fam.grandparent_death', { gpLabel: g.label }, { quiet: a > 20, grandparent: { id: g.id, side: g.side, label: g.label } });
   }
-  if (a >= 13 && a <= 18 && !fl.youngCarer && ctx.chance(0.008)) {
-    fl.youngCarer = y; L.tally.youngCarer = 1;
-    ctx.sys('sys.fam.young_carer', { place: '학교', who: ctx.chance(0.5) ? '할머니' : '아픈 엄마' });
+  // 생존하고 돌봄이 필요한 가족 개체만 대상이 된다. 옛 플래그도 매년 복구한다.
+  const careTargets = [
+    ...Object.entries(f.parents).filter(([, p]) => p.alive && p.care).map(([id, p]) => ({ id, member: p, label: WHO_LABEL[id] })),
+    ...(f.gp || []).filter(g => g.alive && g.care).map(g => ({ id: g.id, member: g, label: g.label })),
+  ];
+  if (fl.youngCarer && (a > 22 || !careTargets.some(t => t.id === fl.youngCarerTarget))) {
+    fl.youngCarer = null; fl.youngCarerTarget = null;
   }
-  if (fl.youngCarer && a > 22) fl.youngCarer = null;
+  if (a >= 13 && a <= 18 && !fl.youngCarer && careTargets.length && ctx.chance(0.008)) {
+    const target = careTargets[Math.min(careTargets.length - 1, Math.floor(ctx.rand() * careTargets.length))];
+    fl.youngCarer = y; fl.youngCarerTarget = target.id; L.tally.youngCarer = 1;
+    ctx.sys('sys.fam.young_carer', { place: '학교', who: target.label }, { careTargetId: target.id });
+  }
   // 배우자 나이·사망
   const sp = f.partner;
   if (sp) {
@@ -123,11 +133,12 @@ export function pre(L, ctx) {
     }
     if (SCHOOL[ca]) ctx.sys('sys.fam.child_school', { childLabel: childLabel(L, c), schoolLabel: SCHOOL[ca] }, { quiet: true });
     if (!c.married && ca >= 27 && ca <= 40 && ctx.chance(0.1)) {
-      c.married = true; c.leftHome = true;
-      ctx.sys('sys.fam.child_marry', { childLabel: childLabel(L, c) });
+      c.married = true; c.marriedYear = y; c.marriageEventId = `child-marriage:${f.children.indexOf(c)}:${y}`;
+      if (!c.leftHome) { c.leftHome = true; c.leftHomeYear = y; }
+      ctx.sys('sys.fam.child_marry', { childLabel: childLabel(L, c) }, { childId: `child.${f.children.indexOf(c)}`, transitionId: c.marriageEventId });
     } else if (!c.leftHome && ca >= 28 && ca <= 33 && ctx.chance(0.25)) {
-      c.leftHome = true;
-      ctx.sys('sys.fam.child_leave', { childLabel: childLabel(L, c) });
+      c.leftHome = true; c.leftHomeYear = y;
+      ctx.sys('sys.fam.child_leave', { childLabel: childLabel(L, c) }, { childId: `child.${f.children.indexOf(c)}`, transitionId: `child-leave:${f.children.indexOf(c)}:${y}` });
     }
     if (c.married && ca >= 30 && ca <= 40 && ctx.chance(0.08)) {
       c.kids.push(y);
@@ -166,8 +177,16 @@ function birth(L, ctx) {
 export function step(L, ctx) {
   const f = L.family, a = L.age, y = L.year, fl = L.flags;
   ensureKin(L);
-  // 계획한 출산
-  if (fl.childPlanned === y && married(L)) { fl.childPlanned = null; birth(L, ctx); }
+  // 과거 숫자 플래그를 복구하고 계획을 현재 배우자와 연결한다.
+  if (fl.childPlanned && !fl.childPlan) fl.childPlan = { plannedYear: fl.childPlanned, partnerNo: f.partner?.no ?? null, status: 'planned' };
+  const plan = fl.childPlan;
+  if (plan?.status === 'planned') {
+    if (!married(L) || plan.plannedYear < y || plan.partnerNo !== (f.partner?.no ?? null) || fl.noChild) {
+      plan.status = 'cancelled'; plan.endedYear = y; fl.childPlanned = null;
+    } else if (plan.plannedYear === y) {
+      plan.status = 'completed'; plan.endedYear = y; fl.childPlanned = null; birth(L, ctx);
+    }
+  }
   // 연애
   if (!f.partner && a >= 19 && a <= 50) {
     if (!f.dating && ctx.chance(0.12)) { f.dating = true; ctx.sys('sys.fam.dating', {}, { quiet: true }); }
@@ -207,7 +226,7 @@ export function step(L, ctx) {
     }
   }
   // 출산(유배우, 여성 나이 기준)
-  if (married(L) && !fl.childPlanned) {
+  if (married(L) && !fl.childPlanned && !fl.noChild && !(fl.childWait >= y)) {
     const wAge = L.sex === 'F' ? a : f.partner.age;
     if (wAge >= 15 && wAge <= 49) {
       const n = f.children.length;
@@ -220,8 +239,7 @@ export function step(L, ctx) {
       if (fl.childWait >= y) h *= 0.5;
       if (fl.infertile) h *= 0.3;
       if (ctx.chance(h)) {
-        if (n < 2) ctx.ask({ eventId: 'sys.fam.child', options: ['have', 'wait', 'none'], defaultId: 'have' });
-        else birth(L, ctx);
+        ctx.ask({ eventId: 'sys.fam.child', options: ['have', 'wait', 'none'], defaultId: 'have' });
       }
     }
   }
@@ -268,9 +286,15 @@ export const choices = {
     else L.flags.single = true;
   },
   'sys.fam.child'(L, ctx, opt) {
-    if (opt === 'have') L.flags.childPlanned = L.year + 1;
-    else if (opt === 'wait') L.flags.childWait = L.year + 2;
-    else L.flags.noChild = true;
+    const fl = L.flags;
+    if (fl.childPlan?.status === 'planned') { fl.childPlan.status = 'cancelled'; fl.childPlan.endedYear = L.year; }
+    fl.childPlanned = null;
+    fl.noChild = opt === 'none'; fl.childWait = opt === 'wait' ? L.year + 2 : null;
+    fl.childIntent = opt === 'have' ? 'plan' : opt === 'wait' ? 'wait' : 'none';
+    if (opt === 'have' && married(L)) {
+      fl.childPlanned = L.year + 1;
+      fl.childPlan = { plannedYear: fl.childPlanned, partnerNo: L.family.partner.no ?? null, status: 'planned', decidedYear: L.year };
+    }
   },
   'sys.fam.divorce'(L, ctx, opt) {
     if (opt === 'divorce') return ctx.act.divorce();

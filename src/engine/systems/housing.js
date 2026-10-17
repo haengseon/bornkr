@@ -1,3 +1,4 @@
+import { syncMortgages } from '../loan-schedules.js';
 // 주거(GDD §5.5). home = { tenure, region, regionGroup, parents, moves, rentBurden, owned, value, deposit, rent, contractEnd }
 // 이동은 사유가 있어야 일어난다(docs/impl/residence-notes.md): 계약 만기·독립·결혼·출산·학령기·취업·부모 돌봄·은퇴·실직·집값.
 // 시도가 바뀌는 이동은 L.home.moves[].reason·from·region에 사유가 남는다. 자가를 두고 떠나면 L.rentals에 세 준 집으로 남는다.
@@ -158,7 +159,8 @@ function rentals(L, ctx) {
   if (!r) return false;
   const back = h.region === r.region && RENTER.has(h.tenure) && !h.owned;
   if (!ctx.chance(back ? 0.4 : L.age >= 70 ? 0.15 : 0.08)) return false;
-  const m = L.money, proceeds = rnd(r.value * 0.97), repay = Math.min(m.loans.mortgage || 0, proceeds), rate = jeonseLoanRate(y);
+  syncMortgages(L);
+  const m = L.money, proceeds = rnd(r.value * 0.97), repay = Math.min(r.mortgageBalance || 0, proceeds), rate = jeonseLoanRate(y);
   const plans = [];
   if (back) {
     const mc = moveCostFor(L, 0);
@@ -351,8 +353,8 @@ export const choices = {
     }
     L.tally.invol = (L.tally.invol || 0) + 1;
     if (opt === 'cheaper') {
-      ctx.act.move('jeonse', { reason: '보증금 인상', involuntary: true });
-      h.deposit = Math.round(h.deposit * 0.8);
+      const dep = Math.round(h.deposit * 0.8);
+      ctx.act.move('jeonse', { dep, reason: '보증금 인상', involuntary: true });
       return ctx.apply({ stats: { leisure: -3 } }, { reason: '더 싼 집으로 옮겼다' });
     }
     ctx.act.move('monthly', { reason: '월세 전환', involuntary: true });
@@ -400,9 +402,7 @@ export const choices = {
       ctx.act.spend(p.moveCost);
       return ctx.apply({ stats: { happiness: 2 }, issues: { housing: -4 } }, { reason: '세 줬던 내 집으로 돌아갔다' });
     }
-    L.rentals.splice(at, 1);
-    L.money.assets += p.proceeds;
-    ctx.act.repay(p.repay);
+    ctx.act.sellRentedHome(at, p.proceeds);
     ctx.apply({ issues: { living: -2 } }, { reason: '세 준 집을 팔았다' });
   },
 };

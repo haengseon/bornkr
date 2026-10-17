@@ -12,7 +12,7 @@ const RULES = [
   [/^sys\.edu\.(college_enter|grad_enter|graduate|path|high_enter|elem_enter|dropout|csat|high_type)$/, 'career'],
   [/^sys\.job\.(retire|exit_main)$/, 'retire'],
   [/^sys\.age\.pension_start$/, 'retire'],
-  [/^sys\.job\.(first|first_offer|offer|lose|business_open|business_close|transition|contract_end|reemploy)$/, 'job'],
+  [/^sys\.job\.(first|first_offer|offer|lose|business_open|business_close|transition|contract_end|reemploy|return)$/, 'job'],
   [/^sys\.mil\.(enlist|discharge)$/, 'job'],
   [/^sys\.home\.(bought|buy|move|region_move|sell|jeonse_fraud|independence)$/, 'housing'],
   [/^sys\.health\.(dx_[a-z]+|disability)$/, 'care'],
@@ -20,12 +20,12 @@ const RULES = [
 export const topicOfId = id => { for (const [re, t] of RULES) if (re.test(String(id ?? ''))) return t; return null; };
 // 엔진 필드 우선
 export const topicOf = e => (e?.topic && e.topic !== 'shock' ? e.topic : null) ?? sceneTopicOf(e) ?? topicOfId(e?.id ?? e?.eventId) ?? null;
-export const isMajorEntry = e => !!e && !e.quiet && e.kind !== 'death' && e.kind !== 'news' && e.kind !== 'compare' && e.major !== false && (e.major === true || !!topicOfId(e.id));
+export const isMajorEntry = e => !!e && !(e.kind === 'choice' && e.auto) && !e.quiet && e.kind !== 'death' && e.kind !== 'news' && e.kind !== 'compare' && e.major !== false && (e.major === true || !!topicOfId(e.id));
 export const isMajorChoice = req => !!req && (req.major === true || (req.major !== false && !!topicOfId(req.eventId)));
 // 전체 화면 연출은 본인의 중대한 결정 결과·진로·가족 형성·주거 같은 큰 갈림길에만. 사별·진단·일반 사건은 작은 카드.
 const BIG_TOPICS = new Set(['marriage', 'child', 'career', 'retire', 'job', 'housing', 'quit', 'closed']);
 const SOFT_RE = /세상을 떠|돌아가|사별|별세|사망|숨을 거|부고|진단|암 |투병|이혼/;
-export const isBigEntry = (e, text = e?.text) => !!e && e.topic !== 'bereave' && e.topic !== 'loss' && e.topic !== 'care' && !SOFT_RE.test(String(text ?? '')) && (e.kind === 'choice' ? true : BIG_TOPICS.has(topicOf(e)));
+export const isBigEntry = (e, text = e?.text) => !!e && !(e.kind === 'choice' && e.auto) && e.topic !== 'bereave' && e.topic !== 'loss' && e.topic !== 'care' && !SOFT_RE.test(String(text ?? '')) && (e.kind === 'choice' ? true : BIG_TOPICS.has(topicOf(e)));
 export const pickMajor = entries => (entries || []).find(isMajorEntry) ?? null;
 
 // ───────── 프로필 변화 ─────────
@@ -53,13 +53,13 @@ export const toneOf = (kind, dir) => ((kind === 'stat') === (dir > 0) ? 'good' :
 // 입력: option.effects = [{key,dir,size}] 또는 { stats:{k:d}, issues:{k:d} } → [{kind,key,dir,size,label,arrows,text,tone}]
 export function effectsOf(src) {
   let list = [];
-  if (Array.isArray(src)) list = src.map(e => ({ key: e.key, dir: Math.sign(e.dir || 0), size: e.size === 2 ? 2 : 1 }));
+  if (Array.isArray(src)) list = src.map(e => ({ key: e.key, dir: Math.sign(e.dir || 0), size: e.size === 2 ? 2 : 1, ...(Number.isFinite(e.delta) && { delta: e.delta }) }));
   else if (src && typeof src === 'object') {
     for (const g of ['stats', 'issues']) for (const [k, d] of Object.entries(src[g] || {})) if (d) list.push({ key: k, dir: Math.sign(d), size: Math.abs(d) >= 8 ? 2 : 1 });
   }
   return list.filter(e => e.dir && (STAT_KEYS.has(e.key) || ISSUE_SHORT[e.key])).map(e => {
     const kind = STAT_KEYS.has(e.key) ? 'stat' : 'issue', label = kind === 'stat' ? STAT_LABEL[e.key] : ISSUE_SHORT[e.key];
-    const arrows = (e.dir > 0 ? '▲' : '▼').repeat(e.size);
+    const arrows = Number.isFinite(e.delta) ? `${e.dir > 0 ? '▲' : '▼'}${Math.abs(e.delta)}` : (e.dir > 0 ? '▲' : '▼').repeat(e.size);
     return { ...e, kind, label, arrows, tone: toneOf(kind, e.dir), text: `${label} ${e.size === 2 ? '크게 ' : ''}${e.dir > 0 ? '오름' : '내림'}` };
   });
 }

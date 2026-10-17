@@ -39,11 +39,12 @@ import { applyIdentityChoice, identityYear } from './identity.js';
 import * as wellbeing from './wellbeing.js';
 import * as dailyActivities from './daily-activities.js';
 import * as lifeCrisis from './life-crisis.js';
+import * as choiceCadence from './choice-cadence.js';
 import { authoredChoicePersonality } from '../content/identity-options.js';
 import { modifier } from '../content/job-perception.js';
 
 const SYSTEMS = [education, military, career, money, invest, housing, family, health, aging, milestones];
-const SYS_CHOICES = Object.assign({}, ...SYSTEMS.map(s => s.choices || {}), dailyLife.choices, wellbeing.choices, dailyActivities.choices, lifeCrisis.choices);
+const SYS_CHOICES = Object.assign({}, ...SYSTEMS.map(s => s.choices || {}), dailyLife.choices, wellbeing.choices, dailyActivities.choices, lifeCrisis.choices, choiceCadence.choices);
 
 const PHASES = [
   ['pre', L => { L.derived = derive(L); family.pre(L, makeCtx(L)); }],   // 파생 상태: 그해 사건·이정표가 읽는다
@@ -72,7 +73,14 @@ const PHASES = [
     }
     eraStep(L, makeCtx(L, 'c'));
   }],
-  ['chance', L => chanceStep(L, makeCtx(L, 'c'))],
+  ['chance', L => {
+    if (!L.yr.chanceDone) {
+      L.yr.chanceDone = true;
+      chanceStep(L, makeCtx(L, 'c'));
+      if (L.pending) { L.yr.phase--; return; }
+    }
+    choiceCadence.step(L, makeCtx(L, 'c'));
+  }],
   ['drift', L => { driftStats(L); updateIssues(L); growMbti(L); }],
   ['concern', L => concernWatch(L, makeCtx(L, 'c'))],
   ['compare', L => compareStep(L, makeCtx(L, 'c'))],
@@ -170,6 +178,11 @@ function jobInfoFor(L, req) {
   return null;
 }
 
+// 평소 생활은 성향대로 진행한다. 중대 결정과 2~3년마다 돌아오는 생활 방향은 직접 묻는다.
+const ROUTINE_CHOICES = new Set(['sys.edu.tutoring', 'sys.fam.sibling_welcome', 'sys.fam.relationship', 'sys.money.sidejob', 'sys.age.grandcare', 'dec.academy.style', 'dec.club.career', 'dec.side.job', 'dec.overwork', 'dec.exercise', 'dec.supplement', 'dec.quit.smoking', 'dec.kid.afterschool', 'dec.friend.choose', 'dec.neighbor.noise', 'dec.volunteer.donate', 'dec.travel.spend', 'dec.hobby.spend', 'dec.retire.activity', 'dec.digital.learn', 'dec.mentor.work', 'dec.health.sleep']);
+const CRITICAL_CHOICES = new Set(['sys.crisis.work_notice', 'sys.crisis.family_separate', 'sys.crisis.family_confirm', 'sys.crisis.support']);
+export const needsPlayerDecision = req => req.cadence === true || (req.major === true || CRITICAL_CHOICES.has(req.eventId)) && !ROUTINE_CHOICES.has(req.eventId);
+
 const NEED = new Set(['sys.home.expire', 'sys.job.lost', 'sys.money.crunch', 'sys.invest.plan', 'sys.invest.panic', 'sys.home.hometown', 'sys.home.relocate']);   // 생활이 걸린 불가피한 갈림길은 주제 반복 규칙으로 묻지 않고 넘기지 않는다
 // 선택 요청. 그해 1건·구간 상한(GDD §2.2). 막히면 시스템 선택은 기본값을 바로 적용(auto, forced).
 // req: { eventId, options:[id | {id,label,hint}], defaultId, vars?, data?, sensitive?, prompt? }
@@ -178,7 +191,7 @@ export function ask(L, req, ctx) {
   const isSys = req.eventId.startsWith('sys.');
   const ct = isSys ? choiceText(req.eventId, { name: L.name, ...req.vars }, ctx) : null;
   const options = req.options.map(o => {
-    const option = typeof o === 'string' ? { id: o, label: fill(ct.labels[o] ?? o, { name: L.name, ...req.vars }) } : { ...o };
+    const option = typeof o === 'string' ? { id: o, label: fill(ct?.labels?.[o] ?? o, { name: L.name, ...req.vars }) } : { ...o };
     if (dailyLife.dailyEnabled(L) && L.age >= 19 && !option.personality) {
       const personality = authoredChoicePersonality(req.eventId, option.id);
       if (personality) option.personality = personality;
@@ -193,6 +206,7 @@ export function ask(L, req, ctx) {
     ...(req.data && { data: req.data }),
     ...(req.vars && { vars: req.vars }),
     ...(req.careTarget && { careTarget: req.careTarget }),
+    ...(req.cadence && { cadence: true }),
     ...(!isSys && req.topic && { topic: req.topic, major: true, chapter: chapterOf(L.age).n, timeoutMs: 20000 }),
   };
   if (isSys) { const tp = traitPick(L, req.eventId, options, full.defaultId); full.defaultId = tp.id; if (tp.mbti) full.mbti = tp.mbti; }   // 직접 고르지 않은 기본 행동은 성향이 정한다
@@ -200,18 +214,29 @@ export function ask(L, req, ctx) {
   const ji = jobInfoFor(L, req);
   if (ji) full.jobInfo = ji;
   if (isSys) decorate(L, full);                       // 이정표: major·topic·chapter·options[].effects/risk(PROCESS-V2)
+  // 2년쯤 지나면 자연스럽게 만난 생활 선택을 직접 묻는다. 3년째에는 아래 보충 단계가 보장한다.
+  if (!needsPlayerDecision(full) && !full.sensitive && !req.data?.lifeEventId && choiceCadence.due(L, 2) && !L.yr.asked && !L.pending && options.filter(o => o.feasible !== false && o.disabled !== true).length >= 2) full.cadence = true;
+  if (!needsPlayerDecision(full)) {
+    full.major = false;
+    full.routine = true;
+    full.defaultId = traitFit(L, full.eventId, options.filter(o => o.feasible !== false && o.disabled !== true)) ?? full.defaultId;
+    if (req.eventId.startsWith('LIFE-')) sc.life = (sc.life || 0) + 1;
+    resolveChoice(L, full, full.defaultId, { auto: true, forced: options.length < 2 });
+    return false;
+  }
   // 다양성: 이사·진로·일 결정은 직전 3개 결정과 같은 주제면 묻지 않고 기본값을 기록만 한다(사유가 약한 반복 질문 방지)
-  if (isSys && full.major && ['housing', 'career', 'job'].includes(full.topic) && !full.chain && !NEED.has(full.eventId) && (L.decisions || []).slice(-3).some(d => d.topic === full.topic)) {
+  if (!full.cadence && isSys && full.major && ['housing', 'career', 'job'].includes(full.topic) && !full.chain && !NEED.has(full.eventId) && (L.decisions || []).slice(-3).some(d => d.topic === full.topic)) {
     resolveChoice(L, full, full.defaultId, { auto: true, forced: true });
     return false;
   }
   // 선택지가 1개뿐이면 묻지 않고 결과만 적용(QA-S-02, GDD §15.1 선택지 2~3개)
-  if (options.length < 2 || L.pending || L.yr.asked || (isSys && sc.sys >= STAGE_CAP[st].sys)) {   // 이정표도 구간 시스템 상한 안(15분 예산)
+  if (options.length < 2 || L.pending || L.yr.asked || (!full.cadence && isSys && sc.sys >= STAGE_CAP[st].sys)) {   // 이정표도 구간 시스템 상한 안(15분 예산)
     if (isSys || options.length < 2) resolveChoice(L, full, full.defaultId, { auto: true, forced: true });
     return false;
   }
   L.yr.asked = true;
-  if (req.eventId.startsWith('LIFE-')) sc.life = (sc.life || 0) + 1; else sc[isSys ? 'sys' : 'chance']++;
+  if (full.cadence) sc.cadence = (sc.cadence || 0) + 1;
+  else if (req.eventId.startsWith('LIFE-')) sc.life = (sc.life || 0) + 1; else sc[isSys ? 'sys' : 'chance']++;
   L.lastChoiceAge = L.age;
   if (!isSys && !req.eventId.startsWith('LIFE-')) L.lastChanceAge = L.age;
   L.pending = full;
@@ -224,16 +249,17 @@ function resolveChoice(L, req, optionId, { auto = false, forced = false } = {}) 
   const opt = feasible(requested) ? requested : req.options.find(o => o.id === req.defaultId && feasible(o)) || req.options.find(feasible);
   if (!opt) throw new Error('실행 가능한 선택지가 없습니다.');
   if (!feasible(requested)) { auto = true; forced = true; }
-  L.choices.push({ year: L.year, age: L.age, eventId: req.eventId, option: opt.id, auto: !!auto, ...(forced && { forced: true }) });
+  L.choices.push({ year: L.year, age: L.age, eventId: req.eventId, option: opt.id, auto: !!auto, ...(req.routine && { routine: true }), ...(req.cadence && { cadence: true }), ...(forced && { forced: true }) });
   if (dailyLife.dailyEnabled(L) && L.age >= 19) applyIdentityChoice(L, req, opt, { auto, forced });
   if (!auto) mbtiNudge(L, req.eventId, opt.id);   // 직접 고른 선택은 성향을 조금 움직인다
   const ctx = makeCtx(L, 'c');
   ctx.sourceEventId = req.eventId;
   const before = req.major ? { p: profileOf(L), s: snapOf(L) } : null;
   if (req.eventId.startsWith('sys.')) {
-    const said = rawText(`${req.eventId}.${opt.id}`) ? text(`${req.eventId}.${opt.id}`, { name: L.name, ...req.vars }, ctx) : `${req.prompt} → ${opt.label}`;
+    const said = req.eventId === 'sys.life.direction' ? opt.result : rawText(`${req.eventId}.${opt.id}`) ? text(`${req.eventId}.${opt.id}`, { name: L.name, ...req.vars }, ctx) : `${req.prompt} → ${opt.label}`;
     const entry = emit(L, { kind: forced ? 'system' : 'choice', id: req.eventId, text: said, option: opt.id, label: opt.label, auto: !!auto, ...(auto && req.mbti && opt.id === req.defaultId && { mbti: req.mbti }), ...(req.careTarget && { careTarget: req.careTarget }), ...(forced && !(auto && req.mbti && opt.id === req.defaultId) && { quiet: true }) });
     SYS_CHOICES[req.eventId]?.(L, ctx, opt.id, req.data || {});
+    if (req.eventId === 'sys.life.direction') entry.effects = opt.fx;
     if (before) settle(L, ctx, req, opt, entry, before);
   } else if (req.data?.lifeEventId) {
     const result = dailyActivities.resolveLifeEvent(L, ctx, req, opt.id);
@@ -354,11 +380,10 @@ function tagMajor(L, e) {
 }
 
 // 해마다 표시 상한(GDD §2.4): 넘치는 줄은 quiet. 선택·사망·출생은 항상 표시.
-export const MAJOR = /^sys\.(fam\.(wedding|child_born|parent_death|widowed|divorced|grandparent_death|remarry|care_end)|age\.(ltc|spouse_care)|home\.(move|region_move|bought|jeonse_fraud)|job\.(lose|first|exit_main|contract_end)|health\.(dx_cancer|dx_cardio)|mil\.enlist|edu\.(college_enter|graduate))/;
+export const MAJOR = /^sys\.(fam\.(wedding|child_born|parent_death|widowed|divorced|grandparent_death|remarry|care_end)|age\.(ltc|spouse_care)|home\.(move|region_move|bought|jeonse_fraud)|job\.(lose|first|exit_main|contract_end|reemploy|return|transition|business_open|business_close)|health\.(dx_cancer|dx_cardio)|mil\.enlist|edu\.(college_enter|graduate))/;
 function prio(e) {
-  if (e.essential) return 0;
+  if (e.essential || (e.kind === 'system' && MAJOR.test(e.id))) return 0;
   if (e.kind === 'choice' || e.kind === 'death' || e.kind === 'birth' || e.asked) return 0;
-  if (e.kind === 'system' && MAJOR.test(e.id)) return 1;
   if (e.kind === 'event') return 2;
   if (e.kind === 'personal') return 3;
   if (e.id === 'sys.concern.new') return 2.2;                        // 새 관심사·고민은 놓치지 않게 개인 사건 바로 아래
@@ -366,8 +391,8 @@ function prio(e) {
   if (e.kind === 'news') return e.link ? 2 : 2.5;                    // 중대 뉴스 구분 없음: 내게 닿은 뉴스는 개인 사건 수준, 나머지는 일반 뉴스   // 주요 사건·우연 사건 다음, 일상 기록(3)보다는 앞(개인 우선이되 뉴스가 묻히지 않게)
   return 4;
 }
-// 한 해 표시 항목(피드) 예산: 0개 15%·1개 60%·2개 20%·3개 5%(FEED_DIST), 절대 상한 FEED_MAX=3.
-// 선택·사망·출생은 항상 보이고, 나머지는 우선순위(prio) 순으로 예산 안에서만 보인다. 넘친 항목은 quiet(기록·효과는 그대로).
+// 한 해 일반 피드 예산은 FEED_DIST와 FEED_MAX로 제한한다. 주요 상태 전환·선택·사망은 숨기지 않는다.
+// 주요 전환·선택·사망·출생은 항상 보이고, 일반 항목만 우선순위(prio) 순으로 남은 예산을 쓴다.
 // 예산은 시드에서 따로 파생한 난수로 정해 구조·콘텐츠 난수 흐름을 건드리지 않는다.
 const feedTarget = L => (L.yr.feed ??= (u => (u < FEED_DIST[0] ? 0 : u < FEED_DIST[0] + FEED_DIST[1] ? 1 : u < FEED_DIST[0] + FEED_DIST[1] + FEED_DIST[2] ? 2 : 3))(R.rand(R.makeRng(R.hashSeed(L.seed, 'feed', L.age)))));
 const topicOf = e => (e.tags?.[0] ?? e.id.split('.').slice(0, 2).join('.'));

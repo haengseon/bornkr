@@ -6,6 +6,7 @@ import { econ } from './stats.js';
 import { CLASS_CAL } from './tuning.js';
 import { spouseName } from './kin.js';
 import { regionalPrice } from '../data/housing-regional.js';
+import { syncMortgages, syncLoan } from './loan-schedules.js';
 import { withTransactionJournal } from './transactions.js';
 
 export const LOAN_LABEL = { credit: '신용대출', mortgage: '주택담보대출', jeonse: '전세자금대출', student: '학자금 대출', business: '사업자 대출' };
@@ -25,6 +26,7 @@ const tally = (L, k, n = 1) => { L.tally[k] = (L.tally[k] || 0) + n; };
 // 모자란 생활비를 신용대출로 메운다. 무담보 신용은 max(3,000만 원(2025 실질), 연소득 × 3)까지만 —
 // 넘는 몫은 기초생활 지원·가족 부양·면책으로 흡수된 것으로 본다(QA-S-03, GDD §5.4 빚 눈덩이 방지).
 export function addCredit(L, amount) {
+  syncLoan(L, 'credit');
   const l = L.money.loans, cap = Math.max(3000 * yr(T('ERA_INCOME_INDEX'), L.year), 3 * (L.money.income || 0));
   l.credit = Math.max(l.credit, Math.min(l.credit + amount, cap));
   refreshDebt(L);
@@ -124,19 +126,31 @@ export function makeAct(L, ctx) {
       amount = Math.round(amount);
       if (amount <= 0) return;
       if (!indep(L) && kind === 'credit') { L.household.netWorth -= amount; return; }
+      syncLoan(L, kind);
       L.money.loans[kind] = (L.money.loans[kind] || 0) + amount;
+      syncLoan(L, kind);
       refreshDebt(L);
       if (!silent) ctx.sys('sys.money.loan', { kindLabel: LOAN_LABEL[kind], amount });
     },
-    repay(amount) {
+    repay(amount, kind) {
       let left = Math.min(Math.round(amount), Math.max(0, L.money.assets));
-      for (const k of ['credit', 'business', 'student', 'jeonse', 'mortgage']) {
+      for (const k of kind ? [kind] : ['credit', 'business', 'student', 'jeonse', 'mortgage', 'rental']) {
         const pay = Math.min(left, L.money.loans[k] || 0);
         if (!pay) continue;
         L.money.loans[k] -= pay; L.money.assets -= pay; left -= pay;
         if (L.money.loans[k] <= 0) paidOff(k);
       }
       refreshDebt(L);
+    },
+
+    sellRentedHome(at, proceeds) {
+      const r = L.rentals?.[at];
+      if (!r) return;
+      syncMortgages(L);
+      const pay = Math.min(r.mortgageBalance || 0, L.money.loans.mortgage || 0, proceeds);
+      L.money.assets += Math.round(proceeds);
+      L.rentals.splice(at, 1);
+      act.repay(pay, 'mortgage');
     },
 
     // 이사. tenure: own|jeonse|monthly|public|family|dorm|facility
@@ -175,13 +189,15 @@ export function makeAct(L, ctx) {
         h.contractEnd = L.year + 2;
       } else if (tenure === 'own' && home) {                // 세 줬던 집으로 돌아간다: 사지 않고 임대 목록에서 뺀다
         L.rentals = (L.rentals || []).filter(r => r !== home);
+        h.mortgageBalance = home.mortgageBalance;
         h.owned = true; h.value = home.value; h.valueMark = home.value; h.markYear = L.year; h.boughtYear ??= home.since;
       } else if (tenure === 'own') {
         const p = Math.round(price ?? homePrice(L));
         const own = Math.max(0, L.money.assets - 300);
         const loan = Math.max(0, p - own);
         L.money.assets -= p - loan;
-        if (loan) L.money.loans.mortgage += loan;
+        if (loan) { syncLoan(L, 'mortgage'); L.money.loans.mortgage += loan; syncLoan(L, 'mortgage'); }
+        h.mortgageBalance = loan;
         h.owned = true; h.value = p; h.boughtYear = L.year; h.valueMark = p;
       } else if (tenure === 'dorm') {
         h.rent = Math.round(rentFor(L, ctx).rent * 0.5);
@@ -215,7 +231,8 @@ export function makeAct(L, ctx) {
     keepHome(mode = 'lease') {
       const h = L.home;
       if (!h.owned) return null;
-      const r = { kind: 'home', rent: mode === 'lease' ? leaseIncome(h.sigungu, L.year, h.value) : 0, since: L.year, region: h.region, sigungu: h.sigungu, dong: h.dong, transit: h.transit, value: h.value, ...(mode !== 'lease' && { empty: true }) };
+      syncMortgages(L);
+      const r = { kind: 'home', mortgageBalance: h.mortgageBalance || 0, rent: mode === 'lease' ? leaseIncome(h.sigungu, L.year, h.value) : 0, since: L.year, region: h.region, sigungu: h.sigungu, dong: h.dong, transit: h.transit, value: h.value, ...(mode !== 'lease' && { empty: true }) };
       (L.rentals ||= []).push(r);
       h.owned = false; h.value = 0;
       return r;
@@ -291,6 +308,8 @@ export function makeAct(L, ctx) {
     divorce() {
       const f = L.family, sp = f.partner;
       f.partner = null; f.married = false; f.divorced = true;
+      L.flags.childPlanned = null;
+      if (L.flags.childPlan?.status === 'planned') Object.assign(L.flags.childPlan, { status: 'cancelled', endedYear: L.year });
       endSpouse(L, sp, 'divorced');
       L.flags.divorceYear = L.year; tally(L, 'divorces');
       if (L.home.owned) { sell(0.5); ctx.sys('sys.home.sell'); act.move('monthly', { reason: '이혼', involuntary: true, silent: true }); }
@@ -301,6 +320,8 @@ export function makeAct(L, ctx) {
       if (!f.partner) return;
       const sp = f.partner;
       f.partner = null; f.married = false; f.widowed = true;
+      L.flags.childPlanned = null;
+      if (L.flags.childPlan?.status === 'planned') Object.assign(L.flags.childPlan, { status: 'cancelled', endedYear: L.year });
       L.flags.widowYear = L.year;
       endSpouse(L, sp, 'widowed');
       ctx.sys('sys.fam.widowed', {}, { ...sensFields(L, 'death'), spouse: { ...spouseRef(sp), end: 'widowed' } });
@@ -345,19 +366,22 @@ export function makeAct(L, ctx) {
 
   function payDeposit(dep, loanShare) {
     if (!indep(L)) return;
+    dep = Math.round(dep);
     L.home.deposit = dep;
-    const own = Math.min(Math.max(0, L.money.assets), dep * (1 - loanShare));
+    const own = Math.min(Math.max(0, L.money.assets), Math.round(dep * (1 - loanShare)));
     L.money.assets -= own;
     const rest = dep - own;
     if (rest > 0) L.money.loans.jeonse += rest;
   }
   function sell(share = 1) {
     const h = L.home;
+    syncMortgages(L);
+    const secured = Math.min(L.money.loans.mortgage || 0, h.mortgageBalance || 0);
     L.money.assets += Math.round(h.value * share);
-    h.owned = false; h.value = 0;
-    const m = Math.min(L.money.loans.mortgage, L.money.assets);
-    L.money.loans.mortgage -= m; L.money.assets -= m;
-    if (L.money.loans.mortgage > 0) { L.money.loans.credit += L.money.loans.mortgage; L.money.loans.mortgage = 0; }
+    const paid = Math.min(secured, Math.max(0, L.money.assets));
+    L.money.loans.mortgage -= secured; L.money.assets -= paid;
+    if (secured > paid) L.money.loans.credit += secured - paid;
+    h.owned = false; h.value = 0; h.mortgageBalance = 0;
   }
   function paidOff(kind) {
     L.flags.paidOff = L.year;

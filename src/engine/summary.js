@@ -29,7 +29,7 @@ export function birthCert(L) {
   const bt = T('BIRTHS_BY_YEAR'), n = yr(bt, b.year), est = b.year < 1970 || b.year > 2025;
   const eraLine = bt[b.year] != null && !est ? `${b.year}년에 태어난 아이 ${comma(n)}명 중 한 명`
     : `${b.year}년에 태어난 아이 약 ${Math.round(n / 1e4)}만 명 중 한 명${est ? '(추정)' : ''}`;
-  const accessLine = b.healthAccess < 35 ? '가까운 소아과까지 차로 40분' : b.healthAccess <= 65 ? '동네 소아과가 있다' : '큰 병원이 가깝다';
+  const accessLine = b.healthAccess < 35 ? '출생 당시 의료 이용 여건이 열악한 편이었다(모형 추정)' : b.healthAccess <= 65 ? '출생 당시 의료 이용 여건은 중간 수준이었다(모형 추정)' : '출생 당시 의료 이용 여건이 좋은 편이었다(모형 추정)';
   const orderLabel = b.siblings === 0 ? '외동' : ORDER_L[b.order - 1] ?? '막내';
   const qLabel = QLABEL[b.quintile - 1];
   const story = [
@@ -84,7 +84,7 @@ const BASE = { birth: 100, death: 100, choice: 20, system: 10, event: 8, news: 6
 const MILE = {
   'sys.fam.wedding': 40, 'sys.fam.child_born': 40, 'sys.job.first': 30, 'sys.home.bought': 30, 'sys.edu.graduate': 25,
   'sys.fam.parent_death': 30, 'sys.fam.parent_care': 30, 'sys.age.spouse_care': 30, 'sys.fam.divorced': 30, 'sys.job.lose': 25,
-  'sys.job.exit_main': 25, 'sys.health.dx_cancer': 25, 'sys.health.dx_cardio': 25, 'sys.health.dx_dementia': 25,
+  'sys.job.exit_main': 25, 'sys.job.reemploy': 40, 'sys.job.return': 40, 'sys.job.transition': 35, 'sys.job.business_close': 30, 'sys.health.dx_cancer': 25, 'sys.health.dx_cardio': 25, 'sys.health.dx_dementia': 25,
   'sys.home.jeonse_fraud': 30, 'sys.money.independent': 20, 'sys.mil.enlist': 15,
 };
 // 민감 항목은 범주별 중립 문구로, 범주마다 연표에 한 줄만(QA-S-13)

@@ -196,40 +196,31 @@ routes.death = () => {
       <p class="death__cause">${deathLine({ ...L.death, ...d, sensitive: sens }, S.settings.hideSensitiveCause)}</p>
     </div>
     <div class="actionbar actionbar--single">
-      ${sens ? '' : '<p class="actionbar__note"><span class="timer-line"><span class="timer-line__fill" style="--k:1"></span></span></p>'}
+<p class="actionbar__note">읽고 난 뒤 직접 넘겨 주세요.</p>
       <button class="btn btn--ink btn--block" type="button" data-act="sum">결산 보기</button>
     </div></section>`);
-  $('[data-act="sum"]', el).addEventListener('click', () => go('summary'));
-  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda, sum?.deathStory);
-  if (sens) return;                                  // 민감 원인이면 자동 넘김 없음
-  const fill = $('.timer-line__fill', el);
-  let left = 8000;
-  const tick = () => {
-    if (!el.isConnected) return;
-    left -= 250;
-    fill.style.setProperty('--k', Math.max(0, left / 8000).toFixed(3));
-    if (left <= 700) el.classList.add('is-leaving');          // 마지막 0.7초는 서서히 어두워진다
-    if (left <= 0) return go('summary');
-    setTimeout(tick, 250);
-  };
-  setTimeout(tick, 250);
+  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda, de);
 };
 
-// 사망 에필로그: 출생 막처럼 검은 화면에 연도·나이 → 이름 → 마지막 한 줄(민감 사망은 생략)이 차례로 뜨고, 걷히면 사망 카드.
-// 하단 [결산 보기]·8초 자동 넘김은 그대로(막은 actionbar 위까지만). 탭하면 건너뛴다. 모션 끔/줄임이면 한 번에 보이고 짧게 페이드.
-function deathCine(el, L, d, coda, story) {
-  const lines = [`${d.year}년 · ${ageText(d.age, d.horizon)}`, L.name, coda].filter(Boolean);
-  const cause = d.horizon ? '' : causeLabel({ ...L.death, ...d }, S.settings.hideSensitiveCause);
-  const stat = cause ? story?.statistic : null;
-  const info = cause ? `<div class="dcine__details"><p>사망 원인 · ${esc(cause)}</p>${stat ? `<p class="dcine__stat">${stat.year}년 전국 사망자 중 ${esc(stat.label || cause)} ${stat.percent}%<small>${stat.count.toLocaleString()}명 / 전체 ${stat.total.toLocaleString()}명<br>${esc(stat.source)} · 게임 속 사망 연도와 다른 참고 통계</small></p>` : '<p class="dcine__stat">해당 사인 분류의 공식 비율 자료 없음</p>'}</div>` : '';
-  el.insertAdjacentHTML('beforeend', `<div class="dcine" data-dcine><div class="dcine__lines" role="status">${lines.map((t, i) => `<p class="dcine__line${i === 1 ? ' dcine__name' : ''}">${esc(t)}</p>`).join('')}</div>
-    ${info}
-    <button class="cine__tap" type="button" aria-label="에필로그 건너뛰기"><span class="cine__skip">화면을 누르면 건너뜁니다</span></button></div>`);
-  const cine = $('[data-dcine]', el), still = reduced() || document.documentElement.dataset.motion === 'off', ts = [];
-  const end = () => { ts.forEach(clearTimeout); cine.classList.add('is-out'); setTimeout(() => cine.remove(), 700); };
-  $('.cine__tap', cine).addEventListener('click', end);
-  $$('.dcine__line', cine).forEach((ln, i) => ts.push(setTimeout(() => ln.classList.add('on'), still ? 0 : 400 + i * 1100)));
-  ts.push(setTimeout(end, still ? 2500 : 5200));
+// 마지막 페이지는 사용자가 한 장씩 넘긴다. 자동결정·배속·모션 설정의 영향을 받지 않는다.
+function deathCine(el, L, d, coda, entry) {
+  const horizon = !!d.horizon;
+  const lines = [horizon ? '여기까지의 삶' : '한 사람의 시간이 멈췄습니다', L.name,
+    `${L.birth.year}년부터 ${d.year}년까지 · ${ageText(d.age, horizon)}`];
+  const closing = horizon ? '관찰은 여기서 끝납니다. 살아온 날들의 기록은 남아 있습니다.'
+    : coda || '이름 아래, 함께한 사람들과 지나온 날들이 남았습니다.';
+  const finalRecord = !d.sensitive && !L.death?.sensitive ? entry?.text : null;
+  el.insertAdjacentHTML('beforeend', `<div class="dcine" data-dcine><div class="dcine__lines">
+    ${lines.map((t, i) => `<p class="dcine__line on${i === 1 ? ' dcine__name' : ''}">${esc(t)}</p>`).join('')}
+    <p class="dcine__line on dcine__closing">${esc(closing)}</p></div>
+    ${finalRecord ? `<div class="dcine__details"><p class="dcine__eyebrow">마지막 기록</p><p>${esc(finalRecord)}</p></div>` : ''}</div>`);
+  const button = $('[data-act="sum"]', el);
+  button.textContent = '마지막 기록 보기';
+  button.addEventListener('click', () => {
+    const cine = $('[data-dcine]', el);
+    if (cine) { cine.remove(); button.textContent = '살아온 날들 돌아보기'; }
+    else go('summary');
+  });
 }
 
 // ───────── S10 결산 (기록관 상세 S12-b 공용) ─────────
@@ -272,7 +263,7 @@ function summaryHtml(L, sum, archive) {
       <div class="epi__body">${ep.paragraphs.map((t, i) => `<p style="--i:${i}">${esc(t)}</p>`).join('')}</div>
       ${ep.lifeStory?.paragraphs.length ? `<section class="epi__body" aria-label="선택과 생활의 기록"><h3>선택이 남긴 기록</h3>${ep.lifeStory.paragraphs.map(t => `<p>${esc(t)}</p>`).join('')}</section>` : ''}
       ${ep.choices?.length ? `<section class="epi__choices"><h3>내가 고른 순간들</h3><ol>${ep.choices.map(e => `<li><b>${e.year}년 · ${e.age}세</b> ${esc(e.label)}${e.result ? `<p>${esc(e.result)}</p>` : ''}</li>`).join('')}</ol></section>` : ''}<p class="verdict__main epi__coda">${esc(v.main)}</p>` : `<p class="verdict__main">${esc(v.main)}</p>`}
-      ${ds ? `<section class="epi__death" aria-label="사망 기록"><p class="epi__deathline"><span class="mono">${ds.year}년</span>, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${esc(cause)}` : ''}</p>${ds.narrative && cause ? `<p class="epi__narrative">${esc(ds.narrative)}</p>` : ''}${ds.statistic && cause ? `<p class="epi__stat">통계 · ${ds.statistic.year}년 전국 사망자 중 ${esc(cause)} 관련 분류 ${ds.statistic.percent}%<small>전체 사망자 ${ds.statistic.total.toLocaleString()}명 기준 · 게임 속 사망 연도와는 별개인 참고 통계<br><a href="${esc(ds.statistic.url)}" target="_blank" rel="noopener">${esc(ds.statistic.source)}</a></small></p>` : ''}${cause && ds.steps?.length ? `<p class="epi__chain">${ds.steps.map(esc).join('<span class="epi__arrow" aria-hidden="true"> → </span>')}</p>` : ''}</section>` : ''}
+      ${ds ? `<section class="epi__death" aria-label="사망 기록"><p class="epi__deathline"><span class="mono">${ds.year}년</span>, ${ageText(ds.age)}${cause ? ` — 직접 사인: ${esc(cause)}` : ''}</p>${ds.narrative && cause ? `<p class="epi__narrative">${esc(ds.narrative)}</p>` : ''}${ds.statistic && cause ? `<p class="epi__stat">통계 · ${ds.statistic.year}년 전국 사망자 중 ${esc(cause)} 관련 분류 ${ds.statistic.percent}%<small>전체 사망자 ${ds.statistic.total.toLocaleString()}명 기준 · 게임 속 사망 연도와는 별개인 참고 통계<br><a href="${esc(ds.statistic.url)}" target="_blank" rel="noopener">${esc(ds.statistic.source)}</a></small></p>` : ''}${cause && ds.steps?.length ? `<p class="epi__chain">참고 배경 · ${ds.steps.map(esc).join(' · ')}</p>` : ''}</section>` : ''}
       ${sum.capNotice ? `<p class="cap verdict__cap">${esc(sum.capNotice)}</p>` : ''}
       <div class="verdict__sign"><p class="mono">${d.year}년</p><p class="verdict__org">태어나보니 대한민국</p><span class="seal seal--square" aria-hidden="true"><span>인</span><span>생</span><span>판</span><span>정</span></span></div>
     </article>

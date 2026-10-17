@@ -3,6 +3,7 @@
 // 정답/오답 없음 — 선택마다 얻는 것과 잃는 것. 직장 내 괴롭힘·성희롱은 비그래픽 한 줄 + sensitive(도움 줄은 UI가 붙임).
 // 시대 구분은 years·era()로. 확률 p는 GDD §9.1 가이드(단발 .05~.25, 반복 .03~.10 + cooldown), 근거 통계가 있으면 src.
 // tags는 'y.' 접두(같은 tag 2년 내 재발생 ×.1 — 몰림 억제). 'victim'·'recovery'만 엔진 표준값(피해 플래그·회복 연결).
+import { takeLeave } from '../../engine/systems/education.js';
 import { era } from './early.js';
 
 // ── 조건 보조(모두 성긴 L에서도 throw 하지 않게 ?. 사용) ──
@@ -62,7 +63,7 @@ export default [
       options: [
         { id: 'loan', label: '학자금 대출', fx: { stats: { wealth: -2, happiness: -1, leisure: 1 } }, result: '이자는 졸업 뒤의 일로 미뤄 두었다.', do: (L, act) => act.borrow(600, 'student') },
         { id: 'work', label: '알바를 늘린다', fx: { stats: { wealth: 1, leisure: -4, intellect: -1 } }, result: '강의 사이사이에 시급 일을 끼워 넣었다.', do: (L, act) => act.gain(300), hint: '재학 중 일 경험 41%(2026)' },
-        { id: 'leave', label: '휴학한다', fx: { stats: { leisure: 3, happiness: 1, wealth: -2, relations: -1 } }, result: '한 학기를 쉬는 동안 통장 잔액만 확인했다.' },
+        { id: 'leave', label: '휴학한다', do: L => takeLeave(L), fx: { stats: { leisure: 3, happiness: 1, wealth: -2, relations: -1 } }, result: '휴학계를 내고 다음 학년도 쉬며 생활비를 점검하기로 했다.' },
       ],
       default: 'work',
     },
@@ -101,13 +102,13 @@ export default [
   {
     id: 'youth.leave.year', ages: [20, 24], p: 0.08, once: true, tags: ['y.campus'], src: ['R03.S22'],
     when: L => L?.edu?.stage === 'college' && !L?.edu?.leave,
-    text: '한 학기를 쉬어 갈까 자꾸 생각했다. 수강신청 기간이 다가왔다.',
+    text: '학교를 잠시 쉬어 갈까 자꾸 생각했다. 수강신청 기간이 다가왔다.',
     reason: '휴학을 고민함',
     choice: {
       prompt: '휴학할까?',
       options: [
-        { id: 'leave', label: '휴학한다', fx: { stats: { leisure: 3, happiness: 2, wealth: -2 } }, result: '한 학기 동안 학교 밖의 시간표를 직접 짰다.' },
-        { id: 'work', label: '휴학하고 일한다', fx: { stats: { wealth: 2, intellect: 1, leisure: -2 } }, result: '휴학계를 내고 일터로 출근했다.' },
+        { id: 'leave', label: '휴학한다', do: L => takeLeave(L), fx: { stats: { leisure: 3, happiness: 2, wealth: -2 } }, result: '휴학계를 내고 다음 학년도 학교 밖에서 보내기로 했다.' },
+        { id: 'work', label: '휴학하고 구직한다', do: L => takeLeave(L), fx: { stats: { intellect: -1, leisure: -2 } }, result: '휴학계를 내고 일자리를 알아보기 시작했다.' },
         { id: 'stay', label: '계속 다닌다', fx: { stats: { intellect: 2, leisure: -2, happiness: -1 } }, result: '학점은 쌓였고 쉬는 날은 줄었다.', hint: '여성 휴학 경험은 29.6%(2026)' },
       ],
       default: 'stay',
@@ -577,7 +578,7 @@ export default [
   {
     id: 'youth.single.evening', ages: [28, 34], p: 0.2, once: true,
     when: L => !L?.family?.partner && apart(L),
-    text: ['퇴근길에 장을 보고 국을 끓였다. 텔레비전 소리가 집을 채웠다.', '혼자 먹는 저녁에도 밥상을 제대로 차렸다. 설거지까지가 하루였다.', '저녁 여덟 시, 불을 낮추고 좋아하는 음악을 틀었다.'],
+    text: ['장을 보고 돌아와 국을 끓였다. 텔레비전 소리가 집을 채웠다.', '혼자 먹는 저녁에도 밥상을 제대로 차렸다. 설거지까지가 하루였다.', '저녁 여덟 시, 불을 낮추고 좋아하는 음악을 틀었다.'],
     fx: { stats: { happiness: 2, leisure: 2 } },
     reason: '혼자 사는 저녁의 루틴',
   },

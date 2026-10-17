@@ -2021,3 +2021,12 @@ body:has(.sheet) .life-menu { visibility:hidden; }
 .life .pcard__body { padding:2px 6px 3px; }
 .life .pcard__family li { padding-block:1px; }
 @media (min-width:600px) { .life .pcards { gap:4px; }.life .pcard__body { padding:3px 6px; } }
+
+/* 마지막 기록은 자동으로 넘기지 않고 읽을 공간을 확보한다. */
+.life-end { width:100%; padding:12px 20px; }
+.life-end p { margin:0 0 10px; font-size:13px; line-height:1.6; }
+.dcine { overflow-y:auto; padding-block:36px; justify-content:safe center; }
+.dcine__closing { max-width:32ch; margin:20px auto 0; font-size:16px; letter-spacing:0; }
+.dcine__eyebrow { font-size:12px; opacity:.65; letter-spacing:.12em; }
+.family-chart__legend.family-current { padding-left:0; }
+.family-chart__no-series { width:24px; flex-shrink:0; text-align:center; opacity:.5; }

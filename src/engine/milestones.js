@@ -46,17 +46,17 @@ export const META = {
   'sys.home.expire': { ch: 0, topic: 'housing', opts: { same: [E(['housing', 1], ['wealth', -1]), 'mid'], down: [E(['living', 1], ['leisure', -1]), 'mid'], monthly: [E(['living', 1], ['wealth', -1]), 'mid'], family: [E(['relations', -1], ['leisure', -1, 2]), 'low'] } },
   'sys.job.lost': { ch: 0, topic: 'job', opts: { seek: [E(['job', 1]), 'mid'], learn: [E(['intellect', 1, 2], ['wealth', -1]), 'mid'], temp: [E(['wealth', 1], ['health', -1]), 'mid'], shop: [E(['wealth', 1, 2], ['leisure', -1, 2]), 'high'], family: [E(['relations', -1], ['leisure', -1]), 'low'] } },
   'sys.invest.plan': { ch: 0, topic: 'money', opts: { safe: [E(['wealth', 1]), 'low'], mix: [E(['wealth', 1, 2]), 'mid'], stock: [E(['wealth', 1, 2], ['happiness', -1]), 'high'], gold: [E(['wealth', 1]), 'low'], fx: [E(['wealth', 1]), 'high'], realty: [E(['wealth', 1, 2]), 'high'], none: [E(['leisure', 1]), 'low'] } },
-  'sys.invest.panic': { ch: 0, topic: 'money', opts: { sell: [E(['wealth', -1]), 'low'], hold: [E(['happiness', -1]), 'mid'], add: [E(['wealth', 1, 2]), 'high'] } },
-  'sys.money.crunch': { ch: 0, topic: 'money', opts: { sellhome: [E(['housing', 1, 2], ['wealth', 1]), 'high'], cut: [E(['leisure', -1], ['happiness', -1]), 'mid'], family: [E(['relations', -1]), 'low'], loan: [E(['wealth', -1]), 'high'], sellrental: [E(['wealth', 1], ['living', 1]), 'mid'], cashout: [E(['wealth', 1], ['living', 1]), 'mid'] } },
-  'sys.invest.rental': { ch: 0, topic: 'money', opts: { officetel: [E(['wealth', 1, 2], ['living', 1]), 'mid'], apt: [E(['wealth', 1, 2], ['living', 1]), 'high'], shop: [E(['wealth', 1, 2], ['living', 1]), 'high'], no: [[], 'low'] } },
+  'sys.invest.panic': { ch: 0, topic: 'money', opts: { sell: [E(['happiness', 1]), 'low'], hold: [E(['happiness', -1], ['health', -1]), 'mid'], add: [E(['happiness', -1, 2]), 'high'] } },
+  'sys.money.crunch': { ch: 0, topic: 'money', opts: { sellhome: [E(['housing', 1, 2]), 'high'], cut: [E(['leisure', -1], ['happiness', -1]), 'mid'], family: [E(['relations', -1]), 'low'], loan: [E(), 'high'], sellrental: [E(['happiness', -1]), 'mid'], cashout: [E(['happiness', -1]), 'mid'] } },
+  'sys.invest.rental': { ch: 0, topic: 'money', opts: { officetel: [E(['happiness', 1]), 'mid'], apt: [E(['happiness', 1]), 'high'], shop: [E(['happiness', 1]), 'high'], no: [[], 'low'] } },
   'sys.money.sidejob': { ch: 0, topic: 'money', opts: { deliver: [E(['wealth', 1], ['leisure', -1, 2], ['health', -1]), 'mid'], online: [E(['wealth', 1], ['leisure', -1]), 'mid'], no: [E(['leisure', 1]), 'low'] } },
   'sys.money.pension': { ch: 0, topic: 'money', opts: { basic: [E(['wealth', 1]), 'low'], max: [E(['wealth', 1, 2], ['leisure', -1]), 'low'], no: [E(['leisure', 1]), 'mid'] } },
   'sys.money.pension_draw': { ch: 0, topic: 'money', opts: { annuity: [E(['wealth', 1]), 'low'], later: [E(['wealth', 1, 2]), 'mid'], lump: [E(['wealth', 1], ['happiness', 1]), 'mid'] } },
   'sys.home.buy': { ch: 7, topic: 'housing', opts: { buy: [E(['wealth', 1, 2], ['leisure', -1], ['housing', 1]), 'high'], wait: [E(['housing', 1]), 'low'] } },
   'sys.home.upgrade': { ch: 0, topic: 'housing', opts: { own: [E(['wealth', 1, 2], ['housing', 1], ['leisure', -1]), 'high'], jeonse: [E(['housing', 1], ['wealth', -1]), 'mid'], better: [E(['housing', 1], ['happiness', 1], ['wealth', -1]), 'mid'], stay: [E(['leisure', 1]), 'low'] } },
-  'sys.home.hometown': { ch: 8, topic: 'care', opts: { near: [E(['relations', 1, 2], ['care', 1]), 'mid'], near_sell: [E(['relations', 1, 2], ['wealth', 1]), 'mid'], near_lease: [E(['relations', 1, 2], ['wealth', 1]), 'mid'], near_keep: [E(['relations', 1, 2], ['wealth', -1]), 'mid'], bring: [E(['relations', 1], ['leisure', -1, 2], ['care', 1, 2]), 'high'], facility: [E(['wealth', -1, 2], ['care', 1]), 'mid'] } },
-  'sys.home.relocate': { ch: 0, topic: 'housing', opts: { go: [E(['wealth', 1], ['relations', -1]), 'mid'], go_sell: [E(['wealth', 1], ['relations', -1]), 'mid'], go_lease: [E(['wealth', 1, 2], ['relations', -1]), 'high'], go_keep: [E(['wealth', -1], ['relations', -1]), 'mid'], stay: [E(['leisure', -1], ['relations', 1]), 'low'] } },
-  'sys.home.rental': { ch: 0, topic: 'housing', opts: { back: [E(['housing', 1], ['happiness', 1]), 'low'], sell: [E(['wealth', 1]), 'mid'], lease: [E(['wealth', 1]), 'mid'], keep: [E(['wealth', 1]), 'mid'] } },
+  'sys.home.hometown': { ch: 8, topic: 'care', opts: { near: [E(['relations', 1, 2], ['care', 1]), 'mid'], near_sell: [E(['relations', 1, 2]), 'mid'], near_lease: [E(['relations', 1, 2]), 'mid'], near_keep: [E(['relations', 1, 2]), 'mid'], bring: [E(['relations', 1], ['leisure', -1, 2], ['care', 1, 2]), 'high'], facility: [E(['care', 1]), 'mid'] } },
+  'sys.home.relocate': { ch: 0, topic: 'housing', opts: { go: [E(['relations', -1]), 'mid'], go_sell: [E(['relations', -1]), 'mid'], go_lease: [E(['relations', -1]), 'high'], go_keep: [E(['relations', -1]), 'mid'], stay: [E(['leisure', -1], ['relations', 1]), 'low'] } },
+  'sys.home.rental': { ch: 0, topic: 'housing', opts: { back: [E(['housing', 1], ['happiness', 1]), 'low'], sell: [E(), 'mid'], lease: [E(), 'mid'], keep: [E(), 'mid'] } },
   'sys.chain.mortgage': { ch: 7, topic: 'housing', chain: 'mortgage', opts: { hold: [E(['leisure', -1, 2], ['happiness', -1]), 'mid'], sell: [E(['wealth', -1], ['housing', 1]), 'mid'] } },
   'sys.fam.parent_care': { ch: 8, topic: 'care', opts: { home: [E(['relations', 1], ['leisure', -1, 2], ['care', 1, 2]), 'high'], facility: [E(['wealth', -1, 2], ['care', 1]), 'mid'], share: [E(['wealth', -1], ['leisure', -1], ['care', 1]), 'low'] } },
   'sys.job.honorary': { ch: 9, topic: 'retire', opts: { accept: [E(['wealth', 1], ['job', 1, 2]), 'mid'], stay: [E(['job', 1]), 'high'] } },
@@ -80,14 +80,46 @@ export function decorate(L, full) {
   if (m.chain) full.chain = m.chain;
   full.timeoutMs = Math.max(full.timeoutMs, 20000);       // 중대 결정 카운트다운 20초(PROCESS-V2 §3)
   for (const o of full.options) { const d = m.opts[o.id]; if (d) { o.effects = d[0]; o.risk = d[1]; } }
+  if (full.eventId === 'sys.invest.plan') {
+    const hints = { safe: '예금 중심으로 손실 위험을 낮춘다. 기대 수익도 낮다.', mix: '여러 자산에 나누어 투자한다. 예금보다 가격 변동이 크다.', stock: '주식 비중을 높인다. 수익 기회와 손실 위험이 함께 커진다.', gold: '금 가격에 따라 가치가 달라진다. 이자는 없다.', fx: '환율 상승과 하락에 자산 가치가 함께 움직인다.', realty: '부동산 가격에 따라 가치가 달라진다. 급히 현금으로 바꾸기 어렵다.', none: '투자에 묶지 않고 지금의 생활에 쓴다. 미래 투자 수익은 포기한다.' };
+    for (const o of full.options) { o.effects = []; o.hint = hints[o.id] ?? o.hint; }
+  }
+  const concreteHints = {
+    'sys.invest.rental': {
+      officetel: '현금을 오피스텔 지분으로 바꾼다. 월세를 받을 수 있지만 공실·관리비와 매각 지연 위험이 있다.',
+      apt: '현금을 아파트 지분으로 바꾼다. 임대료와 집값이 함께 변하며 대출·보유비가 든다.',
+      shop: '현금을 상가 지분으로 바꾼다. 상권에 따라 임대료·공실과 매각 가격이 달라진다.',
+      no: '현금을 그대로 둔다. 새 임대료도, 새 임대 대출도 생기지 않는다.',
+    },
+    'sys.money.crunch': {
+      sellhome: '집을 팔아 담보와 이사 비용을 정산한다. 이후 새집의 보증금이나 월세가 든다.',
+      sellrental: '임대 부동산을 현금으로 바꾼다. 매각 비용과 대출을 정산하고 임대료 수입은 끝난다.',
+      cashout: '연금 적립금에서 해지 세금을 떼고 현금으로 받는다. 그 적립금으로 받을 노후 연금은 없어진다.',
+    },
+    'sys.home.rental': {
+      sell: '매각 비용 3%와 이 집의 담보를 정산한다. 남은 돈은 현금이 되고 임대료는 끊긴다.',
+      lease: '집을 보유하고 임대료를 받는다. 담보·보유비와 공실 위험도 남는다.',
+      keep: '현금으로 바꾸지 않고 집을 그대로 둔다. 남은 담보와 보유비도 계속 부담한다.',
+    },
+  };
+  for (const o of full.options) {
+    const hint = concreteHints[full.eventId]?.[o.id];
+    if (hint) o.hint = hint;
+    if (['sys.home.hometown', 'sys.home.relocate'].includes(full.eventId)) {
+      if (o.id.endsWith('_sell')) o.hint = '지금 집을 팔아 담보를 정산한 돈으로 새집을 구한다. 기존 집의 임대료와 이후 가격 변동은 내 몫에서 빠진다.';
+      else if (o.id.endsWith('_lease')) o.hint = '지금 집은 보유하고 세를 준다. 새집 보증금이 따로 필요하고 기존 담보·보유비·공실 위험이 남는다.';
+      else if (o.id.endsWith('_keep')) o.hint = '지금 집을 비워 둔다. 임대료 없이 기존 담보·보유비와 새집 비용을 함께 부담한다.';
+      else if (o.id === 'go') o.hint = '지금 계약을 정산해 보증금을 돌려받고 새집의 보증금·월세·이사비를 부담한다.';
+    }
+  }
   return full;
 }
 
 // 우연 선택 옵션의 영향 칩: fx에서 자동 계산(지표 |Δ|≥2→1, ≥5→2 / 이슈 |Δ|≥3 / 돈)
 export function fxEffects(o) {
   const out = [], fx = o.fx || {};
-  for (const [k, d] of Object.entries(fx.stats || {})) if (Math.abs(d) >= 2) out.push({ key: k, dir: Math.sign(d), size: Math.abs(d) >= 5 ? 2 : 1 });
-  for (const [k, d] of Object.entries(fx.issues || {})) if (Math.abs(d) >= 3) out.push({ key: k, dir: Math.sign(d), size: Math.abs(d) >= 8 ? 2 : 1 });
+  for (const [k, d] of Object.entries(fx.stats || {})) if (d) out.push({ key: k, dir: Math.sign(d), size: Math.abs(d) >= 5 ? 2 : 1, delta: d });
+  for (const [k, d] of Object.entries(fx.issues || {})) if (d) out.push({ key: k, dir: Math.sign(d), size: Math.abs(d) >= 8 ? 2 : 1, delta: d });
   const m = fx.money;
   if (m && !out.some(e => e.key === 'wealth')) {
     const net = (m.assets || 0) - (m.debt || 0);

@@ -40,7 +40,7 @@ export function deathStory(L) {
   if (FRAIL.has(c) && g.ltc) F.push([d.year, `장기요양 ${g.ltc}등급의 돌봄이 필요했다`]);
   if (FRAIL.has(c) && g.isolated && d.age >= 60) F.push([d.year, '마지막 기록에는 사회적 고립이 남아 있었다']);
   if (d.age >= 60 && L.family?.widowed && !L.family?.partner && (FRAIL.has(c) || c === 'senility')) F.push([d.year, '배우자와 사별한 뒤의 삶이었다']);
-  if (FAR.has(c) && L.birth.healthAccess < 35 && !L.birth.urban) F.push([L.birth.year, '가까운 병원이 멀리 있는 동네에서 살았다']);
+  // 출생지의 합성 접근 지수로 평생의 진료 거리나 직접 사망 경위를 추정하지 않는다.
   if (ACCIDENT.has(c) && ['employed', 'self'].includes(L.job?.status) && (L.job?.hazard ?? 0) >= 2) F.push([d.year, '마지막 직업 기록에는 업무상 위험이 있는 일이 남아 있었다']);
   if ((c === 'tb' && d.year < 1995) || (c === 'infectious' && d.year < 1980)) F.unshift([d.year, c === 'tb' ? '결핵이 아직 흔한 병이던 때였다' : '감염병이 아직 흔하던 시절이었다']);   // R14 시대 사인
   if (c === 'covid' && d.year <= 2024) F.unshift([d.year, `${d.year}년 감염병이 번지던 때였다`]);

@@ -180,8 +180,19 @@ test('do 훅: 허용된 act만, 허용된 플래그만, throw 없음', () => {
   for (const [id, fn] of hooks) for (const s of STATES) {
     const calls = [];
     const act = new Proxy({}, { get: (_, k) => (...a) => { assert.ok(ACT_OK.has(k), `${id}: 허용되지 않은 act.${String(k)}`); if (k === 'flag') assert.ok(FLAGS_OK.has(a[0]), `${id}: 플래그 ${a[0]}`); calls.push([k, ...a]); } });
-    assert.doesNotThrow(() => fn(mkL(2012, 26, s), act), `${id}: do 훅 오류`);
-    assert.ok(calls.length > 0, `${id}: do 훅이 아무것도 안 함`);
+    const L = mkL(2012, 26, s), before = structuredClone(L);
+    assert.doesNotThrow(() => fn(L, act), `${id}: do 훅 오류`);
+    const leaveHook = ['youth.tuition.bill/leave', 'youth.leave.year/leave', 'youth.leave.year/work'].includes(id);
+    if (leaveHook) {
+      if (s.stage === 'college') {
+        assert.equal(L.edu.leave, 1, `${id}: 실제 휴학 학적`);
+        assert.equal(L.edu.leaveYear, L.year);
+        assert.equal(L.edu.leaveUntil, L.year + 1);
+        assert.equal(L.edu.resumeYear, L.year + 2);
+      } else assert.deepEqual(L.edu, before.edu, `${id}: 비재학생은 학적 유지`);
+      assert.deepEqual({ ...L, edu: before.edu }, before, `${id}: 학적 외 상태 변경 없음`);
+      assert.equal(calls.length, 0, `${id}: 휴학이 취업·입금을 만들지 않음`);
+    } else assert.ok(calls.length > 0, `${id}: do 훅이 아무것도 안 함`);
   }
 });
 

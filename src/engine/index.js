@@ -31,7 +31,7 @@ export const runToEnd = (L, policy = 'default') => finish(L, policy);
 // 같은 시드 + 선택 기록 → 같은 생애. 기록에 없는 선택(엔진 자동 적용 forced 제외)은 기본값.
 export function replay(seed, choices = [], { forced, modelVersion } = {}) {
   const L = newLife({ seed, forced, modelVersion });
-  const queue = choices.filter(c => !c.forced);
+  const queue = choices.filter(c => !c.forced && !c.routine);
   let i = 0;
   while (L.alive) {
     if (!L.pending) { advance(L); continue; }

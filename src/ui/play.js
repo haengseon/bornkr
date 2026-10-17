@@ -6,7 +6,6 @@ import { newLife, advanceYear, choose, runToEnd, compareCard, expectedRemainingY
 import { COMPARE_AGES, STATS, STAGES, SPEEDS, ISSUES } from '../engine/constants.js';
 import { S, $, $$, esc, show, go, announce, toast, sleep, reduced, setSetting, sheetOpen, sheetHeld, openSheet, closeSheet } from './dom.js';
 import { saveCurrent, clearCurrent, addRecord } from './store.js';
-import { dailyLifeHtml } from './daily-life.js';
 import { fxChips, sexLabel, regionShort, nativeAge, stageState, statLevel, josa, kindBadge } from './labels.js';
 import { openStats, gaugesHtml } from './sheets.js';
 import { profileOf } from './profile.js';
@@ -68,7 +67,7 @@ export function startNew(L) {
 // 이어 하기: 같은 시드 + 기록된 선택으로 그 나이까지 다시 진행(엔진 결정성, ARCHITECTURE §14)
 export function restore({ seed, choices = [], age = 0, forcedYear, modelVersion = 1 }) {
   const L = newLife({ seed, modelVersion, forced: forcedYear ? { year: forcedYear } : undefined });
-  const q = choices.filter(c => !c.forced);
+  const q = choices.filter(c => !c.forced && !c.routine);
   let i = 0;
   years: while (L.alive && L.age < age) {
     advanceYear(L);
@@ -230,6 +229,27 @@ function renderEntries(entries, req, initial = false) {
   if (!initial) sayBubble(vis);
 }
 
+// 실행 중인 생애의 기록만 순서대로 붙인다. 모션을 꺼도 실제 표시 간격은 유지한다.
+async function waitFeedGap(run) {
+  let left = 1400;
+  while (left > 0) {
+    await sleep(TICK);
+    if (run !== S.run || !$('.life .feed')) return false;
+    syncClock();
+    if (!halted()) left -= TICK * Math.min(4, S.settings.speed);
+  }
+  return run === S.run;
+}
+export async function revealEntries(entries, req, run) {
+  const visible = (entries || []).filter(e => !e.quiet);
+  for (let i = 0; i < visible.length; i++) {
+    if (i && !await waitFeedGap(run)) return false;
+    if (run !== S.run || !$('.life .feed')) return false;
+    renderEntries([visible[i]], req);
+  }
+  return run === S.run;
+}
+
 // 장면 말풍선: 민감 항목·뉴스·비교 줄은 말풍선에 올리지 않는다(피드에만)
 function sayBubble(vis) {
   const e = [...vis].reverse().find(x => !x.sensitive && x.kind !== 'news' && x.kind !== 'compare' && x.kind !== 'death');
@@ -264,15 +284,6 @@ function updatePersona(L) {
 function updateHud(animate = true) {
   const L = S.L, root = $('.life');
   if (!root) return;
-  const dailyPanel = $('[data-daily-panel]', root), dailyBody = $('[data-daily-body]', root);
-  if (dailyPanel && dailyBody) {
-    const html = dailyLifeHtml(L);
-    dailyPanel.hidden = !html;
-    dailyBody.innerHTML = html;
-    const summary = L.dailyLife?.summary;
-    const line = $('[data-sum="daily"]', dailyPanel);
-    if (line) line.textContent = summary?.routine?.label || '수입·지출';
-  }
   refreshAux(); updatePersona(L);
   $('[data-hud="age"]', root).textContent = L.age;
   $('[data-hud="year"]', root).textContent = L.year;
@@ -484,11 +495,19 @@ async function loop(run) {
 async function handle(r, run, req = null, shown = null) {
   if (!r) return;
   if (r.chapter) curChap = r.chapter;
-  renderEntries(r.entries, req);
+  if (run !== S.run) return;
   updateHud();
+  if (!await revealEntries(r.entries, req, run)) return;
   const sh = (r.entries || []).find(isShockEntry);
   let blocked = !!shown;    // 선택 시트가 결과·바뀐 것을 이미 한 화면에 보여 줬다: 이어지는 카드는 확인 없는 작은 카드로(확인은 한 번의 선택에 최대 1번)
-  if (sh && S.L.alive && !capped() && run === S.run) { newsSeen.add(S.L.year); await showShock(sh, run); blocked = true; } else maybeNews(r.entries);
+  if (sh && S.L.alive && !capped() && run === S.run) {
+    // 시대 소식 자체는 확인을 요구하지 않는다. 개인의 실제 큰 변화는 아래에서 따로 보여 준다.
+    newsSeen.add(S.L.year);
+    newsLog.push({ year: sh.year ?? S.L.year, headline: sh.text, summary: '', impact: '', axes: Object.keys(sh.effects?.issues || {}), from: 'era', react: reactText(sh, S.L) });
+    refreshAux();
+  } else await maybeNews(r.entries, run);
+  if (run !== S.run) return;
+  if ((r.choice || (r.entries || []).some(isMajorEntry)) && (r.entries || []).some(e => !e.quiet) && !await waitFeedGap(run)) return;
   await showMajor(r, run, req, { shown, soft: blocked });
   if (r.choice && run === S.run) {
     const ctxText = [...(r.entries || [])].reverse().find(e => e.id === r.choice.eventId && e.kind !== 'choice')?.text;
@@ -506,19 +525,24 @@ async function finishCap(run, quiet = false) {
     if (L.pending) choose(L, L.pending.defaultId, { auto: true });
     if (L.alive) runToEnd(L, 'cap');            // 엔진이 상한 고지(end.cap)를 결산에 남긴다
   } catch (e) { console.error(e); }
-  await sleep(reduced() ? 0 : 1200);
-  if (run !== S.run) return;
-  finishLife();
-  go('death');
+  await toDeath(run);
 }
 
 async function toDeath(run) {
-  announce(S.L.death?.horizon ? '2050년, 관찰이 끝납니다.' : '마지막 해입니다.');
-  scene?.update(S.L, { dead: true });
-  await sleep(reduced() ? 0 : 1200);
   if (run !== S.run) return;
+  const horizon = S.L.death?.horizon;
+  announce(horizon ? '관찰이 끝났습니다. 마지막 기록을 읽고 직접 넘겨 주세요.' : '마지막 해입니다. 기록을 읽고 직접 넘겨 주세요.');
+  scene?.update(S.L, { dead: true });
   finishLife();
-  go('death');
+  // 마지막 해의 피드를 그대로 둔다. 배속·자동결정 설정과 무관하게 직접 넘긴다.
+  const bar = $('.lifebar');
+  if (bar) {
+    bar.innerHTML = `<div class="life-end"><p>${horizon ? '관찰이 끝났습니다.' : '이 생애의 마지막 기록입니다.'} 천천히 읽고 넘겨 주세요.</p><button class="btn btn--ink btn--block" type="button" data-act="last-record">${horizon ? '관찰을 마치며' : '마지막 페이지로'}</button></div>`;
+    $('[data-act="last-record"]', bar).addEventListener('click', () => go('death'), { once: true });
+  }
+  $('.mini')?.remove();
+  const badge = $('.life [data-hud="paused"]');
+  if (badge) { badge.hidden = false; badge.textContent = '마지막 기록 · 직접 넘기기'; }
 }
 
 // 기록관 저장은 사망 화면을 띄우기 전에(UI-SPEC S09 ①)
@@ -707,11 +731,13 @@ function openCompare(onClose) {
 const newsSeen = new Set(), newsLog = [];
 // 올해의 뉴스: 엔진 news 줄은 피드에 이미 나온다. 없는 해는 연표 자료에서 1건을 피드에 줄로 넣는다(토스트·자동 팝업 없음).
 const feedNews = [];
-function maybeNews(entries) {
+async function maybeNews(entries, run) {
   const n = pickNews(S.L, entries, archiveNow(), newsSeen);
   if (!n) return;
   newsLog.push(n);
   if (n.from === 'archive' && $('.feed')) {
+    if ((entries || []).some(e => !e.quiet) && !await waitFeedGap(run)) return;
+    if (run !== S.run || !$('.life .feed')) return;
     const ul = yearList(S.L.age, S.L.year, false);
     ul.insertAdjacentHTML('beforeend', `<li class="entry entry--news">${newsRowHtml(n, feedNews.push(n) - 1)}</li>`);
     ul.closest('.feed__year').classList.remove('is-sum');
@@ -762,7 +788,6 @@ function cardsHtml() {
   ${card('home', '거주', `<dl class="pcard__grid">${cell('home', '지역')}${cell('dwell', '주거')}</dl>`)}
   ${card('job', '직업', `<dl class="pcard__grid">${cell('job', '직업')}${cell('emp', '고용 형태')}${cell('pay', '연봉')}${cell('years', '연차')}${cell('rank', '직급')}${cell('bizkind', '업종')}${cell('bizyears', '업력')}${cell('sales', '월 매출')}${cell('profit', '월 순익')}</dl>`)}
   ${card('asset', '자산', `<dl class="pcard__grid">${cell('net', '순자산')}</dl><div class="pcard__wealth" data-wealth></div>`)}
-  ${card('daily', '일상', '<div data-daily-body></div>').replace('data-card="daily"', 'data-card="daily" data-daily-panel hidden')}
   </section>
   <p class="prof__note">금액: 당시 가격 · 작은 글씨: 2026년 환산</p>`;
 }

@@ -5,7 +5,8 @@ import * as E from '../../src/engine/index.js';
 import * as I from '../../src/data/incomes.js';
 import { annualIncome, otherIncome, econ } from '../../src/engine/stats.js';
 import { rentTax, inheritShare } from '../../src/engine/systems/money.js';
-import { choices } from '../../src/engine/systems/invest.js';
+import { choices, step as investStep } from '../../src/engine/systems/invest.js';
+import { makeAct } from '../../src/engine/act.js';
 
 test('표 형식: src(R17.Sx)·year·kind·note·values', () => {
   for (const [n, t] of Object.entries(I)) {
@@ -80,11 +81,21 @@ test('임대 부동산 구입: 비용 표시(지분·대출·월 이자·과거 
   assert.ok(got > 0, '임대 수익이 쌓이지 않음');
 });
 
-test('부업: 선택하면 그만큼 소득이 는다', () => {
-  const L = findAsk('sys.money.sidejob', 82_000_000, 600);
-  assert.ok(L, '부업 선택이 안 나옴');
-  const plan = L.pending.data.plans.find(p => p.id === 'online'), inc = annualIncome(L);
-  E.choose(L, 'online', {});
+test('부업: 일상 기본 선택으로 시작한 부업 수입이 실제 소득에 더해진다', () => {
+  const L = adult();
+  L.age = 35; L.yr = { asked: false }; L.money.assets = 0; L.money.deficitYears = 1;
+  L.job.public = false; L.job.major = '2';
+  delete L.flags.sidejob; delete L.flags.sideAsked;
+  L.invest = { w: null, since: L.year };
+  const inc = annualIncome(L);
+  let req;
+  const ctx = { sys() {}, apply() {}, chance() { return true; },
+    ask(p) { req = p; L.yr.asked = true; choices[p.eventId](L, ctx, p.defaultId, p.data); return p; } };
+  ctx.act = makeAct(L, ctx);
+  investStep(L, ctx);
+  assert.equal(req.eventId, 'sys.money.sidejob');
+  assert.equal(req.defaultId, 'deliver');
+  const plan = req.data.plans.find(p => p.id === req.defaultId);
   assert.equal(L.flags.sidejob.income, plan.income);
   assert.equal(annualIncome(L) - inc, plan.income);
 });

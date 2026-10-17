@@ -69,6 +69,15 @@ function grantLicenses(L, ctx) {
   if (m === 'edu' && ctx.chance(0.4)) lic.push('teach');
 }
 
+// 휴학은 학적을 유지하고 다음 연도의 수업·등록·졸업 진행을 멈춘다.
+export function takeLeave(L) {
+  const e = L.edu;
+  if (!['college', 'grad'].includes(e.stage) || e.leaveUntil >= L.year) return false;
+  e.leave = 1; e.leaveYear = L.year; e.leaveUntil = L.year + 1;
+  e.resumeYear = L.year + 2;
+  return true;
+}
+
 export function step(L, ctx) {
   const e = L.edu, a = L.age;
   if (a === 2 && L.birth.care === 'daycare') { e.stage = 'daycare'; ctx.sys('sys.edu.daycare'); }
@@ -143,6 +152,12 @@ function retakeYear(L, ctx) {
 
 function collegeYear(L, ctx) {
   const e = L.edu, q = L.birth.quintile;
+  if (e.leave) {
+    if (e.leaveUntil == null) { e.leaveYear = L.year - 1; e.leaveUntil = L.year; e.resumeYear = L.year + 1; }
+    if (L.year <= e.leaveUntil) return;
+    e.leave = 0; e.resumedYear = L.year;
+    ctx.sys('sys.edu.resume');
+  }
   if (e.stage === 'college' && ctx.chance(T('STUDENT_LOAN')[q])) {
     const amount = Math.round(yr(T('TUITION')[e.college.type], L.year));
     e.loan += amount;
@@ -150,8 +165,8 @@ function collegeYear(L, ctx) {
     refreshDebt(L);
     if (!L.flags.loanShown) { L.flags.loanShown = L.year; ctx.sys('sys.edu.loan', { amount }); }
   }
-  if (L.sex === 'F' && e.stage === 'college' && !e.leave && e.left === 2 && ctx.chance(T('LEAVE_RATE').F)) {
-    e.leave = 1;
+  if (L.sex === 'F' && e.stage === 'college' && !e.leaveYear && e.left === 2 && ctx.chance(T('LEAVE_RATE').F)) {
+    takeLeave(L, ctx);
     return ctx.sys('sys.edu.leave');
   }
   if (--e.left > 0) return;

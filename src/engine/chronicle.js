@@ -8,7 +8,7 @@ export function recordYear(L) {
   const row = {
     year: L.year, age: L.age,
     home: { region: h.region, sigungu: h.sigungu, dong: h.dong, tenure: h.tenure, rent: h.rent, deposit: h.deposit },
-    job: { status: j.status, title: j.title, wage: j.wage, regular: j.regular, exam: L.flags.examUntil != null, school: L.edu?.stage || '' },
+    job: { status: j.status, title: j.title, wage: j.wage, regular: j.regular, exam: L.flags.examUntil != null, school: L.edu?.stage || '', onLeave: !!L.edu?.leave },
     asset: { assets: Math.round(assets), debt: m.debt, net: Math.round(assets - m.debt), income: m.income },
     family: familyMembers(L).map(({ id, label, member: p }) => ({ id, rel: label, name: p.name || '', alive: p.alive !== false, bond: p.bond ?? 65, ...(p.deathYear != null && { deathYear: p.deathYear }) })),
     ...((L.modelVersion ?? 1) >= 2 && {

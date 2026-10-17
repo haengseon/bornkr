@@ -87,8 +87,7 @@ function fire(L, ctx, ev) {
   ctx.apply(ev.fx, { reason: ev.reason ?? txt, src: ev.src });
   ev.do?.(L, ctx.act);
   if (ev.choice) {
-    entry.asked = true;
-    ctx.ask({
+    entry.asked = ctx.ask({
       ...(ev.topic && { topic: ev.topic, major: true }), eventId: ev.id, prompt: fill(ev.choice.prompt, vars, ctx), defaultId: typeof ev.choice.default === 'function' ? ev.choice.default(L, ctx) : ev.choice.default, sensitive: ev.sensitive || undefined,
       options: ev.choice.options.map(o => ({ id: o.id, label: o.label, ...(o.hint && { hint: o.hint }), effects: fxEffects(o), risk: fxRisk(o) })),
     });

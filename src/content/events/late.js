@@ -80,9 +80,9 @@ export default [
   {
     id: 'late.income.gap', ages: [60, 64], p: 0.35, once: true, src: ['R07.S15'],
     when: L => !working(L) && L?.aging?.pensionStart == null,
-    text: '정년 뒤 연금이 나오기까지 몇 해가 비어 있었다.',
+    text: '지금은 일로 버는 돈이 없다. 생활비를 다시 계산했다.',
     fx: { stats: { wealth: -3, happiness: -2 }, issues: { job: 3, fairness: 2 } },
-    reason: '연금 수령 전 소득 공백',
+    reason: '일로 버는 소득이 없는 시기',
   },
   {
     id: 'late.basic.apply', ages: [65, 70], years: [2014, 2100], p: 0.25, once: true, src: ['R07.S10'],

@@ -131,7 +131,7 @@ test('알던 인물에게 빌려준 돈은 현금과 채권으로 한 번만 기
   assert.equal(L.money.assets, 95);
 });
 
-test('새 사건은 전용 구간 한 칸을 쓰고 연간 질문 한 개와 기존 예산을 보존한다', () => {
+test('자동 생활 사건은 전용 구간 한 칸을 쓰고 연간 중대 질문 한 개를 보존한다', () => {
   for (const seed of [2, 3, 5, 7]) {
     const L = newLife({ seed });
     while (L.alive) {
@@ -139,7 +139,7 @@ test('새 사건은 전용 구간 한 칸을 쓰고 연간 질문 한 개와 기
     }
     assert.ok(L.choices.some(c => c.eventId.startsWith('LIFE-')), `seed ${seed}의 신규 사건 누락`);
     const byYear = new Map();
-    for (const choice of L.choices.filter(c => !c.forced)) byYear.set(choice.year, (byYear.get(choice.year) || 0) + 1);
+    for (const choice of L.choices.filter(c => !c.forced && !c.routine)) byYear.set(choice.year, (byYear.get(choice.year) || 0) + 1);
     assert.ok([...byYear.values()].every(n => n <= 1));
     for (const [stage, counts] of Object.entries(L.stageChoices)) {
       assert.ok((counts.life || 0) <= 1);

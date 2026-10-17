@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lifeStoryOf, lifeStoryRecords } from '../../src/engine/life-story.js';
 import { historyRows } from '../../src/ui/history.js';
-import { dailyLifeHtml } from '../../src/ui/daily-life.js';
 
 const life = () => ({ modelVersion: 2, birth: { year: 2000 }, year: 2025, age: 25,
   dailyLife: { history: [], ledger: {}, activities: [] }, wellbeing: { history: [], pending: [] } });
@@ -53,17 +52,17 @@ test('휴식 요청과 실제 휴식 완료를 별도 기록으로 구분한다'
   assert.equal(story.highlights[0].id, 'rest:completion');
 });
 
-test('내역 장부는 마감한 실제 연도만 표시하고 화면 문구는 이스케이프한다', () => {
+test('일상 장부는 화면 내역에서 제외하고 생활 선택 기록은 유지한다', () => {
   const L = life();
   L.dailyLife.ledger[2024] = { year: 2024, finalized: true, consumption: 100, closingCash: 200 };
   L.dailyLife.ledger[2025] = { year: 2025, finalized: false, consumption: 300 };
+  const before = structuredClone(L.dailyLife.ledger);
+  assert.deepEqual(historyRows(L, 'daily'), []);
+  L.dailyLife.history.push({ id: 'done', year: 2024, kind: 'activity', status: 'confirmed', text: '15분을 독서에 썼다.' });
   assert.equal(historyRows(L, 'daily').length, 1);
-  L.dailyLife.summary = { year: 2025, routine: { label: '<script>실행</script>', status: 'active' } };
-  L.dailyLife.history.push({ id: 'html', year: 2024, kind: 'activity', status: 'confirmed', text: '<script>실행</script>' });
-  const html = dailyLifeHtml(L);
-  assert.match(html, /data-daily-life/);
-  assert.doesNotMatch(html, /<script>/);
-  assert.match(html, /&lt;script&gt;/);
+  assert.match(historyRows(L, 'daily')[0].text, /독서/);
+  assert.doesNotMatch(historyRows(L, 'daily')[0].text, /장부|연말 현금/);
+  assert.deepEqual(L.dailyLife.ledger, before);
 });
 
 test('실행한 자금 이동은 증감을 보여주고 소득·소비·성취로 합산하지 않는다', () => {

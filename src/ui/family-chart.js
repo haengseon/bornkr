@@ -40,5 +40,14 @@ export function familyChartHtml(L) {
     const dots = s.points.map(p => `<circle cx="${x(p.year)}" cy="${y(p.value)}" r="3" fill="${color}"><title>${esc(s.label)} · ${p.year}년 · ${bondLabel(p.value)}</title></circle>`).join('');
     return `<g data-family-series="${esc(s.id)}"><path d="${d}" stroke="${color}" stroke-width="2.5" fill="none"${dash ? ` stroke-dasharray="${dash}"` : ''}/>${dots}</g>`;
   }).join('');
-  return `<section class="family-history"><h3 class="family-chart__heading">가족 관계의 흐름</h3>${series.length ? `<figure class="family-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="연도별 가족 관계 변화. 세로축은 절연·갈등·서먹함·가까움·돈독함, 가로축은 연도입니다."><text x="12" y="14">관계</text>${axes}${time}${paths}<text x="${W - right}" y="${H - 5}" text-anchor="end">연도</text></svg><figcaption><ul class="family-chart__legend">${series.map((s, i) => `<li><span class="family-chart__swatch" style="--series-color:${COLORS[i % COLORS.length]};${i >= COLORS.length ? 'border-top-style:dashed' : ''}" aria-hidden="true"></span>${esc(s.label)}</li>`).join('')}</ul></figcaption></figure>` : '<p class="empty">아직 관계 변화 기록이 없습니다.</p>'}<h3>현재 기준 관계 · ${L.year}년</h3><ul class="family-current">${familyLines(L).map(p => `<li>${esc(familyText(p).replace(/\s*\(\d+\)/g, ''))}</li>`).join('')}</ul></section>`;
+  // 범례와 현재 목록을 하나로 합쳐 같은 사람의 이름·관계가 반복되지 않게 한다.
+  const current = familyLines(L), used = new Set();
+  const members = current.map(p => {
+    const index = series.findIndex(s => !used.has(s.id) && (p.id ? s.id === p.id : s.label === `${p.rel}${p.name ? ' ' + p.name : ''}`));
+    if (index >= 0) used.add(series[index].id);
+    return { text: familyText(p).replace(/\s*\(\d+\)/g, ''), index };
+  });
+  series.forEach((s, index) => { if (!used.has(s.id)) members.push({ text: `${s.label} · 마지막 관계 기록 ${s.points.at(-1).year}년 · ${bondLabel(s.points.at(-1).value)}`, index }); });
+  const legend = `<ul class="family-chart__legend family-current" aria-label="가족별 관계와 그래프 범례">${members.map(({ text, index }) => `<li>${index >= 0 ? `<span class="family-chart__swatch" style="--series-color:${COLORS[index % COLORS.length]};${index >= COLORS.length ? 'border-top-style:dashed' : ''}" aria-hidden="true"></span>` : '<span class="family-chart__no-series" aria-hidden="true">—</span>'}<span>${esc(text)}</span></li>`).join('')}</ul>`;
+  return `<section class="family-history"><h3 class="family-chart__heading">가족 관계의 흐름</h3>${series.length ? `<figure class="family-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="연도별 가족 관계 변화. 세로축은 절연·갈등·서먹함·가까움·돈독함, 가로축은 연도입니다."><text x="12" y="14">관계</text>${axes}${time}${paths}<text x="${W - right}" y="${H - 5}" text-anchor="end">연도</text></svg><figcaption><p class="cap">현재 기준 관계 · ${L.year}년 · 색상은 그래프의 같은 가족을 뜻해요.</p>${legend}</figcaption></figure>` : `<p class="empty">아직 관계 변화 기록이 없습니다.</p>${legend}`}</section>`;
 }

@@ -8,7 +8,7 @@ import { RENTAL_YIELD, VACANCY, PRICE_BETA, RENT_TAX, SIDEJOB, PRIVATE_PENSION, 
 import { dailyEnabled, annualExpensePlan, recordAnnualLedger, timeBudget } from '../daily-life.js';
 import { foodPriceContext, mealExpenseAdjustment } from '../daily-transactions.js';
 
-const PAY_YEARS = { mortgage: 30, student: 10, credit: 5, business: 7, rental: 20 };   // rental = 세 주려고 산 부동산의 담보대출(20년 분할)
+import { PAY_YEARS, annualPrincipal, syncMortgages } from '../loan-schedules.js';   // rental = 세 주려고 산 부동산의 담보대출(20년 분할)
 const TUTOR_MONTHLY = [0, 20, 50, 100];
 
 export function realRate(y) {
@@ -97,7 +97,7 @@ export function step(L, ctx) {
     // 부모 가구: 소득 × .82 × (1 − MPC) − 사교육·대학 비용
     const hh = L.household, q = L.birth.quintile;
     let spend = TUTOR_MONTHLY[L.edu.tutoring] * 12 * eraI;
-    if (L.edu.stage === 'college' && !L.money.loans.student) spend += yr(T('TUITION')[L.edu.college?.type ?? '4yr'], y);
+    if (L.edu.stage === 'college' && !L.edu.leave && !(L.edu.leaveUntil >= L.year) && !L.money.loans.student) spend += yr(T('TUITION')[L.edu.college?.type ?? '4yr'], y);
     if (L.home.tenure === 'dorm') spend += (L.home.rent || 0) * 12;
     hh.netWorth = Math.round(hh.netWorth + hh.income * 0.82 * (1 - T('MPC')[q]) - spend);
     hh.income = Math.round(hh.income * 1.01);
@@ -126,12 +126,13 @@ export function step(L, ctx) {
   for (const [k, n] of Object.entries(PAY_YEARS)) {
     const bal = m.loans[k] || 0;
     if (!bal || (k === 'student' && L.edu.stage !== 'done')) continue;
-    const pay = Math.min(bal, Math.max(50, bal / Math.max(1, n - (k === 'mortgage' ? Math.min(29, L.year - (h.boughtYear ?? L.year)) : 0))));
+    const pay = annualPrincipal(L, k);
     principal += pay;
     m.loans[k] = bal - pay;
-    if (m.loans[k] <= 1) { m.loans[k] = 0; L.flags.paidOff = y; ctx.sys('sys.money.paid_off', { kindLabel: { mortgage: '주택담보대출', student: '학자금 대출', credit: '신용대출', business: '사업자 대출', rental: '임대 부동산 대출' }[k] }, { quiet: k === 'credit' }); }
+    if (m.loans[k] <= 0) { m.loans[k] = 0; L.flags.paidOff = y; ctx.sys('sys.money.paid_off', { kindLabel: { mortgage: '주택담보대출', student: '학자금 대출', credit: '신용대출', business: '사업자 대출', rental: '임대 부동산 대출' }[k] }, { quiet: k === 'credit' }); }
   }
   refreshDebt(L);
+  syncMortgages(L);
   // 양육비·의료비는 MPC 소비에 일부 들어 있으므로 절반만 추가로 본다. 형편 따라 양육비도 달라진다 [추정]
   const kids = 0.5 * childCost(L) * Math.max(0.4, Math.min(1.5, (L.cache?.INCpos ?? 50) / 50));
   const support = fl.supportUntil >= y ? (fl.supportAmount || 0) * 12 : 0;

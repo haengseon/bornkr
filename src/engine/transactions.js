@@ -2,12 +2,12 @@
 const DEPTH = new WeakMap();
 const snapshot = L => ({
   financial: L.money?.assets ?? 0, debt: L.money?.debt ?? 0,
-  deposit: L.home?.deposit ?? 0, property: L.home?.owned ? L.home.value || 0 : 0,
+  deposit: L.home?.deposit ?? 0, property: (L.home?.owned ? L.home.value || 0 : 0) + (L.rentals || []).reduce((n, r) => n + (r.value || 0), 0),
   household: L.household?.netWorth ?? 0, pension: L.pension2?.balance ?? 0,
 });
 
 const LABEL = { gain: '수입·이전', spend: '지출', borrow: '차입', repay: '원금 상환',
-  move: '주거 이동', buyHome: '주택 구입', sellHome: '주택 매각', marry: '결혼 관련 자금',
+  sellRentedHome: '임대 주택 매각', move: '주거 이동', buyHome: '주택 구입', sellHome: '주택 매각', marry: '결혼 관련 자금',
   divorce: '가구 분리', startBusiness: '사업 시작', closeBusiness: '사업 정리',
   endJob: '고용 종료 정산', loseJob: '고용 종료 정산', retire: '은퇴 정산' };
 
