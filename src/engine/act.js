@@ -271,7 +271,7 @@ export function makeAct(L, ctx) {
     },
     retire() {
       if (L.job.status === 'employed' || L.job.status === 'self') act.endJob('은퇴');
-      L.job.status = 'retired'; L.job.wage = 0;
+      L.job.status = 'retired'; L.job.wage = 0; L.job.platform = false;
     },
     // o: 제안 직업 행(없으면 지금·직전 직업). code·major·band·ai·hazard를 그대로 가져간다(QA-S-29)
     startBusiness(title, o = L.job) {

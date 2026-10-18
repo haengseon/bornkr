@@ -69,7 +69,7 @@ export function econ(L) {
 export function annualIncome(L) {
   const j = L.job, a = L.aging, p = L.family.partner;
   const work = j.status === 'employed' || j.status === 'self' ? j.wage * (L.flags.leaveYear === L.year ? 0.5 : 1) : 0;
-  return work + otherIncome(L).total + (p?.income || 0) + 12 * ((a.pensionMonthly || 0) + (a.basic || 0)) + (L.flags.seniorJob === L.year ? T('SENIOR_JOB').monthly * T('SENIOR_JOB').months : 0) + (j.platform && j.status !== 'employed' ? 600 : 0);;
+  return work + otherIncome(L).total + (p?.income || 0) + 12 * ((a.pensionMonthly || 0) + (a.basic || 0)) + (L.flags.seniorJob === L.year ? T('SENIOR_JOB').monthly * T('SENIOR_JOB').months : 0) + (j.platform && j.status === 'seeking' ? 600 : 0);;
 }
 // 근로 외 소득원(세전, 2025 실질 만원) [R17]: 임대료(그해 공실 개월 제외)·부업(일하는 동안)·사적연금 수령분. 세금은 money.js가 뗀다.
 export function otherIncome(L) {

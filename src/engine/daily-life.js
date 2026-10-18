@@ -70,11 +70,11 @@ export function settleDailyOutcomes(L, handlers = {}) {
 }
 
 // 기존 총액 생활비 안의 주거·양육·의료 몫을 따로 보여 주고 다시 더하지 않는다.
-export function annualExpensePlan({ envelope, housing, children, medical, support, care }) {
+export function annualExpensePlan({ envelope, minimumLiving = 0, housing, children, medical, support, care }) {
   const fixed = { housing, children, medical, support, care };
   for (const key in fixed) fixed[key] = Math.max(0, finite(fixed[key]));
   const included = fixed.housing + fixed.children + fixed.medical;
-  const living = Math.max(0, finite(envelope) - included);
+  const living = Math.max(0, finite(minimumLiving), finite(envelope) - included);
   return { ...fixed, living, consumption: living + included + fixed.support + fixed.care,
     kind: 'game-model', includedInEnvelope: ['housing', 'children', 'medical'] };
 }

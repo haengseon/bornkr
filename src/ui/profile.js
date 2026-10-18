@@ -168,8 +168,9 @@ export function wealthOf(L) {
   const loanEst = !(lsum > 0);
   const rate = debt ? (mort * MORT_RATE(year) + jeo * (MORT_RATE(year) - 0.005) + stu * 0.02 + cre * (MORT_RATE(year) + 0.05)) / (mort + jeo + stu + cre || 1) : 0;
   const annualService = mo.debtService > 0 ? mo.debtService : debt ? debt * rate + debt / 20 : 0;   // 이자 + 20년 균등 상환 추정
-  const inc = mo.income > 0 ? mo.income : (L.job?.wage || 0);
-  const save = inc > 0 ? (mo.livingRatio > 0 ? 1 - mo.livingRatio : Math.min(0.4, Math.max(-0.1, (L.stats?.wealth ?? 50) / 200 - 0.05 + j(3) * 0.1))) : null;
+  const inc = mo.income > 0 ? mo.income : (['employed', 'self'].includes(L.job?.status) ? L.job.wage || 0 : 0);
+  const flow = mo.cashFlow?.year === L.year ? mo.cashFlow : null;
+  const save = flow ? (flow.disposable > 0 ? flow.operatingBalance / flow.disposable : null) : inc > 0 ? (mo.livingRatio > 0 ? 1 - mo.livingRatio : Math.min(0.4, Math.max(-0.1, (L.stats?.wealth ?? 50) / 200 - 0.05 + j(3) * 0.1))) : null;
   const pension = Math.round((ag.pensionMonthly || 0) + (ag.basic || 0));
   const extra = otherAssets(L);
   const totalAssets = fin + estate + jeonseDep + extra, net = totalAssets - debt;

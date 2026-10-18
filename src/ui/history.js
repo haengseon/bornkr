@@ -22,7 +22,7 @@ export function historyRows(L, kind) {
       const j = r.job, active = ['employed', 'self'].includes(j.status);
       text = j.exam ? '공무원 시험 준비 중' : active ? `${j.title || STATUS_LABEL[j.status]} · ${j.status === 'self' ? '연 순익' : '연봉'} ${won(j.wage)}` : r.age < 6 ? '영유아' : j.status === 'student' ? `${SCHOOL_LABEL[j.school] || '학생'}${j.onLeave ? ' · 휴학 중' : ''}` : `${STATUS_LABEL[j.status] || '성장 중'}${j.title ? ` · 이전 직업 ${j.title}` : ''}`;
     }
-    if (kind === 'asset') text = `순자산 ${won(r.asset.net)} · 자산 ${won(r.asset.assets)} · 부채 ${won(r.asset.debt)}`;
+    if (kind === 'asset') text = `순자산 ${won(r.asset.net)} · 자산 ${won(r.asset.assets)}${Number.isFinite(r.asset.financial) ? ` · 금융자산 ${won(r.asset.financial)}` : ''} · 부채 ${won(r.asset.debt)}`;
     if (kind === 'family') text = r.family.map(p => `${p.rel}${p.name ? ' ' + p.name : ''} · ${p.alive ? '' : '별세 · '}${bondLabel(p.bond)} (${p.bond})`).join('\n') || '기록된 가족 없음';
     return { year: r.year, age: r.age, text };
   });

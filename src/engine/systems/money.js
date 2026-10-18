@@ -117,9 +117,10 @@ export function step(L, ctx) {
   const minLiving = (1600 + (p ? 600 : 0)) * eraI;                   // 자녀 몫은 childCost로 따로
   const qNow = Math.min(5, 1 + Math.floor((L.cache?.INCpos ?? econ(L).INCpos) / 20));
   const housing = ['monthly', 'public', 'dorm'].includes(h.tenure) && !h.parents ? (h.rent || 0) * 12 : 0;
-  // 소비(월세 포함) = 가처분 × MPC. 최저 생활비+월세는 지키되 버는 것의 90%까지만(나머지는 의료비·이자 몫)(소득이 낮으면 줄여 산다) [추정]
+  // 소득이 끊겨도 기본 생활비·계약 월세는 사라지지 않는다. 부족분은 현금 인출이나 차입으로 메운다.
+  // 생활비 하한은 게임 모형의 기존 연간 금액이며, 근로소득의 유무와 별개다.
   const cut = fl.cutUntil >= y ? 0.85 : 1;           // 자금 압박 때 고른 '씀씀이 줄이기'
-  const living = cut * Math.max(Math.min(minLiving + housing, disposable * 0.9), disposable * T('MPC')[qNow] * (1 - 0.06 * lean(L, 'wealth')));   // 돈 쪽 선택의 누적: 씀씀이 ±6%
+  const living = Math.max(minLiving * cut + housing, cut * Math.max(0, disposable) * T('MPC')[qNow] * (1 - 0.06 * lean(L, 'wealth')));   // 돈 쪽 선택의 누적: 씀씀이 ±6%
   const debtCost = m.debt * realRate(y);
   // 원금 상환(전세대출은 만기 일시, 학자금은 졸업 후)
   let principal = 0;
@@ -152,9 +153,9 @@ export function step(L, ctx) {
   }
 
   // 새 모형에서는 총액 안의 주거·양육·의료 몫을 분리해 한 번만 차감한다.
-  // 구버전 재생과 1999년 이전에는 기존 계산을 유지한다. 항목 배분은 게임 가정이다.
+  // 모형 1과 1999년 이전은 기존 항목 합산을 쓴다. 기본 생활비 하한은 모든 모형에 적용한다.
   const expenses = dailyEnabled(L) && y >= 1999
-    ? annualExpensePlan({ envelope: living, housing, children: kids * 2, medical: oop, support, care })
+    ? annualExpensePlan({ envelope: living, minimumLiving: minLiving * cut, housing, children: kids * 2, medical: oop, support, care })
     : null;
   let mealAdjustment = { discount: 0 };
   if (expenses) {
@@ -173,8 +174,9 @@ export function step(L, ctx) {
   m.income = Math.round(INC); m.oop = oop; m.debtService = Math.round(debtCost + principal);
   m.livingRatio = disposable > 0 ? living / disposable : 1;
   m.assets = Math.round(m.assets + surplus);
-  // 적자 = 소비가 가처분소득을 넘은 해(원금 상환은 저축이라 빼고 본다 — 가계동향 '적자가구' 정의)
-  if (surplus + principal < 0) {
+  // 원금 상환·개인연금 납입은 소비가 아니라 자산 이동이므로 생활 적자와 구분한다.
+  const operatingBalance = disposable - (consumption - reduction) - debtCost;
+  if (operatingBalance < 0) {
     m.deficitYears = (m.deficitYears || 0) + 1;
     L.tally.deficit = (L.tally.deficit || 0) + 1;
     if (m.deficitYears === 2) ctx.sys('sys.money.deficit');
@@ -186,6 +188,13 @@ export function step(L, ctx) {
   const cashBeforeReturn = m.assets;
   L.tally.finInc = (L.tally.finInc || 0) + rnd(m.assets * 0.01);
   m.assets = Math.round(m.assets * 1.01);
+  // 소비·이자는 순자산 감소, 원금 상환·연금 납입은 자산과 부채 사이의 이동으로 구분한다.
+  const cashDrawdown = Math.max(0, openingCash - cashBeforeReturn);
+  m.cashFlow = { year: y, disposable, consumption: consumption - reduction, interest: debtCost, principal, pension: pensIn,
+    operatingBalance, cashDrawdown, financialReturn: m.assets - cashBeforeReturn, creditAdded,
+    unfunded: Math.max(0, fundingGap - creditAdded), closingCash: m.assets };
+  const livingFromSavings = Math.min(cashDrawdown, Math.max(0, -operatingBalance));
+  if (!working && livingFromSavings >= 1) ctx.sys('sys.money.drawdown', { amount: Math.round(livingFromSavings) });
   if (expenses) recordAnnualLedger(L, {
     openingCash, income: INC, disposable,
     expenses: { living: expenses.living - reduction, housing: expenses.housing,

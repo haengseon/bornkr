@@ -168,6 +168,7 @@ export const DEFAULT_TEXT = {
   'sys.money.independent': '이제 내 돈으로 살기 시작했다.',
   'sys.money.loan': '{kindLabel} {amount}만 원을 빌렸다.',
   'sys.money.paid_off': '{kindLabel|을} 다 갚았다.',
+  'sys.money.drawdown': '수입으로 모자란 생활비와 이자 {amount}만 원을 모아 둔 현금에서 꺼내 썼다.',
   'sys.money.deficit': '2년째 버는 것보다 쓰는 게 많았다.',
   'sys.money.debt_relief': '개인회생을 신청했다.',
   'sys.money.inheritance': '부모님이 남긴 {amount}만 원을 나눠 받았다.',

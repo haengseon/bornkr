@@ -103,7 +103,7 @@ export function step(L, ctx) {
     return ctx.ask({ eventId: 'sys.money.pension_draw', options: opts.map(({ id, label, cost }) => ({ id, label, cost })), defaultId: 'annuity', data: { plans: opts } });
   }
   // 4) 자금 압박: 적자가 이어져 바닥나면 집을 줄이거나 씀씀이를 줄이는 갈림길
-  if (m.deficitYears >= 2 && A < econ(L).INC * 0.15 && (!fl.crunch || y - fl.crunch >= 3) && !L.yr.asked) {
+  if (m.deficitYears >= 2 && A < Math.max(econ(L).INC * 0.15, (m.cashFlow?.consumption || 0) * 0.25) && (!fl.crunch || y - fl.crunch >= 3) && !L.yr.asked) {
     fl.crunch = y;
     const h = L.home, living = Math.max(60, rnd(econ(L).INC * 0.25)), plans = [];
     if (h.owned) plans.push({ id: 'sellhome', label: '집을 팔고 전세·월세로 줄여 간다', cost: { cash: Math.max(0, rnd(h.value * 0.97 - (m.loans.mortgage || 0))), note: '집값에서 대출·중개비를 뺀 돈이 들어온다. 이후 집값이 올라도 내 몫이 아니다' } });
