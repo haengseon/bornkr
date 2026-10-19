@@ -24,13 +24,22 @@ export function spouseName(seed, no, sex, birthYear) {
 // 독립 난수로 가족을 생성한다. 미래에 태어날 동생은 현재 구성원에서 제외한다.
 export function makeSiblings(L) {
   if (!L.birth) return [];
-  const older = Math.max(0, (L.birth.order || 1) - 1);
-  const years = [...Array.from({ length: older }, (_, i) => L.birth.year - 2 - i * 2),
-    ...(L.flags?.sibAges || []).map(a => L.birth.year + a)];
+  // 어머니 나이(A-m2): 손위는 어머니 18세 이후로 간격을 좁히고, 동생은 해마다 하나씩·어머니 45세까지로 당긴다.
+  const older = Math.max(0, (L.birth.order || 1) - 1), mom = L.birth.parents?.motherAge ?? 28;
+  const gap = Math.max(1, Math.min(2, Math.floor((mom - 18) / Math.max(1, older))));
+  let prev = 0;
+  const years = [...Array.from({ length: older }, (_, i) => L.birth.year - gap * (i + 1)),
+    ...(L.flags?.sibAges || []).map(a => L.birth.year + (prev = Math.max(prev + 1, Math.min(a, 45 - mom))))];
+  const used = new Set([L.name]);
   return years.map((birthYear, i) => {
     const r = R.makeRng(R.hashSeed(L.seed, 'sibling', i)), sex = R.rand(r) < 0.5 ? 'M' : 'F';
-    const full = spouseName(R.hashSeed(L.seed, 'sibling-name'), i, sex, birthYear);
-    return { id: `sibling.${i}`, name: (L.name || full).slice(0, 1) + full.slice(1), sex, birthYear, alive: true, bond: 60 };
+    let name;   // 주인공·다른 형제와 겹치지 않는 이름(B-04)
+    for (let k = 0; k < 8 && (!name || used.has(name)); k++) {
+      const full = spouseName(R.hashSeed(L.seed, 'sibling-name'), i + k * 16, sex, birthYear);
+      name = (L.name || full).slice(0, 1) + full.slice(1);
+    }
+    used.add(name);
+    return { id: `sibling.${i}`, name, sex, birthYear, alive: true, bond: 60 };
   });
 }
 export function ensureKin(L) {

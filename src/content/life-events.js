@@ -56,7 +56,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "교통비 절약·이동시간 증가 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "운동화 끈을 고쳐 묶고 학교까지 걸었다.",
+        "hint": "교통비 절약·이동시간 증가"
       },
       {
         "id": "b",
@@ -90,7 +91,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "버스비를 보태 줄 수 있는지 물어본다. 받을 수 있을지는 아직 모른다. · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "저녁상을 치우다 버스비 얘기를 꺼냈다.",
+        "hint": "버스비를 보태 줄 수 있는지 물어본다. 받을 수 있을지는 아직 모른다."
       },
       {
         "id": "c",
@@ -127,7 +129,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 구매비 감소 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "짝에게 준비물을 같이 쓰자고 물었다.",
+        "hint": "동의 시 구매비 감소"
       }
     ],
     "guard": "먼 거리·위험한 길에서는 도보 선택 제외; 가난을 성적 하락으로 직결하지 않음",
@@ -205,7 +208,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "구매 보류·반환 약속 생성 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "내 참고서를 내밀며 바꿔 보자고 했다.",
+        "hint": "구매 보류·반환 약속 생성"
       },
       {
         "id": "b",
@@ -242,7 +246,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "공동 공부시간 예약 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "쉬는 시간에 같이 펼쳐 보자고 말해 두었다.",
+        "hint": "공동 공부시간 예약"
       },
       {
         "id": "c",
@@ -279,7 +284,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "책과 기존 관계 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "참고서를 가방 안쪽에 도로 넣었다.",
+        "hint": "책과 기존 관계 유지"
       }
     ],
     "guard": "친구에게 없는 책 생성 금지; 거절만으로 우정 급락 금지",
@@ -356,7 +362,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "지원 가능한 경로 목록 · 장면 시간 25분 · 추가 비용 없음"
+        "result": "취업 게시판 공고를 수첩에 옮겨 적었다.",
+        "hint": "지원 가능한 경로 목록"
       },
       {
         "id": "b",
@@ -393,7 +400,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "학비·통학 부담 확인 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "등록금과 차비를 공책 귀퉁이에 더해 보았다.",
+        "hint": "학비·통학 부담 확인"
       },
       {
         "id": "c",
@@ -430,7 +438,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "보호자와 대화 기록 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "상담 날 부모님도 오실 수 있는지 여쭸다.",
+        "hint": "보호자와 대화 기록"
       }
     ],
     "guard": "상담 한 번으로 합격·화해 보장 금지; 해당 시대 학교·직업 경로만 노출",
@@ -509,7 +518,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "해당 비용만 감소·빈 시간 생성 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "학원 가방에서 교재 한 권을 뺐다.",
+        "hint": "해당 비용만 감소·빈 시간 생성"
       },
       {
         "id": "b",
@@ -546,7 +556,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "접근 가능한 장소 탐색 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "늦게까지 여는 열람실을 찾아 두었다.",
+        "hint": "접근 가능한 장소 탐색"
       },
       {
         "id": "c",
@@ -583,7 +594,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "장부 재계산 · 장면 시간 15분 · 추가 비용 없음"
+        "result": "가계부 군것질 칸에 줄을 그었다.",
+        "hint": "장부 재계산"
       }
     ],
     "guard": "중단 즉시 학습능력 차감 금지; 무료 공간 이용 가능성 확인",
@@ -656,7 +668,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "가족 단톡방에 면접 날 교대를 부탁했다."
       },
       {
         "id": "b",
@@ -689,7 +702,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "돌봄 센터에 그날 빈자리가 있는지 전화했다."
       },
       {
         "id": "c",
@@ -719,7 +733,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "면접 안내문을 접어 서랍에 넣었다."
       }
     ],
     "guard": "돌봄 인물·책임 없으면 발생 금지; 참석을 합격으로 처리 금지",
@@ -796,7 +811,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "수락 시 수업 참석 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "동료에게 그날 근무를 바꿔 달라고 문자를 보냈다.",
+        "hint": "수락 시 수업 참석"
       },
       {
         "id": "b",
@@ -833,7 +849,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "예정 수입 유지 · 장면 시간 5분 · 추가 비용 없음"
+        "result": "점장에게 그날은 수업이라 못 나온다고 했다.",
+        "hint": "예정 수입 유지"
       },
       {
         "id": "c",
@@ -870,7 +887,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "승인 시 일정 변경 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "실습 담당 교수 연구실 문을 두드렸다.",
+        "hint": "승인 시 일정 변경"
       }
     ],
     "guard": "거절을 해고로 자동 연결하지 않음; 기본 급여 중복 삭감 금지",
@@ -949,7 +967,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "선택한 비용 차감 · 장면 시간 30분 · 5만 원 · 이번 선택에서 지출"
+        "hint": "선택한 비용 차감",
+        "result": "접수비를 내고 수험표를 뽑았다."
       },
       {
         "id": "b",
@@ -989,7 +1008,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "비용·준비시간 분배 · 장면 시간 45분 · 10만 원 · 이번 선택에서 지출"
+        "hint": "비용·준비시간 분배",
+        "result": "수험표 두 장을 나란히 책상에 붙였다."
       },
       {
         "id": "c",
@@ -1027,7 +1047,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "현재 접수 없음 · 추가 시간 없음 · 추가 비용 없음"
+        "hint": "현재 접수 없음",
+        "result": "다음 회차 접수일에 동그라미를 쳤다."
       }
     ],
     "cancelWhen": [
@@ -1098,7 +1119,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "화면 옆에 시간표를 붙이고 칸을 나눴다."
       },
       {
         "id": "b",
@@ -1131,7 +1153,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "학교 행정실에 태블릿 대여를 물었다."
       },
       {
         "id": "c",
@@ -1163,7 +1186,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "휴대폰 데이터를 켜고 수업 창을 띄웠다."
       }
     ],
     "guard": "전국 모든 학교 동일 운영 가정 금지; 지원금·대여 자동 승인 금지",
@@ -1243,7 +1267,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "비용·시간 예약 · 장면 시간 40분 · 12만 원 · 이번 선택에서 지출"
+        "hint": "비용·시간 예약",
+        "result": "평일 저녁 강의실 뒷자리에 앉았다."
       },
       {
         "id": "b",
@@ -1282,7 +1307,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "합의 시 근무표 변경 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "hint": "합의 시 근무표 변경",
+        "result": "팀장에게 그날 퇴근을 당겨 달라고 했다."
       },
       {
         "id": "c",
@@ -1318,7 +1344,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "기존 생활 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "hint": "기존 생활 유지",
+        "result": "수강 안내 문자를 지우지 않고 남겼다."
       }
     ],
     "cancelWhen": [
@@ -1394,7 +1421,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의 시 공동비용 감소 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "단톡방에 재료를 바꾼 설계안을 올렸다.",
+        "hint": "합의 시 공동비용 감소"
       },
       {
         "id": "b",
@@ -1431,7 +1459,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "분담 재협상 · 장면 시간 10분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "조원들에게 낼 수 있는 몫을 먼저 말했다.",
+        "hint": "분담 재협상"
       },
       {
         "id": "c",
@@ -1466,7 +1495,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "자기 몫만 차감 · 장면 시간 20분 · 1만 원 · 이번 선택에서 지출"
+        "result": "내 몫을 조장 계좌로 보냈다.",
+        "hint": "자기 몫만 차감"
       }
     ],
     "guard": "돈 많이 썼다고 평가 자동 상승 금지; 조원에게 부담 능력 임의 부여 금지",
@@ -1539,7 +1569,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "이불 보따리를 들고 기숙사 계단을 올랐다."
       },
       {
         "id": "b",
@@ -1571,7 +1602,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "첫차 시간표를 지갑에 다시 끼워 넣었다."
       },
       {
         "id": "c",
@@ -1604,7 +1636,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "퇴근길에 부동산 유리문 앞을 몇 군데 들렀다."
       }
     ],
     "guard": "입주 승인 전 주소 변경 금지; 기숙사 조건 시대·사업장 확인",
@@ -1639,7 +1672,7 @@ export const LIFE_EVENTS = [
       65
     ],
     "title": "새 기계 앞의 첫 주",
-    "text": "익숙한 작업 방식이 바뀌고 교육 시간을 정해야 한다.",
+    "text": "익숙한 작업 방식이 바뀌었다. 교육 일정이 공지됐다.",
     "eligibility": "현재 직무의 장비 변경 공지; 교육 기회 있음",
     "requires": [
       "scenario.LIFE-012.ready"
@@ -1680,7 +1713,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "근무·학습시간 배정 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "교육장 맨 앞줄에서 새 조작판을 눌러 보았다.",
+        "hint": "근무·학습시간 배정"
       },
       {
         "id": "b",
@@ -1717,7 +1751,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 공동 일정 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "점심 뒤 같이 연습하자고 옆자리 동료에게 물었다.",
+        "hint": "동의 시 공동 일정"
       },
       {
         "id": "c",
@@ -1753,7 +1788,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "승인 시 담당 업무 변경 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "반장에게 다른 공정으로 옮길 수 있는지 물었다.",
+        "hint": "승인 시 담당 업무 변경"
       }
     ],
     "guard": "장비 도입을 해고로 직결하지 않음; 미교육 위험 노출을 개인 사고 확률로 확정 금지",
@@ -1831,7 +1867,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "통근시간·비용 변경 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "회사에 새 사업장까지 통근버스가 서는지 물었다.",
+        "hint": "통근시간·비용 변경"
       },
       {
         "id": "b",
@@ -1868,7 +1905,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "주거 후보 생성 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "새 사업장 근처 방 시세를 메모장에 적었다.",
+        "hint": "주거 후보 생성"
       },
       {
         "id": "c",
@@ -1906,7 +1944,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "구직 상태 병행 · 장면 시간 30분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "다른 회사에 이력서를 보냈다.",
+        "hint": "구직 상태 병행"
       }
     ],
     "guard": "이사 탐색만으로 보증금 지출 금지; 지원만으로 직장 변경 금지",
@@ -1984,7 +2023,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의한 종료일 예약 · 장면 시간 25분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "인사팀에 퇴직 조건 문서를 달라고 했다.",
+        "hint": "합의한 종료일 예약"
       },
       {
         "id": "b",
@@ -2021,7 +2061,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "현재 고용 유지·심사 대기 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "제안서에 남겠다고 적어 인사팀에 냈다.",
+        "hint": "현재 고용 유지·심사 대기"
       },
       {
         "id": "c",
@@ -2057,7 +2098,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "상담시간·확인 정보 기록 · 장면 시간 30분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "노동 상담소에 전화 예약을 잡았다.",
+        "hint": "상담시간·확인 정보 기록"
       }
     ],
     "guard": "경제위기 연도라는 이유로 모든 직장인에게 발생 금지; 수락 전 실직 처리 금지",
@@ -2130,7 +2172,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "경리 담당에게 지급 날짜를 물었다."
       },
       {
         "id": "b",
@@ -2163,7 +2206,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "노동청 상담 전화번호를 눌렀다."
       },
       {
         "id": "c",
@@ -2193,7 +2237,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "비상금 통장에서 모자란 만큼 옮겼다."
       }
     ],
     "guard": "임금 지연을 횡령·도산으로 단정 금지; 미수금과 현금 이중 수입 금지",
@@ -2266,7 +2311,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "그날 밤 이력서를 고쳐 보냈다."
       },
       {
         "id": "b",
@@ -2299,7 +2345,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "옛 동료에게 월급과 근무지를 다시 물었다."
       },
       {
         "id": "c",
@@ -2332,7 +2379,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "고맙다는 답장만 보냈다."
       }
     ],
     "guard": "인맥만으로 합격 보장 금지; 이전에 없는 동료를 오래된 친구처럼 등장 금지",
@@ -2405,7 +2453,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "팀장에게 재계약 면담을 청했다."
       },
       {
         "id": "b",
@@ -2438,7 +2487,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "구인 사이트에 이력서를 새로 올렸다."
       },
       {
         "id": "c",
@@ -2470,7 +2520,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "배달 앱을 지우고 장보기 목록을 줄였다."
       }
     ],
     "guard": "만료 전 무조건 실직 처리 금지; 계약 유형·시대 제도 확인",
@@ -2550,7 +2601,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확정 수당·업무시간 적용 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "인사팀에 새 보직을 맡겠다고 전했다.",
+        "hint": "확정 수당·업무시간 적용"
       },
       {
         "id": "b",
@@ -2587,7 +2639,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "승인 시 제안 수정 · 장면 시간 25분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "팀장에게 늦게 끝나는 날을 줄여 달라고 했다.",
+        "hint": "승인 시 제안 수정"
       },
       {
         "id": "c",
@@ -2624,7 +2677,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "기존 보직 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "지금 자리에 남겠다고 짧게 답했다.",
+        "hint": "기존 보직 유지"
       }
     ],
     "guard": "거절을 무능으로 기록 금지; 수당만 올리고 시간 부담 누락 금지",
@@ -2697,7 +2751,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "추가 작업 견적서를 메일로 보냈다."
       },
       {
         "id": "b",
@@ -2729,7 +2784,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "처음 약속한 부분만 마쳐 파일을 넘겼다."
       },
       {
         "id": "c",
@@ -2762,7 +2818,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "밤늦게 수정 파일을 다시 열었다."
       }
     ],
     "guard": "요구 거절만으로 평판 붕괴 금지; 견적을 즉시 현금 처리 금지",
@@ -2839,7 +2896,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의된 사용시간 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "동거인에게 회의 시간엔 방을 비워 달라고 했다.",
+        "hint": "합의된 사용시간"
       },
       {
         "id": "b",
@@ -2876,7 +2934,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "승인된 회의 변경 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "팀 채널에 회의를 오후로 옮겨 달라고 올렸다.",
+        "hint": "승인된 회의 변경"
       },
       {
         "id": "c",
@@ -2912,7 +2971,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 이용료·이동시간 · 장면 시간 45분 · 3만 원 · 이번 선택에서 지출"
+        "result": "노트북을 들고 동네 스터디카페에 앉았다.",
+        "hint": "실제 이용료·이동시간"
       }
     ],
     "guard": "모든 직종에 원격근무 노출 금지; 집에 있다는 이유로 돌봄 무료 처리 금지",
@@ -2985,7 +3045,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "친척에게 나갈 날짜부터 말하고 짐을 풀었다."
       },
       {
         "id": "b",
@@ -3018,7 +3079,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "하숙집 전단 번호에 차례로 전화했다."
       },
       {
         "id": "c",
@@ -3051,7 +3113,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "올라갈 날짜를 다음 달로 미뤘다."
       }
     ],
     "guard": "친척 자산·호의 임의 생성 금지; 임시 동거를 주택 소유로 기록 금지",
@@ -3129,7 +3192,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 재고·비용 증가 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "창고에 겨울 연료를 한꺼번에 들였다.",
+        "hint": "실제 재고·비용 증가"
       },
       {
         "id": "b",
@@ -3167,7 +3231,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "첫 물량만 결제 · 장면 시간 15분 · 추가 비용 없음"
+        "result": "첫 물량만 받고 다음 배달 날을 적어 두었다.",
+        "hint": "첫 물량만 결제"
       },
       {
         "id": "c",
@@ -3206,7 +3271,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의 시 배달비 분담 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "옆집에 같이 주문하자고 말을 건넸다.",
+        "hint": "합의 시 배달비 분담"
       }
     ],
     "guard": "연탄·기름·가스는 해당 집 설비와 시대에 맞춰 변형; 가격 할인 임의 확정 금지",
@@ -3283,7 +3349,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의 대기 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "집주인에게 조건을 조금 낮춰 달라고 했다.",
+        "hint": "합의 대기"
       },
       {
         "id": "b",
@@ -3320,7 +3387,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "보증금·월세·이사비 견적 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "주말에 다른 집 몇 곳을 보고 왔다.",
+        "hint": "보증금·월세·이사비 견적"
       },
       {
         "id": "c",
@@ -3358,7 +3426,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "효력일부터 장부 변경 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "집주인에게 그 조건으로 하겠다고 전했다.",
+        "hint": "효력일부터 장부 변경"
       }
     ],
     "guard": "계약 기간·권리·책임은 해당 연도 검증; 인상 요청을 확정 인상으로 기록 금지",
@@ -3430,7 +3499,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "갈아타는 역의 출구를 외워 두었다."
       },
       {
         "id": "b",
@@ -3463,7 +3533,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "회사에 출근 시간을 당길 수 있는지 물었다."
       },
       {
         "id": "c",
@@ -3496,7 +3567,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "회사 근처 방 시세를 찾아보았다."
       }
     ],
     "guard": "전국 공통 노선 변경 금지; 노선 공지만으로 해고 금지",
@@ -3572,7 +3644,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확인 일정 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "관리실에 천장 사진을 보냈다.",
+        "hint": "확인 일정"
       },
       {
         "id": "b",
@@ -3610,7 +3683,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "영수증·비용 기록 · 장면 시간 15분 · 2만 원 · 이번 선택에서 지출"
+        "result": "얼룩 아래 대야를 받치고 방수 테이프를 붙였다.",
+        "hint": "영수증·비용 기록"
       },
       {
         "id": "c",
@@ -3646,7 +3720,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확정 부담액만 결제 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "수리 기사 방문 날을 관리실과 맞췄다.",
+        "hint": "확정 부담액만 결제"
       }
     ],
     "guard": "책임 확인 전 임차인 전액 부담 금지; 누수를 질병 발생으로 직결하지 않음",
@@ -3719,7 +3794,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "운송 기사와 견적서를 다시 펼쳤다."
       },
       {
         "id": "b",
@@ -3752,7 +3828,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "큰 장롱을 중고 앱에 올렸다."
       },
       {
         "id": "c",
@@ -3784,7 +3861,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "사다리차를 쓸 수 있는 날로 이삿날을 바꿨다."
       }
     ],
     "guard": "처분 신청만으로 매각 대금 수입 금지; 보유하지 않은 가구 등장 금지",
@@ -3860,7 +3938,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확인 절차 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "관리실에 소음이 나는 시간대를 적어 냈다.",
+        "hint": "확인 절차"
       },
       {
         "id": "b",
@@ -3897,7 +3976,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 생활시간 협의 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "윗집 현관에 낮에 이야기하자는 쪽지를 붙였다.",
+        "hint": "동의 시 생활시간 협의"
       },
       {
         "id": "c",
@@ -3935,7 +4015,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "가능한 비용·잠자리 변화 · 장면 시간 25분 · 2만 원 · 이번 선택에서 지출"
+        "result": "침대를 반대편 벽으로 옮기고 귀마개를 샀다.",
+        "hint": "가능한 비용·잠자리 변화"
       }
     ],
     "guard": "층간소음 가해자 추정 확정 금지; 항의만으로 이웃 적대 자동 생성 금지",
@@ -4008,7 +4089,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "작은 평수 매물을 지도 앱에 저장했다."
       },
       {
         "id": "b",
@@ -4041,7 +4123,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "빈방 문을 닫고 난방 밸브를 잠갔다."
       },
       {
         "id": "c",
@@ -4074,7 +4157,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "같이 살자던 사람에게 다시 연락했다."
       }
     ],
     "guard": "사별·독립·이혼 원인은 기존 기록 사용; 빈방 있다고 자동 임대 수입 금지",
@@ -4147,7 +4231,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "중개인에게 방부터 보여 달라고 답했다."
       },
       {
         "id": "b",
@@ -4180,7 +4265,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "공인중개사 사무소에 매물 번호를 물었다."
       },
       {
         "id": "c",
@@ -4212,7 +4298,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "그 문자를 지우고 다른 매물을 열었다."
       }
     ],
     "guard": "사기라고 단정하지 않음; 선택하지 않은 송금 손실 강제 적용 금지",
@@ -4285,7 +4372,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "가까운 집 계약서에 도장을 찍었다."
       },
       {
         "id": "b",
@@ -4318,7 +4406,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "먼 집 계약서에 도장을 찍고 첫차 시간을 찾았다."
       },
       {
         "id": "c",
@@ -4351,7 +4440,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "부동산 앱 알림을 켜 두었다."
       }
     ],
     "guard": "이사비·보증금 이동 포함; 싼 집 선택을 삶의 질 일괄 하락으로 표현 금지",
@@ -4428,7 +4518,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "본인 현금 감소·수령 기록 · 장면 시간 10분 · 10만 원 · 이번 선택에서 지출"
+        "result": "집으로 돈을 부치고 영수증을 접어 두었다.",
+        "hint": "본인 현금 감소·수령 기록"
       },
       {
         "id": "b",
@@ -4466,7 +4557,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 그 금액만 이동 · 장면 시간 10분 · 5만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "이만큼은 보낼 수 있다고 전화로 말했다.",
+        "hint": "동의 시 그 금액만 이동"
       },
       {
         "id": "c",
@@ -4503,7 +4595,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "현금 유지·요청 응답 기록 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "이번 달은 어렵다고 사정을 털어놓았다.",
+        "hint": "현금 유지·요청 응답 기록"
       }
     ],
     "guard": "거절을 절연으로 자동 처리 금지; 송금·가구 합산 시 이중 차감 금지",
@@ -4576,7 +4669,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "곗돈 순번표와 명단을 사진으로 받았다."
       },
       {
         "id": "b",
@@ -4609,7 +4703,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "첫 곗돈을 봉투에 넣어 건넸다."
       },
       {
         "id": "c",
@@ -4641,7 +4736,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "웃으며 이번엔 빠지겠다고 했다."
       }
     ],
     "guard": "시대별 운영 형태 확인; 참여를 사기 손실·큰 수익으로 확정 금지",
@@ -4720,7 +4816,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확정 수리비·작동 확인 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "기사가 다녀간 뒤 모터 소리가 다시 났다.",
+        "hint": "확정 수리비·작동 확인"
       },
       {
         "id": "b",
@@ -4759,7 +4856,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "물건·결제 방식 갱신 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "새 제품이 들어오고 고장 난 것은 실려 나갔다.",
+        "hint": "물건·결제 방식 갱신"
       },
       {
         "id": "c",
@@ -4796,7 +4894,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "이용료·이동시간 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "이웃에게 당분간 같이 쓰자고 부탁했다.",
+        "hint": "이용료·이동시간"
       }
     ],
     "guard": "보유 기기·전기 접근 없는 집에는 금지; 교체가 자산 수익처럼 계산되지 않음",
@@ -4869,7 +4968,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "보증 계약서를 받아 와 밤새 읽었다."
       },
       {
         "id": "b",
@@ -4902,7 +5002,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "보증 대신 다른 일을 돕겠다고 했다."
       },
       {
         "id": "c",
@@ -4935,7 +5036,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "보증서에 도장을 찍었다."
       }
     ],
     "guard": "해당 연도 보증 제도 확인; 서명 즉시 대출금 전액 현금 차감 금지",
@@ -5007,7 +5109,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "예금 일부를 깨서 고지서를 냈다."
       },
       {
         "id": "b",
@@ -5039,7 +5142,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "장바구니에 담아 둔 물건을 비웠다."
       },
       {
         "id": "c",
@@ -5072,7 +5176,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "창구에 나눠 낼 수 있는지 물었다."
       }
     ],
     "guard": "분납 승인 전 채무 생성 금지; 같은 비용을 생활비와 사건에서 중복 차감 금지",
@@ -5144,7 +5249,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "적금 통장에서 결제 계좌로 돈을 옮겼다."
       },
       {
         "id": "b",
@@ -5177,7 +5283,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "카드사 상담원에게 결제일을 물었다."
       },
       {
         "id": "c",
@@ -5209,7 +5316,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "외식 약속을 미루고 지갑을 닫았다."
       }
     ],
     "guard": "현금 부족을 즉시 파산 처리 금지; 실제 미납 전 신용 하락 확정 금지",
@@ -5281,7 +5389,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "가계부 이자 칸을 고쳐 적었다."
       },
       {
         "id": "b",
@@ -5314,7 +5423,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "은행 두 곳 금리를 나란히 적었다."
       },
       {
         "id": "c",
@@ -5347,7 +5457,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "모아 둔 돈 일부로 원금을 갚았다."
       }
     ],
     "guard": "기준금리와 개인 대출금리 동일시 금지; 상환 원금을 소비로 중복 처리 금지",
@@ -5437,7 +5548,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "subscription.cancellation-terms"
-        ]
+        ],
+        "result": "앱 설정 맨 아래에서 구독을 끊었다."
       },
       {
         "id": "b",
@@ -5484,7 +5596,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "subscription.lower-plan-offered"
-        ]
+        ],
+        "result": "요금제 화면에서 아래 칸을 골랐다."
       },
       {
         "id": "c",
@@ -5529,7 +5642,8 @@ export const LIFE_EVENTS = [
           "automaticSuccess": false,
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
-        "requires": []
+        "requires": [],
+        "result": "결제 알림을 그대로 두었다."
       }
     ],
     "cancelWhen": [
@@ -5601,7 +5715,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "필요한 만큼만 팔고 체결 문자를 받았다."
       },
       {
         "id": "b",
@@ -5633,7 +5748,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "앱을 닫고 큰 지출 날짜를 뒤로 미뤘다."
       },
       {
         "id": "c",
@@ -5666,7 +5782,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "흔들리는 종목 일부를 팔아 예금에 넣었다."
       }
     ],
     "guard": "보유 이력 없으면 금지; 선택 뒤 가격을 보상·처벌용으로 조작 금지",
@@ -5739,7 +5856,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "흠집 사진을 보내고 값을 조금 내렸다."
       },
       {
         "id": "b",
@@ -5771,7 +5889,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "판매 글을 내리고 물건을 상자에 넣었다."
       },
       {
         "id": "c",
@@ -5803,7 +5922,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "흠집을 메우고 사진을 다시 찍었다."
       }
     ],
     "guard": "등록만으로 매출 생성 금지; 구매자 만족·평판은 실제 확인된 반응만 저장",
@@ -5881,7 +6001,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "보호자 응답·약속 · 장면 시간 10분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "엄마 옷자락을 잡고 같이 놀자고 했다.",
+        "hint": "보호자 응답·약속"
       },
       {
         "id": "b",
@@ -5918,7 +6039,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "연령에 맞는 짧은 역할 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "기저귀를 가져다 드렸다.",
+        "hint": "연령에 맞는 짧은 역할"
       },
       {
         "id": "c",
@@ -5955,7 +6077,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "자기 시간 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "방에서 혼자 블록을 쌓았다.",
+        "hint": "자기 시간 유지"
       }
     ],
     "guard": "아이에게 성인 돌봄 책임 전가 금지; 출생만으로 질투·가족 화목 확정 금지",
@@ -6033,7 +6156,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "상호 합의 일정 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "hint": "상호 합의 일정",
+        "result": "불 끄는 시간을 같이 정하자고 했다."
       },
       {
         "id": "b",
@@ -6074,7 +6198,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "접근·이동 부담 · 장면 시간 30분 · 추가 비용 없음"
+        "hint": "접근·이동 부담",
+        "result": "공부할 책을 들고 부엌 식탁으로 옮겼다."
       },
       {
         "id": "c",
@@ -6114,7 +6239,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "합의된 비용·공간 변화 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "hint": "합의된 비용·공간 변화",
+        "result": "책장 사이에 커튼을 달자고 했다."
       }
     ],
     "cancelWhen": [
@@ -6192,7 +6318,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 방문 일정 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "근무표를 들고 동료에게 휴무를 바꾸자고 했다.",
+        "hint": "동의 시 방문 일정"
       },
       {
         "id": "b",
@@ -6230,7 +6357,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "교통비·휴식시간 · 장면 시간 45분 · 4만 원 · 이번 선택에서 지출"
+        "result": "당일 기차로 내려가 저녁만 먹고 올라왔다.",
+        "hint": "교통비·휴식시간"
       },
       {
         "id": "c",
@@ -6268,7 +6396,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "새 약속 생성 · 장면 시간 10분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "가족에게 전화해 다음 달에 가겠다고 했다.",
+        "hint": "새 약속 생성"
       }
     ],
     "guard": "불참 1회로 절연 금지; 교통수단·연락 방식은 시대별 접근 확인",
@@ -6349,7 +6478,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "합의된 시간 배분 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "hint": "합의된 시간 배분",
+        "result": "냉장고에 집안일 표를 새로 붙이자고 했다."
       },
       {
         "id": "b",
@@ -6388,11 +6518,12 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "실제 접근·비용 · 장면 시간 20분 · 추가 비용 없음"
+        "hint": "실제 접근·비용",
+        "result": "청소 대행 가격을 찾아보았다."
       },
       {
         "id": "c",
-        "label": "현재 역할 유지하되 다른 부담 조정",
+        "label": "역할 유지, 다른 부담 조정",
         "text": "명시적 합의",
         "personality": {
           "weights": {
@@ -6428,7 +6559,8 @@ export const LIFE_EVENTS = [
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
         "requires": [],
-        "hint": "명시적 합의 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "hint": "명시적 합의",
+        "result": "빨래는 계속 맡는 대신 장보기를 넘기자고 했다."
       }
     ],
     "cancelWhen": [
@@ -6500,7 +6632,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "팀장에게 오늘 일찍 나갈 수 있는지 물었다."
       },
       {
         "id": "b",
@@ -6533,7 +6666,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "다른 보호자에게 오늘 하원을 부탁했다."
       },
       {
         "id": "c",
@@ -6565,7 +6699,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "돌봄 선생님에게 아이를 데려갈 시간을 알렸다."
       }
     ],
     "guard": "연락 가능한 보호자만 후보; 유아를 혼자 이동시키는 선택 없음",
@@ -6638,7 +6773,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "반차를 내고 가족과 진료실에 앉았다."
       },
       {
         "id": "b",
@@ -6671,7 +6807,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "형제에게 이번 진료를 맡아 달라고 했다."
       },
       {
         "id": "c",
@@ -6704,7 +6841,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "병원에 영상 통화로 설명을 들을 수 있는지 물었다."
       }
     ],
     "guard": "동행 요청만으로 중병·사망 확정 금지; 가족의 동의·실제 접근 확인",
@@ -6777,7 +6915,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "가족 단톡방에 각자 낼 몫을 적자고 했다."
       },
       {
         "id": "b",
@@ -6810,7 +6949,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "내가 낼 수 있는 몫을 먼저 말했다."
       },
       {
         "id": "c",
@@ -6842,7 +6982,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "주민센터에 의료비 지원을 물었다."
       }
     ],
     "guard": "가족에게 무한 자산 부여 금지; 소득 낮음을 무관심으로 판정 금지",
@@ -6914,7 +7055,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "떨어져 지낼 기간과 생활비를 종이에 적었다."
       },
       {
         "id": "b",
@@ -6947,7 +7089,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "부부 상담을 같이 예약하자고 했다."
       },
       {
         "id": "c",
@@ -6980,7 +7123,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "이혼 절차 안내문을 받아 왔다."
       }
     ],
     "guard": "별거 제안만으로 이혼·재산분할 완료 금지; 상담이 재결합 보장하지 않음",
@@ -7057,7 +7201,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 이전액 기록 · 장면 시간 10분 · 20만 원 · 이번 선택에서 지출"
+        "result": "자녀 계좌로 보증금 일부를 보냈다.",
+        "hint": "실제 이전액 기록"
       },
       {
         "id": "b",
@@ -7095,7 +7240,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 가족 채권 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "갚을 날짜를 정해 빌려주자고 했다.",
+        "hint": "동의한 가족 채권"
       },
       {
         "id": "c",
@@ -7133,7 +7279,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "시간 부담 · 장면 시간 60분 · 추가 비용 없음"
+        "result": "이삿날 트럭 옆에서 짐을 날랐다.",
+        "hint": "시간 부담"
       }
     ],
     "guard": "성인 자녀가 없는 생애에는 금지; 도움으로 취업·관계 충성 보장 금지",
@@ -7210,7 +7357,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 일·시간 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "가족들과 남은 일을 나눠 맡자고 했다.",
+        "hint": "동의한 일·시간"
       },
       {
         "id": "b",
@@ -7247,7 +7395,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "추모 기록 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "고인의 사진 뒷면에 기억나는 날을 적었다.",
+        "hint": "추모 기록"
       },
       {
         "id": "c",
@@ -7284,7 +7433,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 동행 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "친구에게 유품 정리에 와 달라고 했다.",
+        "hint": "동의 시 동행"
       }
     ],
     "guard": "사망 전 행사 금지; 유산 자동 생성 금지; 어린이는 보호자 지원 장면으로 변형",
@@ -7362,7 +7512,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "연락 루틴 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "새 주소를 수첩 첫 장에 옮겨 적었다.",
+        "hint": "연락 루틴"
       },
       {
         "id": "b",
@@ -7400,7 +7551,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 연락비 · 장면 시간 15분 · 0.2만 원 · 이번 선택에서 지출"
+        "result": "시외전화 카드를 사 두었다.",
+        "hint": "실제 연락비"
       },
       {
         "id": "c",
@@ -7437,7 +7589,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "공유 기억 저장 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "친구와 찍은 사진을 앨범에 끼웠다.",
+        "hint": "공유 기억 저장"
       }
     ],
     "guard": "우표·전화 접근과 시대 확인; 연락 줄었다고 즉시 적대 전환 금지",
@@ -7526,7 +7679,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "social.group-contact-channel"
-        ]
+        ],
+        "result": "단톡방에 값싼 식당을 올렸다."
       },
       {
         "id": "b",
@@ -7573,7 +7727,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "social.alternate-meeting-proposal"
-        ]
+        ],
+        "result": "다음 달에 따로 보자고 답했다."
       },
       {
         "id": "c",
@@ -7620,7 +7775,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "social.within-budget-attendance-option"
-        ]
+        ],
+        "result": "정해 둔 만큼만 시켜 먹었다."
       }
     ],
     "cancelWhen": [
@@ -7696,7 +7852,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의 대기 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "친구에게 언제 갚을 수 있는지 물었다.",
+        "hint": "합의 대기"
       },
       {
         "id": "b",
@@ -7734,7 +7891,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "현금·채권 생성 · 장면 시간 15분 · 5만 원 · 이번 선택에서 지출"
+        "result": "감당할 만큼만 친구 계좌로 보냈다.",
+        "hint": "현금·채권 생성"
       },
       {
         "id": "c",
@@ -7771,7 +7929,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "현금 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "지금은 빌려줄 형편이 아니라고 했다.",
+        "hint": "현금 유지"
       }
     ],
     "guard": "채권을 자산과 현금으로 이중 합산 금지; 거절만으로 친구 삭제 금지",
@@ -7844,7 +8003,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "서로 오갈 주말을 달력에 맞춰 보았다."
       },
       {
         "id": "b",
@@ -7877,7 +8037,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "그 도시 구인 공고와 방을 함께 찾았다."
       },
       {
         "id": "c",
@@ -7910,7 +8071,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "내 일은 여기 두겠다고 말했다."
       }
     ],
     "guard": "동반 이주로 주인공 자동 취업 금지; 파트너 의사 생략 금지",
@@ -7988,7 +8150,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 지출 · 장면 시간 15분 · 2만 원 · 이번 선택에서 지출"
+        "result": "축의금 봉투를 정해 둔 만큼 채웠다.",
+        "hint": "실제 지출"
       },
       {
         "id": "b",
@@ -8025,7 +8188,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 시간 · 장면 시간 30분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "축하 편지를 쓰고 식장 일을 돕겠다고 했다.",
+        "hint": "동의한 시간"
       },
       {
         "id": "c",
@@ -8062,7 +8226,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "응답 기록 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "못 간다는 문자와 함께 축하 인사를 보냈다.",
+        "hint": "응답 기록"
       }
     ],
     "guard": "행사와 인물 상태 확인; 축의금 지급을 미래 수입 확정으로 처리 금지",
@@ -8139,7 +8304,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "대화 요청 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "그때 일을 이야기하고 싶다고 문자를 보냈다.",
+        "hint": "대화 요청"
       },
       {
         "id": "b",
@@ -8176,7 +8342,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "답변 시 후속 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "답장 창을 닫고 휴대폰을 엎어 두었다.",
+        "hint": "답변 시 후속"
       },
       {
         "id": "c",
@@ -8213,7 +8380,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "접촉 빈도 조정 · 장면 시간 5분 · 추가 비용 없음"
+        "result": "단톡방 알림을 꺼 두었다.",
+        "hint": "접촉 빈도 조정"
       }
     ],
     "guard": "오해 내용은 기존 사건 ID 인용; 대화만으로 완전 화해 금지",
@@ -8290,7 +8458,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "발언 기록 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "내가 겪은 일을 차례대로 말했다.",
+        "hint": "발언 기록"
       },
       {
         "id": "b",
@@ -8327,7 +8496,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 주제 경계 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "오늘은 그 얘기는 접자고 했다.",
+        "hint": "동의한 주제 경계"
       },
       {
         "id": "c",
@@ -8365,7 +8535,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "접촉 종료 · 장면 시간 5분 · 추가 비용 없음"
+        "result": "먼저 일어나 겉옷을 챙겼다.",
+        "hint": "접촉 종료"
       }
     ],
     "guard": "의견을 직업·소득·MBTI에서 자동 추론 금지; 특정 입장 선택에 도덕 보너스 금지",
@@ -8442,7 +8613,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "시간·비용 약속 · 장면 시간 20분 · 1만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "답장 끝에 차 한잔하자고 덧붙였다.",
+        "hint": "시간·비용 약속"
       },
       {
         "id": "b",
@@ -8480,7 +8652,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "접촉 갱신 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "짧게 안부 답장을 보냈다.",
+        "hint": "접촉 갱신"
       },
       {
         "id": "c",
@@ -8517,7 +8690,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "응답 기록 · 장면 시간 5분 · 추가 비용 없음"
+        "result": "요즘은 바쁘다고 답했다.",
+        "hint": "응답 기록"
       }
     ],
     "guard": "새 인물을 오랜 친구로 소급 생성 금지; 재회로 일자리·연애 자동 생성 금지",
@@ -8593,7 +8767,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "소개·접촉 기록 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "식사 자리 끝자리에 앉아 인사를 나눴다.",
+        "hint": "소개·접촉 기록"
       },
       {
         "id": "b",
@@ -8630,7 +8805,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "약속 대기 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "다음엔 꼭 가겠다고 답했다.",
+        "hint": "약속 대기"
       },
       {
         "id": "c",
@@ -8666,7 +8842,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "기존 생활 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "고맙지만 오늘은 어렵다고 했다.",
+        "hint": "기존 생활 유지"
       }
     ],
     "guard": "한 번 참석으로 절친 생성 금지; 성격 유형에 따라 거절 강제 금지",
@@ -8739,7 +8916,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "남은 물건을 언제 돌려줄지 문자로 물었다."
       },
       {
         "id": "b",
@@ -8772,7 +8950,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "공통 친구에게 상자를 맡겼다."
       },
       {
         "id": "c",
@@ -8804,7 +8983,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "상자를 옷장 위로 올려 두었다."
       }
     ],
     "guard": "원치 않는 방문·접촉을 강요하는 선택 없음; 물건 반환을 화해로 간주 금지",
@@ -8881,7 +9061,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 시간·비용 · 장면 시간 25분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "병원 예약 앱에서 빈 시간을 눌렀다.",
+        "hint": "실제 시간·비용"
       },
       {
         "id": "b",
@@ -8917,7 +9098,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "예약 후보 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "진료 가능한 요일을 메모해 두었다.",
+        "hint": "예약 후보"
       },
       {
         "id": "c",
@@ -8953,7 +9135,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "미진료 상태 유지 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "약국에서 파스만 사 왔다.",
+        "hint": "미진료 상태 유지"
       }
     ],
     "guard": "미룸을 암·사망으로 확정하지 않음; 증상만으로 진단명 생성 금지",
@@ -9026,7 +9209,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "식구들과 낮 집안일 순번을 다시 짰다."
       },
       {
         "id": "b",
@@ -9058,7 +9242,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "설거지를 쌓아 두고 커튼을 쳤다."
       },
       {
         "id": "c",
@@ -9091,7 +9276,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "근무표 담당자에게 주간 근무를 물었다."
       }
     ],
     "guard": "야간근무만으로 특정 질병 확정 금지; 수면시간과 돌봄시간 중복 배정 금지",
@@ -9168,7 +9354,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "이용 확인 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "보건소 금연 클리닉에 전화했다.",
+        "hint": "이용 확인"
       },
       {
         "id": "b",
@@ -9205,7 +9392,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 소비·접촉 변화 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "담배는 퇴근 뒤 한 대로만 미뤘다.",
+        "hint": "실제 소비·접촉 변화"
       },
       {
         "id": "c",
@@ -9241,7 +9429,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "기존 루틴 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "담뱃갑을 주머니에 도로 넣었다.",
+        "hint": "기존 루틴"
       }
     ],
     "guard": "선택 한 번으로 평생 금연·건강 완치 확정 금지; 지원 제도 시대 확인",
@@ -9313,7 +9502,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "첫 잔을 비우고 먼저 외투를 입었다."
       },
       {
         "id": "b",
@@ -9345,7 +9535,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "탄산수를 시켜 자리를 지켰다."
       },
       {
         "id": "c",
@@ -9377,7 +9568,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "다음 모임엔 술 없이 가겠다고 미리 말했다."
       }
     ],
     "guard": "음주 선택을 사고·중독 즉시 발생으로 연결 금지; 운전 귀가 선택 배제",
@@ -9449,7 +9641,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "재검 날짜를 예약했다."
       },
       {
         "id": "b",
@@ -9482,7 +9675,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "검진 센터에 결과지 뜻을 물었다."
       },
       {
         "id": "c",
@@ -9514,7 +9708,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "결과지를 서랍에 넣어 두었다."
       }
     ],
     "guard": "재검=암 확정 금지; 검진 접근·비용을 모든 시대 동일 적용 금지",
@@ -9590,7 +9785,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확인된 대안 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "진료실에서 복용 시간을 바꿀 수 있는지 물었다.",
+        "hint": "확인된 대안"
       },
       {
         "id": "b",
@@ -9627,7 +9823,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의한 시간 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "팀장에게 내원 날 오후를 비워 달라고 했다.",
+        "hint": "합의한 시간"
       },
       {
         "id": "c",
@@ -9663,7 +9860,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "예약 비용 조정 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "외출 예약을 진료 없는 날로 옮겨 달라고 했다.",
+        "hint": "예약 비용 조정"
       }
     ],
     "guard": "게임 선택으로 임의 용량·중단 지시 없음; 치료 효과 확정 금지",
@@ -9750,7 +9948,8 @@ export const LIFE_EVENTS = [
           "automaticSuccess": false,
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
-        "requires": []
+        "requires": [],
+        "result": "저녁 먹고 동네 공원을 한 바퀴 돌았다."
       },
       {
         "id": "b",
@@ -9798,7 +9997,8 @@ export const LIFE_EVENTS = [
         "requires": [
           "social.existing-friend",
           "social.friend-contact-channel"
-        ]
+        ],
+        "result": "친구에게 같이 걷자고 문자를 보냈다."
       },
       {
         "id": "c",
@@ -9842,7 +10042,8 @@ export const LIFE_EVENTS = [
           "automaticSuccess": false,
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
-        "requires": []
+        "requires": [],
+        "result": "운동화를 신발장에 그대로 두었다."
       }
     ],
     "cancelWhen": [
@@ -9919,7 +10120,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 접촉 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "오랜 친구에게 전화해 요즘 얘기를 꺼냈다.",
+        "hint": "동의한 접촉"
       },
       {
         "id": "b",
@@ -9955,7 +10157,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "접수·비용 정보 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "상담센터 접수 방법을 찾아보았다.",
+        "hint": "접수·비용 정보"
       },
       {
         "id": "c",
@@ -9992,7 +10195,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "가능한 일정 조정 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "휴대폰을 끄고 일찍 누웠다.",
+        "hint": "가능한 일정 조정"
       }
     ],
     "guard": "표현만으로 정신질환 진단 금지; 도움 요청에 의지 보너스·낙인 없음",
@@ -10065,7 +10269,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "보조기기를 직접 써 보는 날을 잡았다."
       },
       {
         "id": "b",
@@ -10098,7 +10303,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "대여와 구입 가격을 나란히 적었다."
       },
       {
         "id": "c",
@@ -10131,7 +10337,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "외출 때 함께 걸을 사람과 날을 맞췄다."
       }
     ],
     "guard": "고령이라는 이유만으로 장애 생성 금지; 도구로 모든 불편 해소 확정 금지",
@@ -10203,7 +10410,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "직장에 출근 날을 바꾸겠다고 알렸다."
       },
       {
         "id": "b",
@@ -10235,7 +10443,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "이웃에게 장 볼 것을 부탁했다."
       },
       {
         "id": "c",
@@ -10268,7 +10477,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "방문 대신 화상으로 들어갔다."
       }
     ],
     "guard": "모든 인물 일괄 감염 금지; 격리 기간·지원금은 검증 전 적용 금지",
@@ -10345,7 +10555,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "티켓·이동·공유 기억 · 장면 시간 20분 · 2만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "같이 볼 시간을 정하자고 답장했다.",
+        "hint": "티켓·이동·공유 기억"
       },
       {
         "id": "b",
@@ -10382,7 +10593,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "자기 일정 · 장면 시간 60분 · 2만 원 · 이번 선택에서 지출"
+        "result": "평일 조조 표를 끊어 혼자 보았다.",
+        "hint": "자기 일정"
       },
       {
         "id": "c",
@@ -10418,7 +10630,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "지출 없음 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "상영 시간표 창을 닫았다.",
+        "hint": "지출 없음"
       }
     ],
     "guard": "관람관 없는 지역에 강제 노출 금지; 영화 감상으로 지능·연애 자동 상승 금지",
@@ -10507,7 +10720,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "book.extension-eligible"
-        ]
+        ],
+        "result": "도서관 앱에서 연장 버튼을 눌렀다."
       },
       {
         "id": "b",
@@ -10553,7 +10767,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "book.reservation-channel"
-        ]
+        ],
+        "result": "책을 반납대에 올리고 예약을 걸었다."
       },
       {
         "id": "c",
@@ -10599,7 +10814,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "schedule.reading-time-reallocatable"
-        ]
+        ],
+        "result": "자기 전에 책을 몇 장 더 넘겼다."
       }
     ],
     "cancelWhen": [
@@ -10676,7 +10892,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "허용 시간대 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "옆집에 연습해도 되는 시간을 물었다.",
+        "hint": "허용 시간대"
       },
       {
         "id": "b",
@@ -10714,7 +10931,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 이용료·이동 · 장면 시간 20분 · 1만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "주민센터 연습실 예약을 신청했다.",
+        "hint": "실제 이용료·이동"
       },
       {
         "id": "c",
@@ -10751,7 +10969,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "장비 접근 확인 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "약음기 가격을 찾아보았다.",
+        "hint": "장비 접근 확인"
       }
     ],
     "guard": "악기 없으면 금지; 공간 예약으로 공연 기회 자동 부여 금지",
@@ -10829,7 +11048,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "합의한 일정·회비 · 장면 시간 20분 · 2만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "모임장에게 격주로 나와도 되는지 물었다.",
+        "hint": "합의한 일정·회비"
       },
       {
         "id": "b",
@@ -10866,7 +11086,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "허용된 빈도 · 장면 시간 15분 · 1만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "시간 날 때만 나가겠다고 말해 두었다.",
+        "hint": "허용된 빈도"
       },
       {
         "id": "c",
@@ -10902,7 +11123,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "개인 루틴 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "혼자 공원에 나가 연습했다.",
+        "hint": "개인 루틴"
       }
     ],
     "guard": "가입만으로 절친·대회 우승 생성 금지; 부담 가능한 무료 대안 확인",
@@ -10975,7 +11197,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "정해 둔 돈 안에서 결제했다."
       },
       {
         "id": "b",
@@ -11008,7 +11231,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "안 쓰는 물건부터 중고 앱에 올렸다."
       },
       {
         "id": "c",
@@ -11040,7 +11264,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "상품 페이지를 즐겨찾기만 해 두었다."
       }
     ],
     "guard": "희소품이라고 자동 시세 상승 금지; 물건 발견률은 통계로 표시하지 않음",
@@ -11113,7 +11338,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "가까운 바닷가 당일 일정을 내밀었다."
       },
       {
         "id": "b",
@@ -11146,7 +11372,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "각자 가고 싶은 곳에 다녀오자고 했다."
       },
       {
         "id": "c",
@@ -11178,7 +11405,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "여행 날짜를 다음 계절로 미뤘다."
       }
     ],
     "guard": "연기만으로 위약금 생성 금지; 여행이 관계 개선 보장하지 않음",
@@ -11263,7 +11491,8 @@ export const LIFE_EVENTS = [
           "automaticSuccess": false,
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
-        "requires": []
+        "requires": [],
+        "result": "알람을 맞춰 두고 게임을 켰다."
       },
       {
         "id": "b",
@@ -11309,7 +11538,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "schedule.media-after-commitment-feasible"
-        ]
+        ],
+        "result": "약속을 마치고 돌아와 컨트롤러를 잡았다."
       },
       {
         "id": "c",
@@ -11357,7 +11587,8 @@ export const LIFE_EVENTS = [
         "requires": [
           "social.existing-counterparty",
           "activity.sharing-feasible"
-        ]
+        ],
+        "result": "같이 할 방법이 있는지 물었다."
       }
     ],
     "cancelWhen": [
@@ -11429,7 +11660,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "작품에 이름표를 달아 행사장 탁자에 놓았다."
       },
       {
         "id": "b",
@@ -11462,7 +11694,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "주최 측에 판매 수수료를 물었다."
       },
       {
         "id": "c",
@@ -11495,7 +11728,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "관람객 틈에 섞여 다른 작품을 구경했다."
       }
     ],
     "guard": "처음 시작한 취미에 전문가 의뢰 금지; 노출만으로 유명세·수익 확정 금지",
@@ -11572,7 +11806,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확정 비용·관리시간 · 장면 시간 20분 · 3만 원 · 승인 뒤 실행 때만 지출 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "텃밭 신청서를 냈다.",
+        "hint": "확정 비용·관리시간"
       },
       {
         "id": "b",
@@ -11609,7 +11844,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 역할 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "이웃에게 물주기를 번갈아 하자고 했다.",
+        "hint": "동의한 역할"
       },
       {
         "id": "c",
@@ -11646,7 +11882,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "가능한 참여시간 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "텃밭 교육에 나가 흙을 만져 보았다.",
+        "hint": "가능한 참여시간"
       }
     ],
     "guard": "자급자족으로 식비 전액 삭제 금지; 기후·공간 없는 곳에 강제 발생 금지",
@@ -11734,7 +11971,8 @@ export const LIFE_EVENTS = [
         },
         "requires": [
           "schedule.hobby-time-feasible"
-        ]
+        ],
+        "result": "창고에서 꺼낸 도구를 닦아 잠깐 손에 익혔다."
       },
       {
         "id": "b",
@@ -11782,7 +12020,8 @@ export const LIFE_EVENTS = [
         "requires": [
           "social.existing-friend",
           "social.friend-contact-channel"
-        ]
+        ],
+        "result": "친구에게 같이 해 보자고 사진을 보냈다."
       },
       {
         "id": "c",
@@ -11826,7 +12065,8 @@ export const LIFE_EVENTS = [
           "automaticSuccess": false,
           "duePolicy": "next-annual-review-after-recorded-deadline"
         },
-        "requires": []
+        "requires": [],
+        "result": "도구를 다시 상자에 넣었다."
       }
     ],
     "cancelWhen": [
@@ -11902,7 +12142,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "가구 합의 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "식구들과 전화 쓰는 시간을 나누자고 했다.",
+        "hint": "가구 합의"
       },
       {
         "id": "b",
@@ -11939,7 +12180,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "약속 변경 · 장면 시간 10분 · 추가 비용 없음"
+        "result": "저녁에 다시 걸겠다고 하고 끊었다.",
+        "hint": "약속 변경"
       },
       {
         "id": "c",
@@ -11976,7 +12218,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 비용·이동 · 장면 시간 25분 · 0.1만 원 · 이번 선택에서 지출"
+        "result": "동전을 챙겨 골목 공중전화로 갔다.",
+        "hint": "실제 비용·이동"
       }
     ],
     "guard": "전화 없는 집·시대에 금지; 통신비를 가구와 개인에 이중 차감 금지",
@@ -12011,7 +12254,7 @@ export const LIFE_EVENTS = [
       65
     ],
     "title": "인터넷을 쓰려면 어디로 갈까",
-    "text": "필요한 정보를 찾으려면 접속할 장소와 시간을 정해야 한다.",
+    "text": "필요한 정보는 인터넷에만 올라와 있었다.",
     "eligibility": "인터넷 이용시설·회선 접근; 학교·일 관련 필요 기록",
     "requires": [
       "scenario.LIFE-082.ready"
@@ -12055,7 +12298,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "실제 이용시간·비용 · 장면 시간 30분 · 0.3만 원 · 이번 선택에서 지출"
+        "result": "PC방 구석 자리에서 필요한 글을 찾았다.",
+        "hint": "실제 이용시간·비용"
       },
       {
         "id": "b",
@@ -12092,7 +12336,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "설치 승인 전 지출 없음 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "통신사에 집 인터넷 설치비를 물었다.",
+        "hint": "설치 승인 전 지출 없음"
       },
       {
         "id": "c",
@@ -12129,7 +12374,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "이동·대기시간 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "주민센터 창구에 직접 가서 물었다.",
+        "hint": "이동·대기시간"
       }
     ],
     "guard": "접속 가능 지역·기관 확인; 검색 한 번으로 자격·취업 부여 금지",
@@ -12206,7 +12452,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "효력일 비용 조정 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "고객센터에 안 쓰는 부가서비스를 빼 달라고 했다.",
+        "hint": "효력일 비용 조정"
       },
       {
         "id": "b",
@@ -12243,7 +12490,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "기존 접근 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "청구서를 접어 서랍에 넣었다.",
+        "hint": "기존 접근"
       },
       {
         "id": "c",
@@ -12280,7 +12528,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "가입 전 견적만 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "다른 통신사 요금표를 찾아보았다.",
+        "hint": "가입 전 견적만"
       }
     ],
     "guard": "예시 광고금액을 확정 요금으로 사용 금지; 약정 확인 전 절감 확정 금지",
@@ -12357,7 +12606,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "기록 조회 · 장면 시간 15분 · 추가 비용 없음"
+        "result": "공식 앱에서 접속 기록을 열어 보았다.",
+        "hint": "기록 조회"
       },
       {
         "id": "b",
@@ -12394,7 +12644,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확인된 보안 설정 · 장면 시간 15분 · 추가 비용 없음"
+        "result": "비밀번호를 바꾸고 이중 인증을 켰다.",
+        "hint": "확인된 보안 설정"
       },
       {
         "id": "c",
@@ -12432,7 +12683,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 지원시간 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "아는 사람에게 계정 점검을 부탁했다.",
+        "hint": "동의한 지원시간"
       }
     ],
     "guard": "알림만으로 개인정보 유출·전액 손실 확정 금지; 구체 비밀정보 표시 없음",
@@ -12509,7 +12761,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "발신 검증 · 장면 시간 15분 · 추가 비용 없음"
+        "result": "은행 대표 번호로 직접 전화했다.",
+        "hint": "발신 검증"
       },
       {
         "id": "b",
@@ -12546,7 +12799,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "연락 종료 · 장면 시간 5분 · 추가 비용 없음"
+        "result": "번호를 차단하고 문자를 지웠다.",
+        "hint": "연락 종료"
       },
       {
         "id": "c",
@@ -12584,7 +12838,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "지원 접촉 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "가족에게 문자 사진을 보내 물었다.",
+        "hint": "지원 접촉"
       }
     ],
     "guard": "누르지 않았는데 돈을 잃게 하지 않음; 사기 수법 실행 절차를 묘사하지 않음",
@@ -12657,7 +12912,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "직원 안내를 받아 화면을 끝까지 눌렀다."
       },
       {
         "id": "b",
@@ -12690,7 +12946,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "대면 창구가 남은 지점을 찾아갔다."
       },
       {
         "id": "c",
@@ -12723,7 +12980,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "아는 사람에게 다음엔 같이 가 달라고 했다."
       }
     ],
     "guard": "나이만으로 디지털 무능 판정 금지; 존재하지 않는 창구 대안 노출 금지",
@@ -12801,7 +13059,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "게시 설정 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "지인에게 공개 범위를 정해 달라고 했다.",
+        "hint": "게시 설정"
       },
       {
         "id": "b",
@@ -12839,7 +13098,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "비공개 기록 · 장면 시간 5분 · 추가 비용 없음"
+        "result": "사진을 내 앨범에만 남겨 두었다.",
+        "hint": "비공개 기록"
       },
       {
         "id": "c",
@@ -12877,7 +13137,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "승인 대기 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "지인에게 고칠 부분을 표시해 달라고 했다.",
+        "hint": "승인 대기"
       }
     ],
     "guard": "미게시 사진이 퍼졌다고 서술 금지; 동의 거절을 관계 악화로 자동 처리 금지",
@@ -12955,7 +13216,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "완료 결제액 · 장면 시간 10분 · 3만 원 · 이번 선택에서 지출"
+        "result": "총액을 보고 결제 버튼을 눌렀다.",
+        "hint": "완료 결제액"
       },
       {
         "id": "b",
@@ -12993,7 +13255,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "이동시간·해당 구매비 · 장면 시간 40분 · 2만 원 · 이번 선택에서 지출"
+        "result": "직접 가게에 가서 사 왔다.",
+        "hint": "이동시간·해당 구매비"
       },
       {
         "id": "c",
@@ -13029,7 +13292,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "지출 없음 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "결제 창을 닫았다.",
+        "hint": "지출 없음"
       }
     ],
     "guard": "사용 가능한 지역·업체만; 주문 전 취소를 매출 손실·위약금으로 처리 금지",
@@ -13106,7 +13370,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "교육시간 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "공식 안내 영상을 따라 서류를 만들어 보았다.",
+        "hint": "교육시간"
       },
       {
         "id": "b",
@@ -13142,7 +13407,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "허용 시 대안 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "담당자에게 종이 서류로 내도 되는지 물었다.",
+        "hint": "허용 시 대안"
       },
       {
         "id": "c",
@@ -13179,7 +13445,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 지원시간 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "옆자리 동료에게 다 쓴 서류를 봐 달라고 했다.",
+        "hint": "동의한 지원시간"
       }
     ],
     "guard": "도구 사용만으로 생산성·합격 보장 금지; AI 출력은 사실 검증 없이 행정 결과로 사용 금지",
@@ -13252,7 +13519,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "담당 기관 누리집에서 공고 원문을 찾았다."
       },
       {
         "id": "b",
@@ -13285,7 +13553,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "알 만한 사람에게 조건을 다시 물었다."
       },
       {
         "id": "c",
@@ -13317,7 +13586,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "들은 소식을 메모장에만 적어 두었다."
       }
     ],
     "guard": "매체는 시대에 맞춰 변형; 소문만으로 지원금·취업·정치 의견 생성 금지",
@@ -13389,7 +13659,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "식구와 물 받는 시간을 번갈아 맡았다."
       },
       {
         "id": "b",
@@ -13422,7 +13693,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "옆집과 물통 나르는 일을 나눴다."
       },
       {
         "id": "c",
@@ -13455,7 +13727,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "가까운 다른 급수대를 찾아갔다."
       }
     ],
     "guard": "공동 급수 없는 지역 금지; 물 부족을 전염병 자동 발생으로 연결 금지",
@@ -13532,7 +13805,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "시간·비용 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "한 블록 돌아가는 길로 다녔다.",
+        "hint": "시간·비용"
       },
       {
         "id": "b",
@@ -13568,7 +13842,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "확인 정보 · 장면 시간 15분 · 추가 비용 없음"
+        "result": "구청에 공사 끝나는 날을 물었다.",
+        "hint": "확인 정보"
       },
       {
         "id": "c",
@@ -13605,7 +13880,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "공식 응답 대기 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "불편한 점을 적어 구청 민원 창구에 냈다.",
+        "hint": "공식 응답 대기"
       }
     ],
     "guard": "확인되지 않은 지역 개발·집값 상승 생성 금지; 민원이 즉시 공사 중단시키지 않음",
@@ -13682,7 +13958,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "일정 변경 · 장면 시간 20분 · 추가 비용 없음"
+        "result": "바뀐 시간에 맞춰 일찍 집을 나섰다.",
+        "hint": "일정 변경"
       },
       {
         "id": "b",
@@ -13719,7 +13996,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "접근·이동 · 장면 시간 25분 · 추가 비용 없음"
+        "result": "근처 다른 도서관 위치를 찾아보았다.",
+        "hint": "접근·이동"
       },
       {
         "id": "c",
@@ -13756,7 +14034,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "응답 대기 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "이용 시간 의견서를 안내 데스크에 냈다.",
+        "hint": "응답 대기"
       }
     ],
     "guard": "이용 기록 없는 시설 상실로 관계·건강 자동 차감 금지; 제출=정책 변경 금지",
@@ -13828,7 +14107,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "약속을 비 그친 다음 날로 옮겼다."
       },
       {
         "id": "b",
@@ -13860,7 +14140,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "안내된 다른 길로 돌아서 갔다."
       },
       {
         "id": "c",
@@ -13893,7 +14174,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "주민센터에 모래주머니를 신청했다."
       }
     ],
     "guard": "재난 노출만으로 사망·주택 파괴 확정 금지; 위험지역으로 향하는 보상 선택 없음",
@@ -13966,7 +14248,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "주인에게 인사하고 근처 다른 가게를 물었다."
       },
       {
         "id": "b",
@@ -13999,7 +14282,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "옮겨 갈 가게 주소를 지도에 찍었다."
       },
       {
         "id": "c",
@@ -14032,7 +14316,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "길 건너 가게에서 장을 봤다."
       }
     ],
     "guard": "단골 이력 없는 가게를 추억 장소로 서술 금지; 폐점 이유 임의 확정 금지",
@@ -14108,7 +14393,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "시간·실제 이동비 · 장면 시간 120분 · 추가 비용 없음"
+        "result": "주말 아침 동네 청소에 나갔다.",
+        "hint": "시간·실제 이동비"
       },
       {
         "id": "b",
@@ -14145,7 +14431,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의한 기여 · 장면 시간 20분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "시간 대신 쓰레기봉투를 보태겠다고 했다.",
+        "hint": "동의한 기여"
       },
       {
         "id": "c",
@@ -14182,7 +14469,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "기존 일정 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "모집 글을 넘겼다.",
+        "hint": "기존 일정"
       }
     ],
     "guard": "봉사를 도덕 점수·취업 보장으로 환산 금지; 무참여 벌점 없음",
@@ -14258,7 +14546,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "시간·역할 기록 · 장면 시간 30분 · 추가 비용 없음"
+        "result": "이웃 짐을 계단 위까지 들어 주었다.",
+        "hint": "시간·역할 기록"
       },
       {
         "id": "b",
@@ -14295,7 +14584,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "동의 시 예약 · 장면 시간 15분 · 추가 비용 없음 · 승인·거절은 다음 해 현재 여건으로 재확인"
+        "result": "저녁에 와서 돕겠다고 했다.",
+        "hint": "동의 시 예약"
       },
       {
         "id": "c",
@@ -14331,7 +14621,8 @@ export const LIFE_EVENTS = [
           ],
           "automaticSuccess": false
         },
-        "hint": "요청 종료 · 추가 시간 없음 · 추가 비용 없음"
+        "result": "지금은 손이 비지 않는다고 했다.",
+        "hint": "요청 종료"
       }
     ],
     "guard": "도움 1회로 무조건 보답 보장 금지; 위험·전문 작업은 가능한 역할에서 제외",
@@ -14404,7 +14695,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "주민 게시판에 버스 배차 경험을 적어 올렸다."
       },
       {
         "id": "b",
@@ -14437,7 +14729,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "구청 설명회 뒷줄에 앉았다."
       },
       {
         "id": "c",
@@ -14470,7 +14763,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "주민 투표 안내문을 넘겼다."
       }
     ],
     "guard": "개인 제출이 단독 원인인 것처럼 서술 금지; 정치 성향 자동 추론 금지",
@@ -14542,7 +14836,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "약속 장소를 엘리베이터 있는 식당으로 바꿨다."
       },
       {
         "id": "b",
@@ -14575,7 +14870,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "시설에 경사로가 있는지 물었다."
       },
       {
         "id": "c",
@@ -14608,7 +14904,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "그 사람에게 어떤 도움이 필요한지 물었다."
       }
     ],
     "guard": "장애 인물을 교훈용 배경으로 생성 금지; 도움 강요·민원 즉시 해결 금지",
@@ -14681,7 +14978,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "단골 가게 주인과 연락처를 주고받았다."
       },
       {
         "id": "b",
@@ -14714,7 +15012,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "골목 사진을 몇 장 찍어 두었다."
       },
       {
         "id": "c",
@@ -14746,7 +15045,8 @@ export const LIFE_EVENTS = [
             "participant-unavailable"
           ],
           "automaticSuccess": false
-        }
+        },
+        "result": "인사 대신 이삿짐 상자를 묶었다."
       }
     ],
     "guard": "새 동네에서 옛 이웃이 자동 등장하지 않음; 인사 생략을 배신으로 판정 금지",

@@ -30,11 +30,7 @@ test('마지막 해·검정 페이지·사망 기록은 자동결정에서도 �
     await page.screenshot({ path: 'output/playwright/closing-page.png' });
     const buttonBox = await page.locator('[data-act="sum"]').boundingBox();
     assert.ok(buttonBox.y >= 0 && buttonBox.y + buttonBox.height <= 844);
-    await page.locator('[data-act="sum"]').click();
-    assert.equal(await page.locator('[data-dcine]').count(), 0);
-    await page.clock.runFor(60000);
-    assert.equal(await page.evaluate(() => document.body.dataset.screen), 'death');
-    await page.locator('[data-act="sum"]').click();
+    await page.locator('[data-act="sum"]').click();      // 검정 페이지에서 버튼 한 번으로 결산(F-9)
     assert.equal(await page.evaluate(() => document.body.dataset.screen), 'summary');
     assert.deepEqual(page.qa.pageErrors, []);
     // 실제 사망·민감 사망도 똑같이 직접 넘기며 민감 세부 기록은 검정 페이지에 노출하지 않는다.

@@ -3,7 +3,7 @@ import { identityPreview } from '../engine/identity.js';
 // S04 진행 화면: HUD·피드·하단 바, 연 진행 루프(UI-SPEC §7.1), 선택 시트(S06), 비교 카드(S07),
 // 탭 숨김 멈춤(§7.7), 시간 상한(§7.8, 현재 없음), 사망 전환(§7.9).
 import { newLife, advanceYear, choose, runToEnd, compareCard, expectedRemainingYears, summarize, createClock } from '../engine/index.js';
-import { COMPARE_AGES, STATS, STAGES, SPEEDS, ISSUES } from '../engine/constants.js';
+import { COMPARE_AGES, STATS, STAGES, SPEEDS, ISSUES, CHOICE_READ_CPS, CHOICE_READ_PAD_MS, CHOICE_READ_MAX_MS } from '../engine/constants.js';
 import { S, $, $$, esc, show, go, announce, toast, sleep, reduced, setSetting, sheetOpen, sheetHeld, openSheet, closeSheet } from './dom.js';
 import { saveCurrent, clearCurrent, addRecord } from './store.js';
 import { fxChips, sexLabel, regionShort, nativeAge, stageState, statLevel, josa, kindBadge } from './labels.js';
@@ -48,12 +48,17 @@ function paintBadge() {
   const t = P.user ? '일시정지됨' : P.hidden ? '화면을 떠나 멈춤' : popupHalt() ? '창을 보는 동안 멈춤' : '';
   b.hidden = !t; b.textContent = t;
 }
-// 자동결정이 켜져 있는 동안만 ms 를 센다. 꺼져 있으면 사용자가 닫을 때까지 기다린다. 반환값 = 취소 함수
-function autoAfter(ms, fn) {
+// 결과·사건 카드 자동 닫기: 일시정지·화면 이탈·위에 정보 창이 열린 동안은 세지 않는다(ok: 추가 조건). 반환값 = 취소 함수
+function readAfter(ms, fn, ok = () => true) {
   let left = ms;
-  const t = setInterval(() => { if (S.settings.auto && !sheetHeld() && (left -= 200) <= 0) { clearInterval(t); fn(); } }, 200);
+  const t = setInterval(() => { if (!P.user && !P.hidden && !sheetHeld() && ok() && (left -= 200) <= 0) { clearInterval(t); fn(); } }, 200);
   return () => clearInterval(t);
 }
+// 읽기 시간: 접힌 내용·스크린리더 전용 글자를 뺀 글자 수 / 초당 9자, 최소 min, 최대 6초(E1 페이싱 — 더 읽으려면 일시정지·탭, 피드에 남는다)
+const RESULT_MAX_MS = 6000;
+const readMs = (node, min = 3000) => { const c = node.cloneNode(true); c.querySelectorAll('details, .sr-only').forEach(x => x.remove()); return Math.min(RESULT_MAX_MS, Math.max(min, c.textContent.replace(/\s+/g, '').length / CHOICE_READ_CPS * 1000)); };
+// 탭으로 닫기: 접힌 설명(details)·링크·다른 버튼을 누른 것은 제외
+const tapClose = (el, fn) => el.addEventListener('click', e => { if (!e.target.closest('details, a, button:not(.major__ok)')) fn(); });
 const capped = () => S.clock?.overCap();
 
 // ───────── 시작 ─────────
@@ -84,6 +89,7 @@ export function startResume(cur) {
   if (!L.alive) return false;
   S.L = L;
   S.forced = cur.forcedYear ? { year: cur.forcedYear } : null;
+  S.guess = cur.guess?.seed === L.seed ? cur.guess : null;
   let shift = 0;
   S.clock = createClock({ now: () => performance.now() + shift });
   S.clock.start();
@@ -95,6 +101,7 @@ export function startResume(cur) {
 function enterLife(resumed) {
   const run = ++S.run;
   Object.assign(P, { user: false, hidden: false, choice: false, news: false, mini: false });
+  identityNoteSeen = false;
   yearEls.clear();
   prevStats = null; prevStage = null; scene = null; prevProf = null; prevIssues = null; lastDiff = []; lastDeltas = {}; lastIssueD = {}; payDir = null; curChap = null; chapSeen.clear();
   personaKey = ''; topPrev = null; newsSeen.clear(); newsLog.length = 0; feedNews.length = 0; loadArchive();
@@ -161,6 +168,8 @@ function srcLine(src) {
   const m = id && S.sources[id];
   return m ? `<span class="entry__src">자료 · ${esc([m.org, m.title, m.year].filter(Boolean).join(' '))}${kindBadge(m.kind).group === 'estimated' ? '' : ' · ' + kindBadge(m.kind).label}</span>` : '';
 }
+// 새 관심사·고민 줄은 태그 + 이름만(근거 수치는 관심사 시트에). 엔진 문장의 ‘이름’을 꺼낸다.
+const concernName = e => (String(e.text).match(/‘(.+?)’/) || [])[1] || e.text;
 const splitNews = t => { const m = String(t).match(/^(.+?[.?!])\s+(.+)$/); return m ? [m[1], m[2]] : [t, '']; };
 function choiceParts(e, req) {
   const opt = req?.options?.find(o => o.id === e.option);
@@ -178,7 +187,11 @@ function entryHtml(e, req) {
   } else if (e.kind === 'choice') {
     cls.push('entry--choice');
     const { label, result } = choiceParts(e, req);
-    body = `<span class="tag entry__kind">선택</span><span class="entry__label">${esc(label)}</span>${e.auto ? ' <span class="tag">기본 행동</span>' : ''}${e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : ''}${result ? `<p class="entry__result">${esc(result)}</p>` : ''}${reactHtml(e, S.L)}${chips(e.effects)}`;
+    // 결과문이 있으면 한 줄만: 고른 라벨은 화면에서 숨겨 접근성용으로만 남긴다(R10 피드 에코 제거).
+    const tags = `${e.auto ? ' <span class="tag">기본 행동</span>' : ''}${e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : ''}`;
+    // 생활 장면(LIFE-)의 결과문은 짧은 공통 문장이라 라벨을 같은 줄 앞에 둔다.
+    const life = /^LIFE-/.test(e.id ?? '');
+    body = (result ? `<p class="entry__result"><span class="entry__label${life ? '' : ' sr-only'}">${esc(label)}</span>${life ? ' · ' : ''}${esc(result)}${tags}</p>` : `<span class="tag entry__kind">선택</span><span class="entry__label">${esc(label)}</span>${tags}`) + reactHtml(e, S.L) + chips(e.effects);;
   } else if (e.kind === 'compare') {
     cls.push('entry--quiet');
     body = `<span class="tag entry__kind">비교</span>같은 날 태어난 세 사람의 ${nativeAge(e.age)}.`;
@@ -189,7 +202,7 @@ function entryHtml(e, req) {
     const who = e.spouse ? `${/remarry/.test(e.id) ? '새 배우자 ' : /wedding|marry/.test(e.id) ? '배우자 ' : ''}${e.spouse.name ?? ''}(${e.spouse.since ?? e.year}년${e.spouse.end ? `~${e.year}년 ${e.spouse.end === 'widowed' ? '사별' : '이혼'}` : '~'})` : e.grandparent ? e.grandparent.label : '';
     const nc = e.id === 'sys.concern.new' ? (/새 관심사/.test(e.text) ? '새 관심사' : '새 고민') : '';
     if (nc) cls.push('entry--concern');
-    body = (nc ? `<span class="tag tag--concern entry__kind">${nc}</span>` : `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>`) + esc(e.text) + (e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : '') + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
+    body = (nc ? `<span class="tag tag--concern entry__kind">${nc}</span>` : `<span class="entry__ico">${iconSvg(optionIcon(e.text))}</span>`) + esc(nc ? concernName(e) : e.text) + (e.mbti ? ` <span class="tag tag--mbti" title="직접 고르지 않아 성향이 정한 선택">${esc(e.mbti.label)} 성향</span>` : '') + (who ? ` <span class="entry__fam">${esc(who)}</span>` : '') + reactHtml(e, S.L) + chips(e.effects) + srcLine(e.src);
   }
   const category = /^sys\.fam\./.test(e.id) ? 'family' : /^sys\.health\./.test(e.id) ? 'health' : topicOf(e);
   if (category) cls.push('entry--topic-' + category);
@@ -252,7 +265,7 @@ export async function revealEntries(entries, req, run) {
 
 // 장면 말풍선: 민감 항목·뉴스·비교 줄은 말풍선에 올리지 않는다(피드에만)
 function sayBubble(vis) {
-  const e = [...vis].reverse().find(x => !x.sensitive && x.kind !== 'news' && x.kind !== 'compare' && x.kind !== 'death');
+  const e = [...vis].reverse().find(x => !x.sensitive && x.kind !== 'news' && x.kind !== 'compare' && x.kind !== 'death' && x.id !== 'sys.concern.new');
   if (!e || !scene) return;
   const d = Object.values(e.effects?.stats || {}).reduce((a, b) => a + b, 0);
   const txt = e.kind === 'choice' ? (choiceParts(e, null).result || choiceParts(e, null).label) : e.text;
@@ -296,7 +309,7 @@ function updateHud(animate = true) {
     if (c.n === ch.n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
   }
   $('.chap__label', root).textContent = `제${ch.n}장 ${ch.label}`;
-  if (prevStage && prevStage !== ch.n) announce(`${L.age}세, 제${ch.n}장 ${ch.label}이 시작됐습니다.`);
+  if (prevStage && prevStage !== ch.n) announce(`${L.age}세, 제${ch.n}장 ${josa(ch.label, '이')} 시작됐습니다.`);
   prevStage = ch.n;
   const pNow = profileOf(L);
   lastDiff = prevProf ? diffProfile(prevProf, pNow, L.year, L.job) : [];
@@ -353,7 +366,7 @@ function resumeHidden() {
 export function persist() {
   const L = S.L;
   if (!L?.alive || !S.clock) return;
-  saveCurrent({ forcedYear: S.forced?.year, seed: L.seed, modelVersion: L.modelVersion, choices: L.choices, elapsed: Math.round(S.clock.elapsed()), age: L.age, name: L.name, year: L.year, at: Date.now() });
+  saveCurrent({ forcedYear: S.forced?.year, guess: S.guess, seed: L.seed, modelVersion: L.modelVersion, choices: L.choices, elapsed: Math.round(S.clock.elapsed()), age: L.age, name: L.name, year: L.year, at: Date.now() });
 }
 
 let unbind = () => {};
@@ -473,7 +486,8 @@ function setMonth(frac) {
 async function loop(run) {
   const L = S.L;
   try {
-    if (L.pending) await handle({ entries: [], choice: L.pending }, run);
+    // 이어 하기로 다시 묻는 선택: 그해 로그에서 맥락 문장을 찾도록 넘긴다(이미 피드에 있으므로 quiet로 다시 그리지 않는다)
+    if (L.pending) await handle({ entries: L.log.filter(e => e.age === L.age && e.id === L.pending.eventId).map(e => ({ ...e, quiet: true })), choice: L.pending }, run);
     while (L.alive && run === S.run) {
       await waitYear(run);
       if (run !== S.run) return;
@@ -607,8 +621,8 @@ function showShock(e, run) {
     });
     let stop = () => {};
     const done = () => { stop(); closeSheet(true, el); };
-    $('.shock__ok', el).addEventListener('click', done);
-    stop = autoAfter(3000, done);       // 자동결정에서만 자동 진행(최소 3초, 배속과 무관)
+    tapClose(el, done);
+    stop = readAfter(readMs($('.shock__body', el)), done);       // 탭하면 바로, 아니면 읽기 시간 뒤(일시정지 존중)
     syncClock();
   });
 }
@@ -639,13 +653,12 @@ function yearHtml(e) {
   return rows.length ? `<details class="impact impact--year"><summary>같은 해의 변화 <span class="impact__sub">(연간 합산 · 이 일만의 결과 아님)</span></summary>${rows.join('')}</details>` : '';
 }
 const SOFT_RE_TOPIC = new Set(['loss', 'care', 'bereave']);
-// 선택 전 안내(예상)는 접어 둔다: 확정 결과와 방향이 다를 수 있다.
+// 결과 시트는 태그 + 결과문 + 칩만(R4). 선택 전 예상(why)은 라벨·칩·facts와 겹쳐 싣지 않는다.
 // 결과 태그: 엔진이 주는 상태명(resultLabel)을 우선. result(성공/보류/아쉬움)는 지표 보정 판정이라 실행 여부로 읽히지 않게 보조로만.
 const EXEC_LABEL = { executed: '실행됨', deferred: '미룸', failed: '실행 안 됨' };
 const resultTag = (e, res = e?.result, lab = e?.resultLabel, ex = e?.execution) => (lab || res)
   ? `<span class="reveal__tag reveal__tag--${res || 'none'}">${esc(lab ?? RESULT_LABEL[res] ?? '')}</span>${ex && EXEC_LABEL[ex] && !lab ? ` <span class="tag">${EXEC_LABEL[ex]}</span>` : ''}` : '';
 const factsHtml = e => Array.isArray(e?.facts) && e.facts.length ? `<ul class="impact__facts">${e.facts.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
-const whyHtml = why => why ? `<details class="reveal__why"><summary>선택 전 예상 (실제 결과와 다를 수 있음)</summary><p>${esc(why)}</p></details>` : '';
 function showMajor(r, run, req, { shown = null, soft = false } = {}) {
   const L = S.L;
   if (!L.alive || capped() || run !== S.run) return;
@@ -664,13 +677,13 @@ function showMajor(r, run, req, { shown = null, soft = false } = {}) {
         <div class="sheet__body major__body"><p class="major__badge">${esc(TOPIC_TITLE[topic] ?? '큰 일')}</p>
         <h2 class="major__title">${esc(head)}</h2>${rest ? `<p class="major__text">${esc(rest)}</p>` : ''}${reactHtml(e, L)}
         ${resultTag(e)}${factsHtml(e)}
-        ${impactHtml(e, { year: true })}${whyHtml(e.why)}</div>
+        ${impactHtml(e, { year: true })}</div>
         <div class="sheet__foot"><button class="btn btn--primary btn--block major__ok" type="button">확인</button></div>`,
     });
     let stop = () => {};
     const done = () => { stop(); closeSheet(true, el); };
-    $('.major__ok', el).addEventListener('click', done);
-    stop = autoAfter(3000, done);       // 자동결정에서만 3초 뒤 진행(배속과 무관), 아니면 [확인]
+    tapClose(el, done);                 // [확인]은 선택 사항: 아무 데나 탭하면 닫힌다(F-3)
+    stop = readAfter(readMs($('.major__body', el)), done);       // 아니면 읽기 시간(초당 9자, 최소 3초) 뒤 저절로. 일시정지 중엔 멈춤
     syncClock();
   });
 }
@@ -681,13 +694,14 @@ function miniCard(e, text, topic) {
   const m = String(text).match(/^(.+?[.?!])\s+(.+)$/), head = m ? m[1] : text;
   const el = document.createElement('aside');
   el.className = 'mini'; el.setAttribute('role', 'status');
-  el.innerHTML = `<p class="mini__t"><span class="mini__badge">${esc(TOPIC_TITLE[topic] ?? '소식')}</span> ${esc(head)}</p>${reactHtml(e, S.L)}${impactHtml(e)}<button class="mini__ok major__ok" type="button">확인</button>`;
+  el.innerHTML = `<p class="mini__t"><span class="mini__badge">${esc(TOPIC_TITLE[topic] ?? '소식')}</span> ${esc(head)}</p>${reactHtml(e, S.L)}${impactHtml(e)}<button class="btn mini__ok major__ok" type="button">확인</button>`;
   $('#layer').append(el);
   let stop = () => {};
   const close = () => { stop(); el.remove(); P.mini = false; syncClock(); };
   $('.mini__ok', el).addEventListener('click', close);
-  const t = setTimeout(close, 3500);       // 비차단: 자동결정과 무관하게 잠시 뒤 닫힌다(소식은 피드에 남아 있다). 시계는 멈추지 않는다.
-  stop = () => clearTimeout(t);
+  // 비차단: 자동결정과 무관하게 읽기 시간 뒤 닫힌다(소식은 피드에 남아 있다). 시계는 멈추지 않는다.
+  // 일시정지 중에는 세지 않고, 시트가 떠 있는 동안은 카드를 숨겼다가(CSS) 시트가 닫힌 뒤부터 센다(A8).
+  stop = readAfter(readMs(el, 5000), close, () => !sheetOpen());
   P.mini = true;
 }
 
@@ -808,7 +822,7 @@ function updateProfile(L, animate = true) {
   const f = (k, html, show = true) => { const c = $(`[data-f="${k}"]`, root); c.hidden = !show; if (show && html != null) $('dd', c).innerHTML = html; return c; };
   // 숫자 칸: 값은 카운트 애니메이션, 아래 작은 줄은 2026년 환산
   const num = (k, label, v, fmt, extra = '', show = true, tdyFn = null) => {
-    const c = f(k, null, show); if (!show) return;
+    const c = f(k, null, show); if (!show) { $('dd', c).textContent = ''; return; }   // 숨긴 칸에 지난 값(예: 일을 그만둔 뒤의 마지막 연봉)을 남기지 않는다
     c.firstChild.textContent = label;
     const dd = $('dd', c);
     if (!$('[data-n]', dd)) dd.innerHTML = `<span data-n></span><span class="prof__arrow" data-a aria-hidden="true"></span>${extra}<small data-t></small>`;
@@ -851,7 +865,8 @@ function updateProfile(L, animate = true) {
     const prev = root._prev || {}, arrow = (k, v, thr) => { const o = prev[k]; if (o != null && o !== v) { if (Math.abs(v - o) >= thr) { const c = $(`.pcard[data-card="${prev.cardOf?.[k] ?? k}"]`); } sumArrow[k] = { dir: v > o ? 'up' : 'down', until: Date.now() + 6000 }; } return sumArrow[k] && Date.now() < sumArrow[k].until ? `<span class="prof__arrow" data-dir="${sumArrow[k].dir}">${sumArrow[k].dir === 'up' ? '▲' : '▼'}</span>` : ''; };
     const set = (k, main, key, extra = '') => { const el = $(`[data-sum="${k}"]`, root); if (el) el.innerHTML = `<span class="pcard__main">${esc(main)}</span>${key ? `<b class="pcard__key">${key}</b>` : ''}${extra}`; };
     set('home', `${p.home.regionLabel} · ${p.home.tenureLabel}`, L.age >= 19 && (p.home.tenure === 'jeonse' || p.home.tenure === 'monthly') ? ten.replace(/^\S+ /, '') : '');
-    set('job', `${jobS} · ${w.emp.label}`, p.pay || p.biz ? (p.biz ? `월 순익 ${mw(p.biz.monthlyProfit)}` : inc(p.pay.annual).replace(/^\S+ /, '')) : '', arrow('pay', pay, 1) + pctChip(st?.income));
+    // jobLine 이 이미 고용 상태로 끝나면(구직 중·은퇴 등) 다시 붙이지 않는다
+    set('job', jobS.endsWith(w.emp.label) ? jobS : `${jobS} · ${w.emp.label}`, p.pay || p.biz ? (p.biz ? `월 순익 ${mw(p.biz.monthlyProfit)}` : inc(p.pay.annual).replace(/^(연봉|월급) /, '')) : '', arrow('pay', pay, 1) + pctChip(st?.income));
     set('asset', '순자산', L.age < 19 ? '성년 이후 집계' : mw(net), L.age < 19 ? '' : arrow('net', net, 1) + (net > 0 ? pctChip(st?.asset) : `<span class="pct">${net === 0 ? '집계 중' : '순위 산정 제외'}</span>`) + (debt > 0 ? `<small class="pcard__debt">부채 ${mw(debt)}</small>` : ''));
     const flash = (k, c) => { const el = $(`.pcard[data-card="${c}"]`, root); if (el) { el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); } };
     if (prev.home != null && prev.home !== p.home.regionLabel + p.home.tenure) flash('home', 'home');
@@ -885,6 +900,10 @@ function assetRows(w, Y, mw) {
 
 // ───────── S06 선택 시트 ─────────
 // 선택별 명시 가중치만 독립 평가. 종전 최상위 한 개 추천과 섞지 않는다.
+let identityNoteSeen = false;   // 성향 안내문은 생애당 첫 1회만(F-6)
+// 범용 질문("어떻게 할까?")이면 맥락 문장을 큰 제목으로 올린다(HOOK-30S P0-5)
+const AUTO_PICK_MS = 800;   // 자동결정: 긴 카운트다운 없이 0.8초 뒤 기본값(E1, 종전 1.2초). 민감 선택은 제외
+const GENERIC_PROMPT = /^(어떻게|어디에|어디로|무엇을|뭘)\s?\S{1,4}\?$/;
 const sideTag = (isDef, preview) => (isDef ? '<span class="tag">기본</span>' : '')
   + (preview.visible ? `<span class="tag identity-fit identity-fit--${preview.alignment}">${esc(preview.label)}</span>` : '');
 const identityHint = preview => !preview.visible || preview.alignment !== 'opposed' ? ''
@@ -894,7 +913,7 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
     P.choice = true;
     S.clock.choiceStart?.();
     const L = S.L;
-    const T0 = S.settings.auto && !req.sensitive ? 1200 : (req.timeoutMs || 12000);
+    let T0 = S.settings.auto && !req.sensitive ? AUTO_PICK_MS : (req.timeoutMs || 12000);
     let left = T0, ringPaused = false, done = false, armed = false, timer, fin = false, ce0 = null;
     const maj = isMajorChoice(req), topic = req.topic ?? topicOfId(req.eventId) ?? 'housing';
     const def = req.options.find(o => o.id === req.defaultId && o.disabled !== true && o.feasible !== false)
@@ -902,15 +921,18 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
     if (!def) { P.choice = false; resolve(null); return; }
     const previews = new Map(req.options.map(o => [o.id, L.modelVersion >= 2 ? identityPreview(L, req, o) : { visible: false }]));
     const identityVisible = [...previews.values()].some(p => p.visible);
+    const showIdNote = identityVisible && !identityNoteSeen;
+    if (showIdNote) identityNoteSeen = true;
+    const prompt = req.prompt || '어떻게 할까?', lift = ctxText && GENERIC_PROMPT.test(prompt);
     const el = openSheet({
       cls: `choice${maj ? ' choice--major' : ''}`, closable: false,
       label: '.choice__prompt', focus: '.choice__prompt',
       html: `
-      <div class="choice__top">${maj ? `<p class="major__badge">중대한 결정 · ${esc(TOPIC_TITLE[topic] ?? '')}</p>` : ''}<p class="choice__meta">${req.age ?? L.age}세 · <span class="mono">${req.year ?? L.year}</span>년 · 선택</p></div>
+      <div class="choice__top">${maj ? `<p class="major__badge">중대한 결정${TOPIC_TITLE[topic] ? ` · ${esc(TOPIC_TITLE[topic])}` : ''}</p>` : ''}<p class="choice__meta">${req.age ?? L.age}세 · <span class="mono">${req.year ?? L.year}</span>년 · 선택</p></div>
       <div class="sheet__body">
-        ${ctxText ? `<p class="choice__text">${esc(ctxText)}</p>` : ''}
-        <h2 class="choice__prompt">${esc(req.prompt || '어떻게 할까?')}</h2>
-        ${identityVisible ? '<p class="choice__identity-note">성향과 반대되는 선택은 스트레스와 정체성 혼란을 늘릴 수 있어. 이런 선택이 반복되면 행복과 건강에도 부담이 쌓여. 빨간 테두리는 실패를 뜻하지 않으며, 자동·강제 선택에는 정체성 부담이 없어.</p>' : ''}
+        ${lift ? `<h2 class="choice__prompt">${esc(ctxText)}</h2><p class="choice__text">${esc(prompt)}</p>`
+          : `${ctxText ? `<p class="choice__text">${esc(ctxText)}</p>` : ''}<h2 class="choice__prompt">${esc(prompt)}</h2>`}
+        ${showIdNote ? '<p class="choice__identity-note">성향과 반대되는 선택은 스트레스와 정체성 혼란을 늘릴 수 있어. 이런 선택이 반복되면 행복과 건강에도 부담이 쌓여. 빨간 테두리는 실패를 뜻하지 않으며, 자동·강제 선택에는 정체성 부담이 없어.</p>' : ''}
         ${jobInfoHtml(req.jobInfo)}
         <ol class="options is-arming">${req.options.map((o, i) => `<li style="--i:${i}"><button class="option${previews.get(o.id).visible ? ` identity-option--${previews.get(o.id).alignment}` : ''}${o.id === def.id ? ' is-default' : ''}" type="button" data-opt="${esc(o.id)}"${o.disabled === true || o.feasible === false ? ' disabled' : ''}><span class="option__ico">${iconSvg(optionIcon(o.label))}</span><span class="option__label">${esc(o.label)}</span><span class="option__side"><span class="option__no">${i + 1}</span>${sideTag(o.id === def.id, previews.get(o.id))}</span>${identityHint(previews.get(o.id))}${o.hint ? `<span class="option__hint">${esc(o.hint)}</span>` : ''}${o.cost ? costHtml(o.cost, req.year ?? L.year) : ''}${(() => { const ef = effectsOf(o.effects), rk = riskOf(o); return ef.length || rk ? `<span class="option__eff">${rk ? `<span class="risk risk--${o.risk}">${iconSvg(rk.icon)}<span>${rk.label}</span><span class="risk__bars" aria-hidden="true"><i></i><i></i><i></i></span></span>` : ''}${ef.length ? '<span class="option__lead">예상</span>' : ''}${ef.map(effChip).join('')}</span>` : ''; })()}</button></li>`).join('')}</ol>
       </div>
@@ -919,10 +941,13 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
     syncClock();
     if (maj && ( S.settings.auto)) el.classList.add('no-beat');
     const ring = $('.ring', el), num = $('.ring__num', el), opts = $('.options', el);
+    // 다 읽기 전에 기본값으로 정해지지 않게: 시트 글자 수에 비례(C1). 자동결정은 짧게 유지.
+    if (!(S.settings.auto && !req.sensitive)) left = T0 = Math.min(CHOICE_READ_MAX_MS, Math.max(T0, $('.sheet__body', el).textContent.replace(/\s+/g, '').length / CHOICE_READ_CPS * 1000 + CHOICE_READ_PAD_MS));
     const paint = () => {
       ring.style.setProperty('--k', Math.max(0, left / T0).toFixed(3));
-      num.textContent = ringPaused ? '멈춤' : Math.max(0, Math.ceil(left / 1000));
+      num.textContent = ringPaused ? '멈춤' : P.user ? 'Ⅱ' : Math.max(0, Math.ceil(left / 1000));   // Ⅱ: 하단 바 일시정지 중
     };
+    paint();
     const ringLabel = () => ring.setAttribute('aria-label', `카운트다운 ${ringPaused ? '다시 시작' : '멈추기'}, ${Math.max(0, Math.ceil(left / 1000))}초 남음`);
     ringLabel();
     // 한 번 탭으로 선택: 시트가 뜨기 전에 시작된 탭(이전 [확인]의 잔여 클릭)만 무시한다. 이중 제출은 done 이 막는다.
@@ -931,6 +956,7 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
     el.addEventListener('pointerdown', () => { lastDown = performance.now(); }, true);
     setTimeout(() => { armed = true; opts.classList.remove('is-arming'); }, 120);
     const onKey = e => {
+      if (done && !el.hidden && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); return el.click(); }
       const n = +e.key;
       if (!el.hidden && armed && n >= 1 && n <= req.options.length) pick(req.options[n - 1].id, false);
     };
@@ -941,7 +967,7 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
       if (e.target.closest('.ring')) { ringPaused = !ringPaused; ring.setAttribute('aria-pressed', ringPaused); ringLabel(); paint(); return; }
       if (e.target.closest('[data-act="auto"]')) {
         toggleAuto();
-        if (S.settings.auto && !req.sensitive) left = Math.min(left, 1200);
+        if (S.settings.auto && !req.sensitive) left = Math.min(left, AUTO_PICK_MS);
       }
     });
     const tick = () => {
@@ -949,7 +975,7 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
       if (run !== S.run) return finish(null);
       syncClock();
       if (capped()) return pick(def.id, true, true);
-      if (!ringPaused && !P.hidden && !sheetHeld()) left -= RING_TICK;
+      if (!ringPaused && !P.user && !P.hidden && !sheetHeld()) left -= RING_TICK;   // 사용자 일시정지 중에도 멈춘다(C2)
       paint();
       if (left <= 0) return pick(def.id, true);
       timer = setTimeout(tick, RING_TICK);
@@ -975,39 +1001,27 @@ export function runChoice(req, run, ctxText) {   // export: tests/qa/shot-choice
       });
       // 결과 상태의 '고른 행동'은 정보 표시: 버튼 모양·포커스 없이 평문 라벨+값 행으로 바꾼다
       const pk = document.createElement('dl'); pk.className = 'picked';
-      pk.innerHTML = `<dt>고른 행동</dt><dd>${esc(picked?.label ?? parts.label ?? '')}</dd>`;
+      pk.innerHTML = `<dt>${isAuto ? '자동' : '고른 행동'}</dt><dd>${esc(picked?.label ?? parts.label ?? '')}</dd>`;
       opts.replaceWith(pk);
       ring.remove();
       // 결과 상태: 같은 시트 안에서 결과를 본문 맨 위로(선택지는 접힘). [확인]은 푸터(시트 맨 아래)에 있어 본문을 가리지 않는다.
       el.classList.add('is-resolved');
-      const body = $('.sheet__body', el), foot = $('.choice__foot', el), rv = document.createElement('div');
+      const body = $('.sheet__body', el), rv = document.createElement('div');
       if (maj) {
-        const res = ce?.result ?? r2?.result, why = ce?.why ?? r2?.why;
+        const res = ce?.result ?? r2?.result;
         rv.className = 'reveal'; rv.setAttribute('role', 'status');
-        rv.innerHTML = `<div class="reveal__card"><div class="reveal__front">${resultTag(ce ?? r2, res, (ce ?? r2)?.resultLabel, (ce ?? r2)?.execution) || '<span class="reveal__tag reveal__tag--none">선택 완료</span>'}<p class="reveal__text">${esc(parts.result || parts.label || '')}</p>${reactHtml(ce ?? r2, S.L)}${factsHtml(ce ?? r2)}</div></div>${ce ? impactHtml(ce) : ''}${whyHtml(why)}`;
+        rv.innerHTML = `<div class="reveal__card"><div class="reveal__front">${resultTag(ce ?? r2, res, (ce ?? r2)?.resultLabel, (ce ?? r2)?.execution) || '<span class="reveal__tag reveal__tag--none">선택 완료</span>'}<p class="reveal__text">${esc(parts.result || parts.label || '')}</p>${reactHtml(ce ?? r2, S.L)}${factsHtml(ce ?? r2)}</div></div>${ce ? impactHtml(ce) : ''}`;
       } else {
         rv.className = 'choice__result'; rv.setAttribute('role', 'status');
         rv.innerHTML = `<span class="choice__rlabel">결과</span>${isAuto ? ' <span class="tag">기본 행동</span> ' : ''}<p class="choice__rtext">${esc(parts.result || parts.label || '')}</p>`;
       }
       body.prepend(rv); body.scrollTop = 0;
       if (now) return finish(r2);
-      // 비자동: 결과 카드는 [확인]을 눌러야 닫힌다. 자동결정: 기존처럼 잠시 뒤 진행(자동결정을 중간에 켜도 이어서 센다).
-      let stop = () => {};
+      // 일반·중대 공통(F-3·C5): 확인 없이 결과를 읽기 시간(초당 9자, 최소 3초) 동안 보여 준 뒤 닫는다. 탭·Enter·Esc 면 즉시.
+      // 일시정지·위에 연 정보 창이 있으면 세지 않는다. 결과 문장은 피드에 남는다.
       const go = () => { stop(); finish(r2); };
-      if (!maj) {
-        // 일반·우연 선택: 확인 없이 결과를 잠시 보여 준 뒤 자동으로 닫는다(탭하면 즉시). 결과 문장은 피드에 남는다.
-        const t = setTimeout(go, 2500);
-        stop = () => clearTimeout(t);
-        el.addEventListener('click', go);
-        return;
-      }
-      // 중대 결정: 결과·실제 변화를 한 화면에 두고 [확인] 1회. 자동결정이면 잠시 뒤 진행.
-      const ok = document.createElement('button');
-      ok.type = 'button'; ok.className = 'btn btn--primary btn--block major__ok choice__ok'; ok.textContent = '확인';
-      foot.prepend(ok);   // [확인]은 시트 맨 아래 푸터(고정)
-      ok.addEventListener('click', go);
-      stop = autoAfter(3500, go);      // 자동결정에서도 카드 뒤집기(~1.4초) + 결과 읽기 시간 확보: 탭하면 즉시
-      ok.focus({ preventScroll: true });
+      const stop = readAfter(readMs(rv), go);
+      tapClose(el, go);
     }
     function finish(r2) {
       if (fin) return; fin = true; setTimeout(syncClock, 0);      // 연타·타이머와 탭이 겹쳐도 한 번만 진행

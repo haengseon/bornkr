@@ -77,7 +77,7 @@ const dist = (a, b) => {
 };
 const BANNED = ['피가', '피를', '칼', '때려', '폭행', '흉기', '주먹', '발로', '자해', '자살', '죽고', '죽을', '성폭', '강간', '불쌍', '결핍', '극복', '비정상', '안타깝', '가난한 집', '장애를 앓', '낙오', '실패', '무능', '게으', '루저', '노력 부족', '탓이', '자초'];
 const SILENCE = /참는|참아|침묵|무시|모른 척|모른척|가만히|못 본 척/;
-const ACT_OK = new Set(['flag', 'gain', 'spend', 'borrow', 'move', 'moveRegion', 'preparePublicExam']);
+const ACT_OK = new Set(['flag', 'gain', 'spend', 'borrow', 'move', 'moveRegion', 'preparePublicExam', 'startGig', 'hire']);
 const FLAGS_OK = new Set(['civilExam', 'examUntil', 'infertile', 'childWait', 'noChild']);
 
 function checkFx(fx, where) {

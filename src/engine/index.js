@@ -36,7 +36,7 @@ export function replay(seed, choices = [], { forced, modelVersion } = {}) {
   while (L.alive) {
     if (!L.pending) { advance(L); continue; }
     const c = queue[i], p = L.pending;
-    if (c && c.eventId === p.eventId && c.age === p.age) { i++; resolve(L, c.option, { auto: !!c.auto }); }
+    if (c && (c.eventId === p.eventId || (c.eventId === 'sys.life.direction' && p.eventId.startsWith('sys.late.'))) && c.age === p.age) { i++; resolve(L, c.option, { auto: !!c.auto }); }
     else resolve(L, p.defaultId, { auto: true });
   }
   return L;

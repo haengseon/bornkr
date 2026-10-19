@@ -165,7 +165,7 @@ function currentRoutine(d) { return d.routines.find(r => r.status === 'active') 
 
 const PLAN_OPTIONS = [
   { id: 'quiet', label: '혼자 정리하는 시간을 남긴다', hint: '집에서 쉬는 짧은 시간을 생활 원칙으로 정한다.', personality: { weights: { I: .6 } } },
-  { id: 'explore', label: '새로운 관심거리를 조금씩 찾아본다', hint: '별도 구매 없이 가능한 관심사 탐색을 시작한다.', personality: { weights: { N: .5, P: .2 } } },
+  { id: 'explore', label: '새 관심거리를 찾아본다', hint: '돈 들이지 않고 둘러본다.', personality: { weights: { N: .5, P: .2 } } },
   { id: 'keep', label: '당분간 지금 생활을 유지한다', hint: '생활 방식은 바꾸지 않는다.', personality: { weights: {} } },
 ];
 
@@ -200,7 +200,7 @@ export function step(L, ctx) {
   const stage = stageOf(L.age).id;
   if (!inSlice(L, d) || L.yr.asked || L.pending || L.stageChoices[stage].sys >= STAGE_CAP[stage].sys) return;
   if (!d.routines.length && !(d.nextPlanYear > L.year)) {
-    ctx.ask({ eventId: 'sys.daily.plan', prompt: '일과 해야 할 일 사이에서 어떤 시간을 남겨 둘까?',
+    ctx.ask({ eventId: 'sys.daily.plan', prompt: '하루 끝에 남는 시간을 어디에 둘까?',
       options: PLAN_OPTIONS.map(o => ({ ...o, personality: copy(o.personality), feasible: time.personal >= 15 || o.id === 'keep' })),
       defaultId: 'keep', data: { daily: true } });
     return;
@@ -210,19 +210,19 @@ export function step(L, ctx) {
   if (incomeGap && !(d.nextIncomeReviewYear > L.year)) {
     ctx.ask({ eventId: 'sys.daily.income-gap', prompt: '지난해보다 수입이 크게 줄었다. 돈을 들이지 않는 개인 시간을 어떻게 남길까?',
       options: [
-        { id: 'free', label: '새 지출 없이 쉬거나 관심거리를 살핀다', personality: { weights: { P: .4 } } },
-        { id: 'short', label: '해야 할 일을 먼저 하고 짧은 시간을 남긴다', feasible: time.personal >= 5, personality: { weights: { J: .5 } } },
-        { id: 'pause', label: '지금은 생활 원칙을 쉬고 형편을 다시 살핀다', personality: { weights: {} } },
+        { id: 'free', label: '돈 안 드는 쉼을 찾는다', personality: { weights: { P: .4 } } },
+        { id: 'short', label: '할 일 먼저, 짧게 쉰다', feasible: time.personal >= 5, personality: { weights: { J: .5 } } },
+        { id: 'pause', label: '생활 원칙을 잠시 쉰다', personality: { weights: {} } },
       ], defaultId: 'pause', data: { daily: true, sourceYear: L.year - 1, incomeBefore: lastLedger.income, incomeNow: ledger.income } });
     return;
   }
   const food = foodPriceContext(L);
   const independent = ['own', 'jeonse', 'monthly', 'public'].includes(L.home?.tenure);
   if (independent && ledger && food.available && food.rise > .04 && !(d.nextMealReviewYear > L.year)) {
-    ctx.ask({ eventId: 'sys.daily.meal', prompt: `${L.year}년 식료품 연평균 물가지수가 지난해보다 ${Math.round(food.rise * 1000) / 10}% 올랐다. 다음 해 식사비용 원칙을 어떻게 정할까?`,
+    ctx.ask({ eventId: 'sys.daily.meal', prompt: `장바구니 물가가 지난해보다 ${Math.round(food.rise * 1000) / 10}% 올랐다.`,
       options: [
-        { id: 'budget', label: '더 저렴한 메뉴를 우선 살핀다', hint: '다음 해 생활비 일부를 작게 줄이는 게임 가정이 적용된다.', personality: { weights: { S: .4 } } },
-        { id: 'cook', label: '조리 시간을 하루 30분 더 배정한다', hint: '하루 30분을 요리에 더 쓴다. 그날 일정에 여유가 있어야 한다.', feasible: time.personal >= 30, personality: { weights: { J: .5 } } },
+        { id: 'budget', label: '더 저렴한 메뉴를 우선 살핀다', hint: '다음 해 식비가 조금 준다.', personality: { weights: { S: .4 } } },
+        { id: 'cook', label: '직접 더 해 먹는다', hint: '하루 30분', feasible: time.personal >= 30, personality: { weights: { J: .5 } } },
         { id: 'keep', label: '지금 비용 원칙을 유지한다', personality: { weights: {} } },
       ], defaultId: 'keep', data: { daily: true, rise: food.rise, sourceYear: L.year } });
     return;
@@ -233,9 +233,9 @@ export function step(L, ctx) {
   if (routine && (budgetChanged || workChanged || paused) && !(d.nextReviewYear > L.year)) {
     ctx.ask({ eventId: 'sys.daily.adjust', prompt: paused ? '시간이 빠듯해 쉬고 있는 생활 원칙을 어떻게 할까?' : workChanged ? '일에 배정한 시간이 늘어 개인 시간이 줄었다. 생활 원칙을 어떻게 이어갈까?' : '가용 수입이 줄었다. 남겨 둔 개인 시간을 어떻게 이어갈까?',
       options: [
-        { id: 'keep', label: '가능한 범위에서 기존 방식을 지킨다', feasible: time.personal >= 15, personality: { weights: { J: .5 } } },
+        { id: 'keep', label: '하던 대로 지킨다', feasible: time.personal >= 15, personality: { weights: { J: .5 } } },
         { id: 'short', label: '더 짧게 바꿔 이어간다', feasible: time.personal >= 5, personality: { weights: { P: .6 } } },
-        { id: 'pause', label: '이번에는 쉬고 나중에 다시 살핀다', personality: { weights: {} } },
+        { id: 'pause', label: '이번엔 쉰다', personality: { weights: {} } },
       ], defaultId: 'pause', data: { daily: true, routineId: routine.id } });
   }
 }
@@ -248,7 +248,7 @@ function resolvePlan(L, ctx, option) {
   if (!d.routines.some(r => r.id === option)) d.routines.push({ id: option, label, status: 'active', startedAt: L.year, minimumMinutes: 15, cashCost: 0, kind: 'personal-principle' });
   d.startedAt ??= L.year;
   d.history.push({ id: `daily.plan.${L.year}`, year: L.year, kind: 'routine', choiceId: option,
-    text: `${label}을 생활 원칙으로 정했다. 별도 비용이 드는 활동이나 만남을 완료한 기록은 아니다.` });
+    text: `${label}을 생활 원칙으로 정했다.` });
   if (d.summary) d.summary.routine = copy(currentRoutine(d));
 }
 
@@ -280,7 +280,7 @@ function resolveIncomeGap(L, ctx, option) {
   }
   const id = `daily.income-gap.${L.year}`;
   d.history.push({ id, year: L.year, kind: 'routine', sourceEventId: 'sys.daily.income-gap', choiceId: option,
-    text: option === 'pause' ? '수입이 줄어 개인 생활 원칙을 잠시 쉬기로 했다.' : '수입이 줄어 추가 비용 없는 개인 시간을 남기기로 했다. 새 활동이나 만남을 완료한 기록은 아니다.' });
+    text: option === 'pause' ? '수입이 줄어 개인 생활 원칙을 잠시 쉬기로 했다.' : '수입이 줄어 돈 안 드는 시간을 남기기로 했다.' });
   queueDailyOutcome(L, { id: `${id}.review`, sourceEventId: 'sys.daily.income-gap', choiceId: option,
     dueYear: L.year + 1, kind: 'income-review', previousIncome: d.ledger[L.year]?.income ?? 0,
     text: '수입 공백 뒤 생활 원칙을 현재 형편과 다시 비교했다.' });
@@ -309,12 +309,12 @@ export function finishDailyYear(L) {
     'income-review': {
       eligible: state => state.age >= 19 && !!state.dailyLife.ledger[state.year],
       apply: (state, item) => { item.incomeNow = state.dailyLife.ledger[state.year].income;
-        item.text = item.incomeNow > item.previousIncome ? '수입이 늘어난 기록을 확인했다. 생활 회복이나 활동 완료를 뜻하지는 않는다.' : '수입 공백 이후에도 개인 시간 원칙을 현재 형편에 맞춰 살폈다.'; },
+        item.text = item.incomeNow > item.previousIncome ? '수입이 다시 늘었다.' : '수입 공백 이후에도 개인 시간 원칙을 현재 형편에 맞춰 살폈다.'; },
     },
     'meal-review': {
       eligible: (state, item) => state.dailyLife.mealPolicy?.id === item.policyId && !!state.dailyLife.ledger[state.year],
       apply: (state, item) => { const discount = state.dailyLife.ledger[state.year].mealAdjustment?.discount || 0;
-        item.text = discount > 0 ? '식사비용 원칙의 작은 절약 가정을 당해 생활비 장부에 반영했다. 실제 식사를 관측한 기록은 아니다.' : '식사비용 원칙을 확인했지만 조건에 맞는 절약 거래는 적용하지 않았다.'; },
+        item.text = discount > 0 ? '식비를 조금 아꼈다.' : '식비는 그대로였다.'; },
     },
     'routine-review': {
       eligible: (state, item) => state.dailyLife.routines.some(r => r.id === item.routineId) && state.age >= 19,

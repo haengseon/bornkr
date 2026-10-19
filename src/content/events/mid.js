@@ -166,7 +166,7 @@ export default [
   {
     id: 'mid.child.hakwon', ages: [38, 52], p: 0.12, cooldown: 5, tags: ['tutoring'], src: ['R03.S1'],
     when: L => kids(L, 10, 18) > 0,
-    text: ['자녀 학원비가 월급날을 먼저 찾아왔다.', '자녀가 학원 하나를 더 다니고 싶다고 했다.', '학원 상담 문자에 월 수강료표가 붙어 왔다.'],
+    text: ['자녀 학원비가 생활비보다 먼저 빠져나갔다.', '자녀가 학원 하나를 더 다니고 싶다고 했다.', '학원 상담 문자에 월 수강료표가 붙어 왔다.'],
     reason: '자녀 학원비',
     choice: {
       prompt: '어떻게 할까?',
@@ -250,7 +250,7 @@ export default [
   {
     id: 'mid.parent.basic', ages: [40, 54], years: [2014, 2100], p: 0.1, once: true, src: ['R06.S37', 'R07.S10'],
     when: L => parents(L).some(p => p.alive && p.age >= 66),
-    text: era([[2014, '부모님이 기초연금을 처음 받았다. 드리던 용돈이 조금 줄었다.'], [2016, '부모님이 기초연금으로 병원비를 낸다고 했다. 마음이 조금 놓였다.']]),
+    text: era([[2014, '부모님이 기초연금을 처음 받았다. 드리던 용돈이 조금 줄었다.'], [2016, '부모님이 기초연금으로 병원비를 낸다고 했다.']]),
     fx: { stats: { wealth: 1, relations: 1 }, issues: { care: -2 } },
     reason: '부모님의 기초연금',
   },

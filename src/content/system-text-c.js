@@ -30,7 +30,7 @@ export default {
   },
   'sys.age.ltc': ['장기요양 {grade}등급을 받았다.', '장기요양 인정 심사 결과는 {grade}등급이었다.', '심사를 거쳐 장기요양 {grade}등급이 나왔다.'],
   'sys.age.residence': {
-    prompt: ['앞으로 어디서 지낼지 정해야 했다.', '돌봄을 어디서 받을지 가족과 이야기했다.'],
+    prompt: ['앞으로 어디서 지낼까?', '돌봄을 어디서 받을지 가족과 이야기했다.'],
     options: { home: '집에서 방문요양', facility: '요양시설', child: '자녀 집으로' },
   },
   'sys.age.spouse_care': ['배우자를 돌보는 게 하루의 대부분이 되었다.', '하루가 배우자의 식사와 약 시간에 맞춰 흘렀다.', '배우자 곁을 지키는 일이 일과가 되었다.'],
@@ -43,7 +43,7 @@ export default {
   // ── 가족(GDD §5.6) ──
   'sys.fam.parent_death': ['{parentLabel|이} 돌아가셨다. {pAge}세.', '{parentLabel|이} 세상을 떠나셨다. 향년 {pAge}세였다.', '{parentLabel|이} 돌아가셨다. 장례 사흘이 흐릿하게 지나갔다.'],
   'sys.fam.parent_care': {
-    prompt: ['{parentLabel|을} 누가 돌볼지 정해야 했다.', '{parentLabel}의 돌봄을 어떻게 할지 이야기해야 했다.'],
+    prompt: ['{parentLabel|을} 누가 돌볼까?', '{parentLabel}의 돌봄을 어떻게 할지 이야기해야 했다.'],
     options: { home: '{parentLabel|을} 모신다', facility: '{parentLabel} 요양시설', share: '형제와 나눈다' },
   },
   'sys.fam.care_end': ['{who}{because} 돌봄이 종료됐다.', '{who}{because} 돌봄이 끝났다.'],

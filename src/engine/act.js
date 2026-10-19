@@ -8,6 +8,8 @@ import { spouseName } from './kin.js';
 import { regionalPrice } from '../data/housing-regional.js';
 import { syncMortgages, syncLoan } from './loan-schedules.js';
 import { withTransactionJournal } from './transactions.js';
+import { PRIVATE_PENSION } from '../data/incomes.js';
+import { makeOffer } from './systems/career.js';
 
 export const LOAN_LABEL = { credit: '신용대출', mortgage: '주택담보대출', jeonse: '전세자금대출', student: '학자금 대출', business: '사업자 대출' };
 export const TENURE_LABEL = { own: '자가', jeonse: '전셋집', monthly: '월셋집', public: '공공임대', family: '부모님 집', dorm: '기숙사', facility: '요양시설' };
@@ -17,19 +19,34 @@ export const COND_LABEL = {
 };
 
 export const indep = L => L.flags.indep != null;
+// 보증금·창업 자금은 현금부터 낸다: 비상금(만 원)을 남기고 쓸 수 있는 만큼, 그래도 최소 자기 부담(1 − loanShare)은 현금이 있으면 낸다
+export const CASH_BUFFER = 300;
+export const ownShare = (assets, dep, loanShare) => Math.round(Math.max(Math.min(Math.max(0, assets - CASH_BUFFER), dep), Math.min(Math.max(0, assets), dep * (1 - loanShare))));
 export function refreshDebt(L) {
   const l = L.money.loans;
   L.money.debt = Math.round(Object.values(l).reduce((a, b) => a + b, 0));
 }
 const tally = (L, k, n = 1) => { L.tally[k] = (L.tally[k] || 0) + n; };
 
-// 모자란 생활비를 신용대출로 메운다. 무담보 신용은 max(3,000만 원(2025 실질), 연소득 × 3)까지만 —
-// 넘는 몫은 기초생활 지원·가족 부양·면책으로 흡수된 것으로 본다(QA-S-03, GDD §5.4 빚 눈덩이 방지).
+// 무담보 신용 한도: max(3,000만 원(2025 실질), 연소득 × 3). 넘는 몫은 연체(가산금리)로 보고 money.step이 담보·자산으로 정리한다.
+// 그해 소득만 보면 무직 첫해에 한도가 바로 꺼져 연체가 됐다: 최근 3년 안의 직전 임금도 신용 근거로 본다(집이 있으면 settleArrears가 담보 대출로 옮긴다).
+export const creditCap = L => {
+  const last = L.flags.lastJob, recent = last && L.year - last.year <= 3 ? last.wage || 0 : 0;
+  return Math.max(3000 * yr(T('ERA_INCOME_INDEX'), L.year), 3 * Math.max(L.money.income || 0, recent));
+};
+export const arrearsOf = L => Math.max(0, (L.money.loans.credit || 0) - creditCap(L));
+// 모자란 돈은 사라지지 않는다: 전액 신용대출(한도 초과분 = 연체)로 남긴다(QA B1).
 export function addCredit(L, amount) {
+  if (!(amount > 0)) return;
   syncLoan(L, 'credit');
-  const l = L.money.loans, cap = Math.max(3000 * yr(T('ERA_INCOME_INDEX'), L.year), 3 * (L.money.income || 0));
-  l.credit = Math.max(l.credit, Math.min(l.credit + amount, cap));
+  L.money.loans.credit += amount;
+  syncLoan(L, 'credit');
   refreshDebt(L);
+}
+// 전세대출은 지금 보증금의 80%까지(QA M3). 넘는 몫(보증금을 빼고도 못 갚은 대출 등)은 담보가 없으니 신용대출로 옮긴다. 빚 총액은 그대로.
+export function capJeonse(L) {
+  const over = (L.money.loans.jeonse || 0) - Math.round((L.home.deposit || 0) * 0.8);
+  if (over > 0) { L.money.loans.jeonse -= over; addCredit(L, over); }
 }
 
 // ── 주거 가격·예산 (시군구 housingTier 기준, 2025 실질 만원) ──
@@ -58,17 +75,22 @@ export function rentFor(L, ctx, tier = tierOfL(L), cheap = L.home.cheap) {
   const r = rentAt(tier, L.year, cheap, L.home.sigungu);
   return { rent: Math.round(r.rent * (0.85 + 0.3 * ctx.rand())), deposit: r.deposit };
 }
+// 부모 도움(주택 구입): 부모 생존 → 부모 가구 순자산 × 출생 분위별 비율 [추정, 세대 간 이전 경로]
+export const parentHelp = L => (L.family.parents.father.alive || L.family.parents.mother.alive ? Math.round(Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1]) : 0);
+// 새 주담대를 받을 수 없는 형편(QA M3·B-09): 자금 압박 3년 안·연체·강제 처분 3년 안. 60세+는 새 주담대 없이 자기 돈으로만 산다.
+const noMortgage = L => { const fl = L.flags, y = L.year; return fl.crunch >= y - 3 || fl.forcedSale >= y - 3 || arrearsOf(L) > 0 || L.age >= 60 || L.money.welfare > 0; };   // 기초생활급여를 받는 해에는 새 주담대 없음
 // 예산: 소득·가용 자산·대출 한도(연도별 DSR/DTI 상한, 연 원리금 상환 기준). keepHome: 지금 집을 팔지 않고 남겨 두는 경우(세 주기·비워 두기)
 export function budgetOf(L, keepHome = false) {
   const mb = T('MOVE_BUDGET'), y = L.year, INC = Math.max(0, econ(L).INC), own = L.home.owned && !keepHome;
   const r = (yr(T('BASE_RATE'), y) ?? 0.05) + 0.02, n = mb.term;
   const ann = r / (1 - (1 + r) ** -n);
-  const help = L.family.parents.father.alive || L.family.parents.mother.alive ? Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1] : 0;
-  return { INC, ann, assets: Math.max(0, L.money.assets) + (L.home.deposit || 0) + (own ? L.home.value * 0.9 - L.money.loans.mortgage : 0) + help, loanCap: Math.max(0, yr(mb.dsr, y) * INC / ann - (L.money.debt - (own ? L.money.loans.mortgage : 0) - L.money.loans.jeonse)), rentCap: mb.rentCap * INC, jx: mb.jeonseLoanX };
+  const blocked = noMortgage(L);
+  return { INC, ann, blocked, assets: Math.max(0, L.money.assets) + (L.home.deposit || 0) + (own ? L.home.value * 0.9 - L.money.loans.mortgage : 0) + parentHelp(L), loanCap: blocked ? 0 : Math.max(0, yr(mb.dsr, y) * INC / ann - (L.money.debt - (own ? L.money.loans.mortgage : 0) - L.money.loans.jeonse)), rentCap: mb.rentCap * INC, jx: mb.jeonseLoanX };
 }
+// 매수: 주담대는 LTV(지역·연도)와 DSR 한도 중 작은 값까지(QA M3). 나머지는 자기 돈 + 연소득만큼의 신용대출(신용 한도 3배 안). 위기 중(blocked)엔 사지 않는다.
 export function fits(L, b, tenure, tier, sz = 1, id) {
   const y = L.year;
-  if (tenure === 'own') { const p = priceAt(tier, y, id) * sz, ltv = yr(T('LTV')[L.home.regionGroup], y); return p - Math.min(ltv * p, b.loanCap) <= b.assets + b.INC; } // INC: 신용·가족 차입 등 보완 자금
+  if (tenure === 'own') { const p = priceAt(tier, y, id) * sz, ltv = yr(T('LTV')[L.home.regionGroup], y); return !b.blocked && p - Math.min(ltv * p, b.loanCap) <= b.assets + b.INC; }
   if (tenure === 'jeonse') { const d = jeonseAt(tier, y, id, L.home.regionGroup) * 0.55; return d - Math.min(0.8 * d, b.jx * b.INC) <= b.assets && d * 0.8 <= b.loanCap + b.assets; }
   const r = rentAt(tier, y, false, id); return r.rent * 12 <= b.rentCap && r.deposit <= b.assets + b.INC;
 }
@@ -122,6 +144,34 @@ export function makeAct(L, ctx) {
       L.money.assets -= amount;
       if (L.money.assets < 0) { addCredit(L, -L.money.assets); L.money.assets = 0; }
     },
+    // 연체(신용 한도 초과분) 정리: 집 담보 추가 대출(LTV 안) → 개인연금 해지 → 3년째면 집 처분. 남은 연체는 빚으로 남아 개인회생(money.js)으로 이어진다.
+    // ponytail: 세 준 부동산 매각은 자금 압박 선택지(sys.money.crunch)에만 있다 — 강제 정리가 필요해지면 여기에 추가
+    settleArrears() {
+      const m = L.money, h = L.home;
+      if (!indep(L) || !arrearsOf(L)) { L.flags.arrearsSince = null; return; }
+      const toCredit = x => { x = Math.min(Math.round(x), arrearsOf(L), Math.max(0, m.assets)); if (x > 0) act.repay(x, 'credit'); };
+      if (h.owned && !h.parents) {
+        syncMortgages(L);
+        const room = Math.round(yr(T('LTV')[h.regionGroup], L.year) * h.value - (h.mortgageBalance || 0));
+        const x = Math.min(room, Math.round(arrearsOf(L)));
+        if (x > 0) { act.borrow(x, 'mortgage'); h.mortgageBalance = (h.mortgageBalance || 0) + x; m.assets += x; toCredit(x); }
+      }
+      const pn = L.pension2;
+      if (arrearsOf(L) && pn?.balance > 0) {
+        const cash = Math.round(pn.balance * (1 - PRIVATE_PENSION.values.lumpTax));
+        pn.balance = 0; pn.monthly = 0; pn.draw = 'lump'; pn.left = 0;
+        m.assets += cash; ctx.sys('sys.money.pension_draw.lump');
+        toCredit(cash);
+      }
+      if (!arrearsOf(L)) { L.flags.arrearsSince = null; return; }
+      L.flags.arrearsSince ??= L.year;
+      if (L.year - L.flags.arrearsSince >= 2 && h.owned && !h.parents) {   // 연체가 3년째 이어지면 집을 처분한다
+        L.flags.forcedSale = L.year;
+        ctx.sys('sys.home.sell');
+        act.move(m.assets > homePrice(L) * 0.25 ? 'jeonse' : 'monthly', { reason: '빚을 갚으려 집을 처분', involuntary: true });
+        toCredit(arrearsOf(L));
+      }
+    },
     borrow(amount, kind = 'credit', { silent = false } = {}) {
       amount = Math.round(amount);
       if (amount <= 0) return;
@@ -157,17 +207,24 @@ export function makeAct(L, ctx) {
     // 미리 정한 목적지(계획의 cost와 같은 숫자로 정산): to = 시군구 place, dep(보증금)·rent(월세)·price(매수가), home = 다시 들어가 사는 세 준 집(L.rentals 항목)
     move(tenure, { reason = '이사', involuntary = false, price, silent = false, region, to, dep, rent, home } = {}) {
       const h = L.home;
+      // 매수 대상은 나가는 집을 정산하기 전 예산(canOwn·fits와 같은 숫자)으로 고른다. 정산 뒤 예산으로 다시 고르면
+      // 전세대출 상환만큼 예산이 줄어 '집을 산다'고 정한 해에 전·월세로 떨어졌다(state-consistency a).
+      const buyAt = tenure === 'own' && !to && !home && !region && indep(L) && h.sigungu ? Math.min(1.3, Math.max(0.4, (price ?? homePrice(L)) / Math.max(1, homePrice(L)))) : 0;
+      const pre = buyAt ? chooseTarget(L, ctx, 'own', h.region, buyAt, { strict: true }) : null;
+      if (buyAt && !pre) { ctx.sys('sys.home.buy_fail'); return; }   // 살 수 있는 집이 없으면 이사하지 않는다(전·월세로 바꿔 들어가지 않는다)
       // 나가는 집 정산: 보증금 회수 → 자가는 매도(세 주거나 비워 둘 집은 먼저 keepHome으로 빼 둔다) → 전세대출 상환
       if (indep(L) && !h.parents) {
         if (h.deposit) { L.money.assets += h.deposit; h.deposit = 0; }
         if (h.owned) sell();
         const jl = Math.min(L.money.loans.jeonse, L.money.assets);
         L.money.loans.jeonse -= jl; L.money.assets -= jl;
+        capJeonse(L);                                   // 보증금으로 다 못 갚은 전세대출은 담보(보증금)가 없으니 신용대출로 남는다
       }
       if (region && region !== h.region) act.moveRegion(region, { silent: true, reason: tenure === 'dorm' && reason === '이사' ? '진학' : reason, place: to });
       // 독립 후 이사: 예산에 맞는 (시군구, 점유 형태)만 후보. 부모 집·시설·기숙사·공공임대 외
       let cheap = false;
       if (to && tenure !== 'family') Object.assign(h, to);
+      else if (pre) { Object.assign(h, pre.place); price = Math.round(homePrice(L) * buyAt); }
       else if (indep(L) && h.sigungu && tenure !== 'facility' && tenure !== 'dorm' && tenure !== 'family') {
         const size = tenure === 'own' ? Math.min(1.3, Math.max(0.4, (price ?? homePrice(L)) / Math.max(1, homePrice(L)))) : 1;
         const t = chooseTarget(L, ctx, tenure, h.region, size);
@@ -193,9 +250,14 @@ export function makeAct(L, ctx) {
         h.owned = true; h.value = home.value; h.valueMark = home.value; h.markYear = L.year; h.boughtYear ??= home.since;
       } else if (tenure === 'own') {
         const p = Math.round(price ?? homePrice(L));
+        refreshDebt(L);                                      // 방금 판 집의 대출 상환을 DSR 한도에 반영
+        const b = budgetOf(L), cap = Math.round(Math.min(yr(T('LTV')[h.regionGroup], L.year) * p, b.loanCap));
+        let short = p - Math.max(0, L.money.assets - 300) - cap;
+        if (short > 0) { const x = Math.min(short, parentHelp(L)); L.household.netWorth -= x; L.money.assets += x; short -= x; }   // 모자란 계약금은 부모 도움부터
         const own = Math.max(0, L.money.assets - 300);
-        const loan = Math.max(0, p - own);
-        L.money.assets -= p - loan;
+        const loan = Math.min(Math.max(0, p - own), cap);
+        L.money.assets -= p - loan;                          // 그래도 모자란 계약금(fits: 연소득까지)은 신용대출
+        if (L.money.assets < 0) { addCredit(L, -L.money.assets); L.money.assets = 0; }
         if (loan) { syncLoan(L, 'mortgage'); L.money.loans.mortgage += loan; syncLoan(L, 'mortgage'); }
         h.mortgageBalance = loan;
         h.owned = true; h.value = p; h.boughtYear = L.year; h.valueMark = p;
@@ -243,11 +305,25 @@ export function makeAct(L, ctx) {
       j.status = o.self ? 'self' : 'employed';
       Object.assign(j, { code: o.code, title: o.title, major: o.major, band: o.band, ai: o.ai, hazard: o.hazard ?? 1, public: !!o.public, regular: !!o.regular, firmSize: o.firmSize, wage: Math.round(o.wage), years: 0, searchYears: 0, platform: !!o.platform });
       j.history.push({ code: o.code, title: o.title, from: L.year, to: null, reason: null, ...(o.public && { public: true }) });
+      j.gig = null;                                         // 정식 일자리가 짧은 일을 대신한다
       if (o.silent) return;
       if (first) {
         ctx.sys('sys.job.first', { title: o.title });
-        ctx.sys('sys.money.first_pay', { pay: Math.round(o.wage / 12) }, { quiet: true });
+        ctx.sys('sys.money.first_pay', { pay: Math.round(o.wage / 12) }, { essential: true });
       } else ctx.sys('sys.job.reemploy', { title: o.title });
+    },
+    // 사건이 '입사했다'고 말하는 선택: 그해 시세의 제안으로 실제 일자리를 잡는다(자영 제안이면 소규모 사업장 직원으로)
+    hire(o = {}) {
+      if (L.job.status === 'employed' || L.job.status === 'self') return;
+      const offer = makeOffer(L, ctx, o);
+      act.startJob(offer.self ? { ...offer, self: false, firmSize: 'small' } : offer);
+    },
+    // 짧은 일(인턴·아르바이트·시니어 일자리 등): 고용 상태(구직·은퇴 등)는 그대로 두고 그 기간 동안 화면에 그 형태로 보인다.
+    // 끝나는 해 다음 해 career.step이 지우며 sys.job.gig_end를 남긴다. 정식 일자리를 잡으면 startJob이 지운다.
+    startGig(kind, years = 1) {
+      const j = L.job;
+      if (j.status === 'employed' || j.status === 'self') return;
+      j.gig = { kind, from: L.year, until: L.year + years - 1 };
     },
     endJob(reason) {
       const j = L.job, h = j.history[j.history.length - 1];
@@ -258,7 +334,7 @@ export function makeAct(L, ctx) {
       if (j.regular && j.years >= 1 && j.status === 'employed') {
         const amount = Math.round(j.wage / 12 * j.years);
         act.gain(amount);
-        ctx.sys('sys.money.severance', { amount }, { quiet: true });
+        ctx.sys('sys.money.severance', { amount }, { essential: true });
       }
       L.flags.lastJob = { wage: j.wage, years: j.years, regular: j.regular, title: j.title, year: L.year };   // 직전 일자리(실직 뒤 선택지의 급여·실업급여 계산 근거)
       j.status = 'seeking'; j.wage = 0; j.regular = false; j.searchYears = 0; j.platform = false;
@@ -276,7 +352,9 @@ export function makeAct(L, ctx) {
     // o: 제안 직업 행(없으면 지금·직전 직업). code·major·band·ai·hazard를 그대로 가져간다(QA-S-29)
     startBusiness(title, o = L.job) {
       const amount = o.capital ?? 3000 + Math.round(5000 * ctx.rand());
-      act.borrow(amount, 'business', { silent: true });
+      const cash = indep(L) ? Math.min(Math.max(0, Math.round(L.money.assets) - CASH_BUFFER), amount) : 0;   // 모아 둔 돈부터, 모자란 몫만 사업자 대출
+      L.money.assets -= cash;
+      act.borrow(amount - cash, 'business', { silent: true });
       const t = title || L.job.title || '작은';
       act.startJob({ code: o.code, major: o.major, band: o.band, ai: o.ai, hazard: o.hazard, title: t, self: true, regular: false, firmSize: 'micro', wage: selfIncome(L, ctx), silent: true });
       L.flags.business = L.year;
@@ -364,15 +442,18 @@ export function makeAct(L, ctx) {
     },
   };
 
+  // 보증금: 자기 돈 몫을 먼저 내고 나머지는 전세대출(보증금 × loanShare 한도). 한도를 넘는 몫은 신용대출(QA M3)
   function payDeposit(dep, loanShare) {
     if (!indep(L)) return;
     dep = Math.round(dep);
     L.home.deposit = dep;
-    const own = Math.min(Math.max(0, L.money.assets), Math.round(dep * (1 - loanShare)));
+    const own = ownShare(L.money.assets, dep, loanShare);   // 현금이 있으면 현금부터(비상금 300만 원은 남긴다), 모자라면 전세대출
     L.money.assets -= own;
     const rest = dep - own;
     if (rest > 0) L.money.loans.jeonse += rest;
+    capJeonse(L);
   }
+
   function sell(share = 1) {
     const h = L.home;
     syncMortgages(L);
@@ -385,7 +466,7 @@ export function makeAct(L, ctx) {
   }
   function paidOff(kind) {
     L.flags.paidOff = L.year;
-    if (kind !== 'jeonse') ctx.sys('sys.money.paid_off', { kindLabel: LOAN_LABEL[kind] }, { quiet: true });
+    if (kind !== 'jeonse') ctx.sys('sys.money.paid_off', { kindLabel: LOAN_LABEL[kind] }, kind === 'mortgage' ? { essential: true } : { quiet: true });   // 주담대 완납은 생애의 큰 줄
   }
   return withTransactionJournal(L, act, ctx);
 }
@@ -407,7 +488,7 @@ export function selfIncome(L, ctx) {
 export function becomeIndependent(L, ctx) {
   if (indep(L)) return;
   L.flags.indep = L.year;
-  const t = Math.round(CLASS_CAL.transfer[L.birth.quintile - 1] * Math.exp(ctx.normal(0, 0.5) - 0.125));
+  const t = Math.round(CLASS_CAL.transfer[L.birth.quintile - 1] * yr(T('ERA_INCOME_INDEX'), L.year) * Math.exp(ctx.normal(0, 0.5) - 0.125));   // 이전액은 2025 기준: 그 시대 소득 수준으로 줄인다
   L.money.assets += t;
   L.household.netWorth -= t;
   ctx.sys('sys.money.independent', {}, { quiet: true });

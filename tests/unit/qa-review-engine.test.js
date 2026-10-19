@@ -226,7 +226,12 @@ test('QA#7 부모 돌봄 선택에 대상 호칭(careTarget)과 라벨·결과 �
       if (e.option !== 'home') assert.ok(e.text.includes(e.careTarget) || e.label.includes(e.careTarget), e.text);
       else assert.ok(e.label.includes(e.careTarget));
     }
-    for (const c of L.log.filter(e => e.id === 'sys.fam.care_end')) assert.ok(/(아버지|어머니|배우자)( 사망으로)? 돌봄이 (종료됐다|끝났다)/.test(c.text), c.text);
+    for (const c of L.log.filter(e => e.id === 'sys.fam.care_end')) {
+      assert.ok(/(아버지|어머니|배우자)( 사망으로)? 돌봄이 (종료됐다|끝났다)/.test(c.text), c.text);
+      if (!c.text.includes('사망으로')) continue;   // F2-c: 사망으로 끝난 돌봄은 같은 해 사망 문장 뒤에 온다
+      const i = L.log.indexOf(c);
+      assert.ok(L.log.slice(0, i).some(e => e.year === c.year && /^sys\.fam\.(parent_death|widowed)$/.test(e.id)), c.text);
+    }
   }
   assert.ok(n > 30);
 });
@@ -280,7 +285,11 @@ test('피드: 주요 전환은 보존하고 나머지는 연간 세 줄 예산�
       (by[e.age] ||= []).push(e);
     }
     for (const [age, entries] of Object.entries(by)) {
-      const protectedCount = entries.filter(protectedEntry).length;
+      // 직접 물은 선택(루틴·강제 아님) 뒤에 붙은 보호 줄(선택 결과·그 결과로 생긴 전환)은 상한 예외:
+      // 그 전에 이미 화면에 보인 줄은 숨기지 않는다(D1). 대신 선택 뒤 새 일반 줄은 상한을 넘지 못한다.
+      const asked = L.choices.find(c => c.age === +age && !c.routine && !c.forced);
+      const cut = asked ? entries.findIndex(e => e.kind === 'choice' && e.id === asked.eventId) : -1;
+      const protectedCount = entries.filter((e, i) => protectedEntry(e) && (cut < 0 || i < cut)).length;
       const ordinary = entries.filter(e => !protectedEntry(e));
       assert.ok(ordinary.length <= Math.max(0, 3 - protectedCount), `seed ${L.seed} ${age}세 일반 ${ordinary.length}, 보호 ${protectedCount}`);
     }

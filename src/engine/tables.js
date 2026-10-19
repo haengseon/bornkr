@@ -5,10 +5,15 @@ import { REGIONS } from './constants.js';
 export { D };
 
 // 표 values. 없으면 바로 알 수 있게 throw(엔진 안에 대체 값을 두지 않는다).
+const T_CACHE = new Map();   // 모듈 네임스페이스 조회가 연마다 수천 번이라 캐시(성능)
 export function T(name) {
-  const t = D[name];
-  if (t == null) throw new Error(`데이터 표 없음: ${name}`);
-  return t.values ?? t;
+  let v = T_CACHE.get(name);
+  if (v === undefined) {
+    const t = D[name];
+    if (t == null) throw new Error(`데이터 표 없음: ${name}`);
+    T_CACHE.set(name, v = t.values ?? t);
+  }
+  return v;
 }
 export const has = name => D[name] != null;
 

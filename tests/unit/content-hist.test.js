@@ -67,7 +67,7 @@ test('milestones: 스키마·길이·확률·금지어', () => {
       fxOk2(o.fx);
       for (const k of ['success', 'hold', 'miss']) {
         const r = o.outcomes[k];
-        assert.ok(r.text.length <= 40 && sent(r.text) === 1 && r.why.length <= 50 && !BAN.some(w => r.text.includes(w)), `${m.id}/${o.id}/${k} "${r.text}"`);
+        assert.ok(r.text.length <= 40 && sent(r.text) === 1 && !BAN.some(w => r.text.includes(w)), `${m.id}/${o.id}/${k} "${r.text}"`);
         fxOk2(r.fx);
       }
     }

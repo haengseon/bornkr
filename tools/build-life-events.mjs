@@ -7,7 +7,7 @@ import { SCENARIO_PROFILES } from '../src/engine/life-event-scenarios.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/design/LIFE-EVENTS-100.json'), 'utf8'));
 const target = path.join(root, 'src/content/life-events.js');
-const existingText = fs.readFileSync(target, 'utf8');
+const existingText = fs.readFileSync(target, 'utf8').replace(/\r\n/g, '\n');   // autocrlf checkout
 const start = existingText.indexOf('[', existingText.indexOf('export const LIFE_EVENTS'));
 const end = existingText.indexOf(';\n\nexport default');
 const existing = new Map(JSON.parse(existingText.slice(start, end)).map(e => [e.id, e]));
@@ -41,6 +41,11 @@ const events = source.events.map(e => {
     cancelWhen: ['source-context-ended', 'participant-unavailable', 'required-fact-expired'],
     source: { file: 'docs/design/LIFE-EVENTS-100.json', evidenceLevel: e.evidenceLevel },
   };
+  // 결과문(선택 뒤 한 문장)은 원본 JSON이 우선이고, 원본에 없으면 기존 콘텐츠의 문장을 보존한다.
+  result.choices.forEach((c, i) => {
+    const line = e.choices[i].result ?? existing.get(e.id)?.choices[i]?.result;
+    if (line) c.result = line;
+  });
   result.stateDependencies = domains[e.domain];
   result.probabilityKind = 'game-tuning-not-statistics';
   if (profile) {
@@ -52,11 +57,7 @@ const events = source.events.map(e => {
       c.requires = [];
       c.operation = { id: `scenario.${e.id}.${c.id}`, actionId: `scenario.${e.id}.${c.id}`,
         status: 'implemented', ...profile.steps[i] };
-      const rule = profile.steps[i];
-      c.hint = [e.choices[i].immediate,
-        rule.minutes ? `장면 시간 ${rule.minutes}분` : '추가 시간 없음',
-        rule.cost ? `${rule.cost}만 원${rule.kind === 'request' ? ' · 승인 뒤 실행 때만 지출' : ' · 이번 선택에서 지출'}` : '추가 비용 없음',
-        rule.kind === 'request' ? '승인·거절은 다음 해 현재 여건으로 재확인' : ''].filter(Boolean).join(' · ');
+      c.hint = e.choices[i].immediate;   // 시간·비용 숫자는 칩으로만 보인다(설명충 R3)
       c.effect = { description: e.choices[i].immediate, applyAutomatically: false };
     });
   } else if (['LIFE-067', 'LIFE-072', 'LIFE-077', 'LIFE-080'].includes(e.id)) {

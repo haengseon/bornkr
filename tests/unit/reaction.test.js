@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AXIS_LINES, ERA_LINES, PERSONAL_LINES, DECISION_LINES } from '../../src/content/reactions.js';
+import { AXIS_LINES, ERA_LINES, PERSONAL_LINES } from '../../src/content/reactions.js';
 import { reactionFor, createReactor } from '../../src/engine/reaction.js';
 import { ISSUE_KEYS } from '../../src/engine/constants.js';
 import { needYear } from '../../src/engine/anachro.js';
@@ -9,7 +9,6 @@ const all = [];
 for (const a of Object.values(AXIS_LINES)) for (const d of [a.up, a.down]) d.forEach(b => all.push(...b));
 ERA_LINES.forEach(t => t.lines.forEach(b => all.push(...b)));
 PERSONAL_LINES.forEach(t => all.push(...t.lines));
-Object.values(DECISION_LINES).forEach(b => all.push(...b));
 const L = (age, year, sens = 50, seed = 7) => ({ seed, age, year, traits: { sens } });
 
 test('문장 수 300 이상, 길이 50 이하', () => {

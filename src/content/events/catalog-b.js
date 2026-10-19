@@ -34,7 +34,7 @@ export default [
     id: 'ext.126', ages: [18, 70], years: [1980, 1980], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H26'],
     when: L => ['gwangju','jeonnam'].includes(L.home?.region),
     text: '거리와 연락이 불안정하다. 가족이 모두 집에 돌아오지 않았다.',
-    reason: '거리와 연락이 불안정하다.',
+    reason: '끊긴 연락',
     sensitive: 'violence',
     choice: {
       prompt: '어떻게 할까?',
@@ -52,7 +52,7 @@ export default [
     id: 'ext.127', ages: [13, 18], years: [1980, 1983], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H25'],
     when: L => student(L),
     text: '과외가 금지됐다는 소식이 왔다. 친구들의 공부 방식은 여전히 다르다.',
-    reason: '과외가 금지됐다는 소식이 왔다.',
+    reason: '과외 금지',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -69,7 +69,7 @@ export default [
     id: 'ext.128', ages: [18, 65], years: [1980, 1989], p: 0.04, cooldown: 4, tags: ['ext'], src: ['EXT.H09'],
     when: L => emp(L) && ['7','8'].includes(maj(L)),
     text: '주문이 줄어 잔업도 줄었다. 쉬는 시간과 월급이 함께 바뀐다.',
-    reason: '주문이 줄어 잔업도 줄었다.',
+    reason: '잔업 감소',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -86,7 +86,7 @@ export default [
     id: 'ext.129', ages: [18, 65], years: [1980, 1989], p: 0.05, cooldown: 4, tags: ['ext'], src: ['EXT.H08'],
     when: L => urban(L) && tenant(L),
     text: '동네가 바뀐다는 소식과 이주 요구가 같이 왔다.',
-    reason: '동네가 바뀐다는 소식과 이주 요구가 같이 왔다.',
+    reason: '재개발 이주 요구',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -103,7 +103,7 @@ export default [
     id: 'ext.130', ages: [18, 65], years: [1980, 1989], p: 0.06, cooldown: 3, tags: ['ext'], src: ['EXT.H08'],
     when: L => self(L) && ['7','8'].includes(maj(L)),
     text: '납품단가는 내려가는데 납기는 짧아졌다.',
-    reason: '납품단가는 내려가는데 납기는 짧아졌다.',
+    reason: '납품단가 인하',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -120,7 +120,7 @@ export default [
     id: 'ext.131', ages: [21, 35], years: [1980, 1989], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => L.sex==='F' && emp(L) && (partner(L) || !!L.family?.dating),
     text: '결혼 뒤에도 계속 일하겠다는 말에 직장의 반응이 달라졌다.',
-    reason: '결혼 뒤에도 계속 일하겠다는 말에 직장의 반응이 달라졌다.',
+    reason: '기혼 여성 근무',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -137,7 +137,7 @@ export default [
     id: 'ext.132', ages: [50, 65], years: [1980, 1989], p: 0.05, cooldown: 5, tags: ['ext'], src: ['EXT.H08'],
     when: L => prov(L) && kidsN(L,20,99)>=1,
     text: '도시의 자녀에게 올라오라는 말을 들었다. 농사와 병원이 마음에 걸린다.',
-    reason: '도시의 자녀에게 올라오라는 말을 들었다.',
+    reason: '자녀의 상경 권유',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -154,7 +154,7 @@ export default [
     id: 'ext.133', ages: [15, 16], years: [1980, 1989], p: 0.03, once: true, tags: ['ext'], src: ['EXT.H10'],
     when: L => student(L) && (lowW(L) || (L.household?.netWorth ?? 1) < 1000),
     text: '곧 벌이를 시작할 길과 공부를 더 잇는 길을 함께 권유받았다.',
-    reason: '곧 벌이를 시작할 길과 공부를 더 잇는 길을 함께 권유받았다.',
+    reason: '취업과 진학 사이',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -171,7 +171,7 @@ export default [
     id: 'ext.134', ages: [18, 65], years: [1980, 1989], p: 0.05, cooldown: 4, tags: ['ext'], src: ['EXT.H08'],
     when: L => urban(L) && working(L) && !L.flags?.car,
     text: '새 노선이 생겼다. 환승을 줄이면 비싼 방으로 옮기지 않아도 된다.',
-    reason: '새 노선이 생겼다.',
+    reason: '새 노선',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -188,7 +188,7 @@ export default [
     id: 'ext.135', ages: [18, 65], years: [1980, 1989], p: 0.06, cooldown: 3, tags: ['ext'], src: ['EXT.H08'],
     when: L => urban(L) && emp(L) && kidsN(L,0,6)>=1,
     text: '아이를 맡기는 사람이 쉬게 됐다. 다음 주 근무표는 이미 나왔다.',
-    reason: '아이를 맡기는 사람이 쉬게 됐다.',
+    reason: '돌봄 공백',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -205,7 +205,7 @@ export default [
     id: 'ext.136', ages: [18, 65], years: [1982, 1982], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H11'],
     when: L => self(L) && ['4','5'].includes(maj(L)),
     text: '통행금지가 풀렸다. 가게를 더 늦게 열자는 이야기가 나온다.',
-    reason: '통행금지가 풀렸다.',
+    reason: '통행금지 해제',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -222,7 +222,7 @@ export default [
     id: 'ext.137', ages: [35, 90], years: [1983, 1983], p: 0.02, once: true, tags: ['ext'], src: ['EXT.H06'],
     when: L => true,
     text: '이산가족을 찾는 방송이 시작됐다. 오래된 사진을 다시 꺼냈다.',
-    reason: '이산가족을 찾는 방송이 시작됐다.',
+    reason: '이산가족 찾기 방송',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -239,7 +239,7 @@ export default [
     id: 'ext.138', ages: [18, 65], years: [1983, 1989], p: 0.05, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => urban(L) && emp(L) && maj(L)==='3',
     text: '일터에서 전산을 배울 사람을 찾는다. 익숙한 장부는 손으로 쓴다.',
-    reason: '일터에서 전산을 배울 사람을 찾는다.',
+    reason: '전산 교육',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -256,7 +256,7 @@ export default [
     id: 'ext.139', ages: [18, 65], years: [1983, 1989], p: 0.08, cooldown: 4, tags: ['ext'], src: ['EXT.H08'],
     when: L => code(L)==='87210' && working(L),
     text: '밤 운행은 수입이 다르지만 가족과 만나는 시간도 달라진다.',
-    reason: '밤 운행은 수입이 다르지만 가족과 만나는 시간도 달라진다.',
+    reason: '야간 운행',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -273,7 +273,7 @@ export default [
     id: 'ext.140', ages: [18, 65], years: [1984, 1989], p: 0.05, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => working(L) && maj(L)==='8',
     text: '자동 설비가 들어온다. 사람을 줄일지 업무를 바꿀지는 아직 모른다.',
-    reason: '자동 설비가 들어온다.',
+    reason: '자동 설비 도입',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -290,7 +290,7 @@ export default [
     id: 'ext.141', ages: [18, 65], years: [1985, 1989], p: 0.06, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => !owned(L) && emp(L),
     text: '청약저축을 권하는 말을 들었다. 매달 남는 돈은 일정하지 않다.',
-    reason: '청약저축을 권하는 말을 들었다.',
+    reason: '청약저축 권유',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -307,7 +307,7 @@ export default [
     id: 'ext.142', ages: [18, 65], years: [1986, 1988], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => self(L) && (L.home?.regionGroup==='seoul'||L.home?.regionGroup==='capital'),
     text: '손님이 늘 것이라는 기대가 있다. 가게를 고칠 돈도 필요하다.',
-    reason: '손님이 늘 것이라는 기대가 있다.',
+    reason: '손님 증가 기대',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -324,7 +324,7 @@ export default [
     id: 'ext.143', ages: [18, 70], years: [1987, 1987], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H26'],
     when: L => urban(L),
     text: '거리에서 직선제와 민주화를 요구하는 목소리가 이어졌다.',
-    reason: '거리에서 직선제와 민주화를 요구하는 목소리가 이어졌다.',
+    reason: '민주화 요구',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -341,7 +341,7 @@ export default [
     id: 'ext.144', ages: [18, 65], years: [1987, 1987], p: 0.1, once: true, tags: ['ext'], src: ['EXT.H26'],
     when: L => emp(L) && sz(L)!=='micro',
     text: '사업장에서 임금과 노동조건을 함께 이야기하기 시작했다.',
-    reason: '사업장에서 임금과 노동조건을 함께 이야기하기 시작했다.',
+    reason: '노사 협상',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -358,7 +358,7 @@ export default [
     id: 'ext.145', ages: [18, 59], years: [1988, 1989], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H12'],
     when: L => emp(L) && sz(L)!=='micro',
     text: '국민연금 공제가 시작됐다. 먼 노후가 이번 급여명세에 들어왔다.',
-    reason: '국민연금 공제가 시작됐다.',
+    reason: '국민연금 공제',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -375,7 +375,7 @@ export default [
     id: 'ext.146', ages: [18, 65], years: [1988, 1989], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H13'],
     when: L => prov(L),
     text: '농어촌 지역 의료보험이 적용된다. 이전과 진료비 계산이 달라졌다.',
-    reason: '농어촌 지역 의료보험이 적용된다.',
+    reason: '농어촌 의료보험',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -392,7 +392,7 @@ export default [
     id: 'ext.147', ages: [18, 65], years: [1989, 1989], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H13'],
     when: L => self(L) && urban(L),
     text: '도시지역 의료보험이 시작됐다. 가게 일과 진료를 함께 계획한다.',
-    reason: '도시지역 의료보험이 시작됐다.',
+    reason: '도시 의료보험',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -409,7 +409,7 @@ export default [
     id: 'ext.148', ages: [18, 70], years: [1989, 1989], p: 0.12, once: true, tags: ['ext'], src: ['EXT.H14'],
     when: L => true,
     text: '해외여행이 자유로워졌다. 여권은 만들 수 있어도 여비는 따로다.',
-    reason: '해외여행이 자유로워졌다.',
+    reason: '해외여행 자유화',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -426,7 +426,7 @@ export default [
     id: 'ext.149', ages: [18, 65], years: [1989, 1989], p: 0.12, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => (L.home?.regionGroup==='seoul'||L.home?.regionGroup==='capital') && tenant(L),
     text: '같은 동네에 살려면 다음 계약의 목돈이 더 필요하다.',
-    reason: '같은 동네에 살려면 다음 계약의 목돈이 더 필요하다.',
+    reason: '전세 목돈',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -443,7 +443,7 @@ export default [
     id: 'ext.150', ages: [25, 55], years: [1989, 1989], p: 0.06, once: true, tags: ['ext'], src: ['EXT.H08'],
     when: L => emp(L) && ['mid','large','public'].includes(sz(L)),
     text: '지방 근무 제안이 왔다. 집값은 달라도 가족의 일은 여기에 있다.',
-    reason: '지방 근무 제안이 왔다.',
+    reason: '지방 근무 제안',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -460,7 +460,7 @@ export default [
     id: 'ext.151', ages: [18, 65], years: [1990, 1999], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H20'],
     when: L => (L.home?.regionGroup==='seoul'||L.home?.regionGroup==='capital') && tenant(L) && working(L),
     text: '전세 만기가 온다. 같은 돈으로 구할 수 있는 집이 더 멀어졌다.',
-    reason: '전세 만기가 온다.',
+    reason: '전세 만기',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -477,7 +477,7 @@ export default [
     id: 'ext.152', ages: [18, 65], years: [1990, 1999], p: 0.05, cooldown: 4, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && ['7','8'].includes(maj(L)),
     text: '자격증을 따면 다른 공정에 지원할 수 있다. 시험 준비는 퇴근 뒤다.',
-    reason: '자격증을 따면 다른 공정에 지원할 수 있다.',
+    reason: '자격증과 공정 이동',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -494,7 +494,7 @@ export default [
     id: 'ext.153', ages: [18, 65], years: [1990, 1999], p: 0.05, once: true, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && maj(L)==='3',
     text: '손으로 하던 업무가 전산으로 바뀐다. 익숙한 속도가 통하지 않는다.',
-    reason: '손으로 하던 업무가 전산으로 바뀐다.',
+    reason: '업무 전산화',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -511,7 +511,7 @@ export default [
     id: 'ext.154', ages: [18, 65], years: [1990, 1999], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => seeking(L),
     text: '야간 일자리가 났다. 낮의 공부나 돌봄과 겹치지는 않는다.',
-    reason: '야간 일자리가 났다.',
+    reason: '야간 일자리',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -528,7 +528,7 @@ export default [
     id: 'ext.155', ages: [18, 60], years: [1992, 1999], p: 0.06, cooldown: 4, tags: ['ext'], src: ['EXT.H28'],
     when: L => !lowW(L),
     text: '통신 모임에 접속하면 정보를 얻을 수 있다. 이용 시간은 요금이 된다.',
-    reason: '통신 모임에 접속하면 정보를 얻을 수 있다.',
+    reason: 'PC통신 모임',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -545,7 +545,7 @@ export default [
     id: 'ext.156', ages: [18, 65], years: [1990, 1999], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => emp(L) && partner(L) && kidsN(L,6,12)>=1,
     text: '아이의 하교가 퇴근보다 빠르다. 친척에게 매일 부탁하기 어렵다.',
-    reason: '아이의 하교가 퇴근보다 빠르다.',
+    reason: '이른 하교',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -562,7 +562,7 @@ export default [
     id: 'ext.157', ages: [24, 40], years: [1990, 1999], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H20'],
     when: L => !L.family?.married && (partner(L) || !!L.family?.dating) && lowW(L),
     text: '예식 비용과 신혼집 보증금이 같은 저축을 기다린다.',
-    reason: '예식 비용과 신혼집 보증금이 같은 저축을 기다린다.',
+    reason: '결혼 비용',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -579,7 +579,7 @@ export default [
     id: 'ext.158', ages: [18, 65], years: [1990, 1999], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H13'],
     when: L => chronic(L) && working(L),
     text: '정기 진료일이 평일이다. 약을 받는 일에도 휴가가 필요하다.',
-    reason: '정기 진료일이 평일이다.',
+    reason: '평일 진료',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -596,7 +596,7 @@ export default [
     id: 'ext.159', ages: [18, 65], years: [1990, 1999], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => tenant(L) && kidsN(L,6,17)>=1,
     text: '집을 옮기면 아이 학교도 달라진다. 가까운 집은 보증금이 높다.',
-    reason: '집을 옮기면 아이 학교도 달라진다.',
+    reason: '이사와 전학',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -613,7 +613,7 @@ export default [
     id: 'ext.160', ages: [18, 65], years: [1990, 1999], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && /택시|운전|운수|배달/.test(L.job?.title ?? ''),
     text: '차량을 바꾸면 수리비는 줄 수 있다. 할부는 매달 남는다.',
-    reason: '차량을 바꾸면 수리비는 줄 수 있다.',
+    reason: '차량 교체',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -630,7 +630,7 @@ export default [
     id: 'ext.161', ages: [17, 19], years: [1993, 1994], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H10'],
     when: L => student(L),
     text: '대입 시험 방식이 바뀌었다. 익숙한 문제집과 새 유형이 다르다.',
-    reason: '대입 시험 방식이 바뀌었다.',
+    reason: '입시 제도 변경',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -647,7 +647,7 @@ export default [
     id: 'ext.162', ages: [18, 70], years: [1994, 1994], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H29'],
     when: L => lowW(L) || L.home?.tenure==='monthly',
     text: '더위가 오래 간다. 잠을 설치니 일의 속도도 떨어진다.',
-    reason: '더위가 오래 간다.',
+    reason: '긴 더위',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -664,7 +664,7 @@ export default [
     id: 'ext.163', ages: [18, 59], years: [1995, 1999], p: 0.06, once: true, tags: ['ext'], src: ['EXT.H12'],
     when: L => prov(L) && (self(L) || seeking(L) || L.job?.status==='inactive'),
     text: '농어촌에도 연금이 확대됐다. 농사 수입은 매달 같지 않다.',
-    reason: '농어촌에도 연금이 확대됐다.',
+    reason: '농어촌 연금 확대',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -681,7 +681,7 @@ export default [
     id: 'ext.164', ages: [18, 65], years: [1995, 1999], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => self(L) && maj(L)==='5',
     text: '큰 가게가 들어왔다. 단골은 가격을 비교하기 시작했다.',
-    reason: '큰 가게가 들어왔다.',
+    reason: '대형 마트 입점',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -698,7 +698,7 @@ export default [
     id: 'ext.165', ages: [25, 60], years: [1997, 1999], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H15'],
     when: L => emp(L),
     text: '회사에서 인원을 줄인다는 공지가 왔다. 내 이름은 아직 모른다.',
-    reason: '회사에서 인원을 줄인다는 공지가 왔다.',
+    reason: '감원 공지',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -715,7 +715,7 @@ export default [
     id: 'ext.166', ages: [35, 60], years: [1997, 1999], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H15'],
     when: L => emp(L) && (L.job?.years ?? 0) >= 5,
     text: '희망퇴직 조건이 제시됐다. 목돈 다음의 월수입은 정해지지 않았다.',
-    reason: '희망퇴직 조건이 제시됐다.',
+    reason: '희망퇴직 조건',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -732,7 +732,7 @@ export default [
     id: 'ext.167', ages: [18, 65], years: [1997, 1999], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H15'],
     when: L => emp(L) && ['micro','small'].includes(sz(L)),
     text: '월급이 밀리고 회사 문이 자주 닫힌다. 방세는 계속 나간다.',
-    reason: '월급이 밀리고 회사 문이 자주 닫힌다.',
+    reason: '임금 체불',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -749,7 +749,7 @@ export default [
     id: 'ext.168', ages: [18, 65], years: [1997, 1999], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H15'],
     when: L => hasDebt(L),
     text: '대출 이자가 늘었다. 수입이 줄어 상환일이 더 가깝게 느껴진다.',
-    reason: '대출 이자가 늘었다.',
+    reason: '대출 이자 상승',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -765,8 +765,8 @@ export default [
   {
     id: 'ext.169', ages: [19, 30], years: [1997, 1999], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H15'],
     when: L => student(L),
-    text: '집의 소득이 줄었다. 다음 학기 등록금부터 다시 정해야 한다.',
-    reason: '집의 소득이 줄었다.',
+    text: '집의 소득이 줄었다. 다음 학기 등록금 고지서가 왔다.',
+    reason: '가계 소득 감소',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -783,7 +783,7 @@ export default [
     id: 'ext.170', ages: [18, 65], years: [1997, 1999], p: 0.15, cooldown: 3, tags: ['ext'], src: ['EXT.H15'],
     when: L => !!L.family?.married && seeking(L),
     text: '가족 한 사람의 실직이 집안 전체의 시간표를 바꾼다.',
-    reason: '가족 한 사람의 실직이 집안 전체의 시간표를 바꾼다.',
+    reason: '가족의 실직',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -800,7 +800,7 @@ export default [
     id: 'ext.171', ages: [18, 65], years: [1998, 1999], p: 0.05, once: true, tags: ['ext'], src: ['EXT.H15'],
     when: L => emp(L) && sz(L)!=='micro',
     text: '환율 변화로 주문은 늘지만 수입 원료 값도 오른다.',
-    reason: '환율 변화로 주문은 늘지만 수입 원료 값도 오른다.',
+    reason: '환율과 원료비',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -817,7 +817,7 @@ export default [
     id: 'ext.172', ages: [20, 34], years: [1998, 1999], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H15'],
     when: L => seeking(L),
     text: '공채가 줄었다. 기다릴수록 경력이 아니라 생활비가 쌓인다.',
-    reason: '공채가 줄었다.',
+    reason: '공채 축소',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -834,7 +834,7 @@ export default [
     id: 'ext.173', ages: [35, 60], years: [1998, 1999], p: 0.1, once: true, tags: ['ext'], src: ['EXT.H15'],
     when: L => (seeking(L) || L.job?.status==='retired') && ((L.money?.severance ?? 0) > 0 || (L.money?.assets ?? 0) >= 3000),
     text: '주변에서 퇴직금으로 가게를 열었다. 내 목돈도 비슷한 말을 듣는다.',
-    reason: '주변에서 퇴직금으로 가게를 열었다.',
+    reason: '퇴직 창업 바람',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -851,7 +851,7 @@ export default [
     id: 'ext.174', ages: [18, 59], years: [1999, 1999], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H12'],
     when: L => self(L) && urban(L),
     text: '도시지역에도 국민연금이 확대됐다. 소득은 신고와 납부로 이어진다.',
-    reason: '도시지역에도 국민연금이 확대됐다.',
+    reason: '도시 연금 확대',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -868,7 +868,7 @@ export default [
     id: 'ext.175', ages: [20, 45], years: [1999, 1999], p: 0.04, once: true, tags: ['ext'], src: ['EXT.H28'],
     when: L => (L.money?.assets ?? 0) >= 2000,
     text: '인터넷 관련 가게가 늘어난다. 기기 값과 임대료는 먼저 든다.',
-    reason: '인터넷 관련 가게가 늘어난다.',
+    reason: '인터넷 가게 증가',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -885,7 +885,7 @@ export default [
     id: 'ext.176', ages: [18, 65], years: [2000, 2009], p: 0.1, once: true, tags: ['ext'], src: ['EXT.H28'],
     when: L => !lowW(L),
     text: '집에 인터넷을 들이면 정보를 얻기 쉽다. 매달 요금도 생긴다.',
-    reason: '집에 인터넷을 들이면 정보를 얻기 쉽다.',
+    reason: '인터넷 개통',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -902,7 +902,7 @@ export default [
     id: 'ext.177', ages: [18, 65], years: [2000, 2009], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && !L.job?.regular,
     text: '같은 줄에서 일하지만 계약 갱신과 수당은 다르다.',
-    reason: '같은 줄에서 일하지만 계약 갱신과 수당은 다르다.',
+    reason: '같은 줄 다른 계약',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -919,7 +919,7 @@ export default [
     id: 'ext.178', ages: [18, 65], years: [2000, 2009], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H28'],
     when: L => self(L) && maj(L)==='5',
     text: '손님이 인터넷 가격을 보여 준다. 가게도 판매 방식을 고민한다.',
-    reason: '손님이 인터넷 가격을 보여 준다.',
+    reason: '인터넷 최저가',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -936,7 +936,7 @@ export default [
     id: 'ext.179', ages: [19, 40], years: [2000, 2009], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => seeking(L) || student(L),
     text: '구인 공고마다 자격이 더 적혀 있다. 준비비와 생활비는 같은 통장에서 나간다.',
-    reason: '구인 공고마다 자격이 더 적혀 있다.',
+    reason: '높아진 채용 자격',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -953,7 +953,7 @@ export default [
     id: 'ext.180', ages: [18, 65], years: [2000, 2009], p: 0.06, cooldown: 4, tags: ['ext'], src: ['EXT.H20'],
     when: L => (L.home?.regionGroup==='seoul'||L.home?.regionGroup==='capital') && emp(L) && partner(L),
     text: '집값이 낮은 곳은 회사와 멀다. 두 사람의 출근 방향도 다르다.',
-    reason: '집값이 낮은 곳은 회사와 멀다.',
+    reason: '집값과 통근 거리',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -970,7 +970,7 @@ export default [
     id: 'ext.181', ages: [20, 65], years: [2000, 2009], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => hasDebt(L) || lowW(L),
     text: '이번 카드대금이 예상보다 크다. 할부는 다음 달에도 남는다.',
-    reason: '이번 카드대금이 예상보다 크다.',
+    reason: '카드대금',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -987,7 +987,7 @@ export default [
     id: 'ext.182', ages: [18, 65], years: [2000, 2009], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && (code(L)==='92220' || /택배/.test(L.job?.title ?? '')),
     text: '배송 물량이 늘었다. 매출은 늘어도 기름값과 작업 시간도 같이 든다.',
-    reason: '배송 물량이 늘었다.',
+    reason: '배송 물량 증가',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1004,7 +1004,7 @@ export default [
     id: 'ext.183', ages: [18, 65], years: [2000, 2009], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && /상담|텔레|콜|고객/.test(L.job?.title ?? ''),
     text: '상담이 끝나도 고객의 말이 오래 남는다. 다음 전화는 곧 온다.',
-    reason: '상담이 끝나도 고객의 말이 오래 남는다.',
+    reason: '감정노동',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1021,11 +1021,11 @@ export default [
     id: 'ext.184', ages: [18, 65], years: [2000, 2009], p: 0.08, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && ['7','8'].includes(maj(L)) && ['micro','small','mid'].includes(sz(L)),
     text: '원청 일정이 바뀌어 주말 작업이 잡혔다. 가족 약속도 이미 있다.',
-    reason: '원청 일정이 바뀌어 주말 작업이 잡혔다.',
+    reason: '주말 작업',
     choice: {
       prompt: '어떻게 할까?',
       options: [
-        { id: 'a', label: '근무 교환을 묻는다', when: L => ally(L), fx: { stats: { relations: 1, leisure: 1 }, issues: { job: 1 } }, result: '동료 일정까지 함께 조정해야 했다.' },
+        { id: 'a', label: '근무 교환을 묻는다', when: L => ally(L), fx: { stats: { relations: 1, leisure: 1 }, issues: { job: 1 } }, result: '동료와 근무를 하루 바꿨다.' },
         { id: 'b', label: '추가 근무를 맡는다', fx: { stats: { wealth: 2, health: -1, leisure: -2 } }, result: '수입을 보태고 주말의 회복을 미뤘다.' },
         { id: 'c', label: '일정을 조정해 달라 한다', fx: { stats: { intellect: 1, relations: -1 }, issues: { job: 1 } }, result: '실제 가능한 납기를 작업장에 알렸다.' },
       ],
@@ -1038,7 +1038,7 @@ export default [
     id: 'ext.185', ages: [35, 65], years: [2000, 2009], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => prov(L) && parentsAlive(L).length>0,
     text: '부모의 병원 예약이 평일이다. 자녀들은 다른 도시에서 일한다.',
-    reason: '부모의 병원 예약이 평일이다.',
+    reason: '부모 병원 예약',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1055,7 +1055,7 @@ export default [
     id: 'ext.186', ages: [18, 65], years: [2000, 2009], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => dis(L),
     text: '집은 저렴하지만 계단이 많다. 외출 한 번에도 도움이 필요하다.',
-    reason: '집은 저렴하지만 계단이 많다.',
+    reason: '계단 많은 집',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1072,7 +1072,7 @@ export default [
     id: 'ext.187', ages: [18, 65], years: [2000, 2009], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H20'],
     when: L => emp(L) && partner(L) && kidsN(L,0,5)>=1,
     text: '어린이집 시간이 퇴근보다 짧다. 가까운 곳은 자리가 없다.',
-    reason: '어린이집 시간이 퇴근보다 짧다.',
+    reason: '짧은 어린이집 시간',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1089,7 +1089,7 @@ export default [
     id: 'ext.188', ages: [20, 35], years: [2001, 2009], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H28'],
     when: L => emp(L) && /소프트|정보|컴퓨터|시스템|프로그래|IT/.test(L.job?.title ?? ''),
     text: '서비스 출시가 늦어졌다. 새 기능과 야근이 같은 회의에서 정해진다.',
-    reason: '서비스 출시가 늦어졌다.',
+    reason: '출시 지연',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1106,7 +1106,7 @@ export default [
     id: 'ext.189', ages: [18, 65], years: [2002, 2002], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H20'],
     when: L => self(L) && ['4','5'].includes(maj(L)),
     text: '경기 있는 날 주문이 몰린다. 재료를 많이 사면 남을 수도 있다.',
-    reason: '경기 있는 날 주문이 몰린다.',
+    reason: '경기 날 주문',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1123,7 +1123,7 @@ export default [
     id: 'ext.190', ages: [20, 65], years: [2003, 2003], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H15'],
     when: L => hasDebt(L),
     text: '카드 빚을 돌려 막기가 어려워졌다. 납부일이 서로 겹친다.',
-    reason: '카드 빚을 돌려 막기가 어려워졌다.',
+    reason: '카드 돌려막기',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1140,7 +1140,7 @@ export default [
     id: 'ext.191', ages: [18, 65], years: [2004, 2009], p: 0.12, once: true, tags: ['ext'], src: ['EXT.H27'],
     when: L => emp(L) && ((['large','public'].includes(sz(L)) && L.year>=2005) || (sz(L)==='mid' && L.year>=2007) || (sz(L)==='small' && L.year>=2009)),
     text: '토요일 근무가 달라졌다. 휴일과 수당의 계산도 다시 보게 된다.',
-    reason: '토요일 근무가 달라졌다.',
+    reason: '토요 근무 변경',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1157,7 +1157,7 @@ export default [
     id: 'ext.192', ages: [18, 65], years: [2004, 2009], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H22'],
     when: L => kidsN(L,6,18)>=1,
     text: '친구들이 학원을 하나 더 다닌다고 한다. 아이의 시간은 이미 차 있다.',
-    reason: '친구들이 학원을 하나 더 다닌다고 한다.',
+    reason: '친구들의 학원',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1174,7 +1174,7 @@ export default [
     id: 'ext.193', ages: [20, 34], years: [2005, 2009], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => prov(L) && (seeking(L) || student(L)),
     text: '수도권 일자리와 지역의 일자리 조건을 비교한다. 이주비부터 다르다.',
-    reason: '수도권 일자리와 지역의 일자리 조건을 비교한다.',
+    reason: '수도권과 지역 일자리',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1191,7 +1191,7 @@ export default [
     id: 'ext.194', ages: [18, 65], years: [2005, 2007], p: 0.15, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => caring(L),
     text: '부모 곁을 지키려 휴가를 다 썼다. 돌봄은 다음 달에도 필요하다.',
-    reason: '부모 곁을 지키려 휴가를 다 썼다.',
+    reason: '부모 간병 휴가',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1208,7 +1208,7 @@ export default [
     id: 'ext.195', ages: [28, 50], years: [2006, 2009], p: 0.05, cooldown: 4, tags: ['ext'], src: ['EXT.H20'],
     when: L => !owned(L) && working(L) && !lowW(L),
     text: '집을 사라는 말이 많다. 감당할 금액과 은행이 빌려줄 돈은 다르다.',
-    reason: '집을 사라는 말이 많다.',
+    reason: '내 집 마련 권유',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1225,7 +1225,7 @@ export default [
     id: 'ext.196', ages: [18, 65], years: [2007, 2009], p: 0.06, once: true, tags: ['ext'], src: ['EXT.H15'],
     when: L => emp(L) && ['7','8'].includes(maj(L)),
     text: '해외 주문과 환율이 함께 출렁인다. 현장 근무표도 자주 바뀐다.',
-    reason: '해외 주문과 환율이 함께 출렁인다.',
+    reason: '해외 주문과 환율',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1242,7 +1242,7 @@ export default [
     id: 'ext.197', ages: [19, 45], years: [2008, 2009], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H15'],
     when: L => seeking(L),
     text: '채용 일정이 미뤄졌다. 기다리는 동안 월세는 계속 나간다.',
-    reason: '채용 일정이 미뤄졌다.',
+    reason: '채용 연기',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1259,7 +1259,7 @@ export default [
     id: 'ext.198', ages: [65, 90], years: [2008, 2009], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H30'],
     when: L => (L.health?.conditions ?? []).some(c => c?.active) || !!L.health?.disability,
     text: '장기요양보험이 시작됐다. 도움은 신청과 판정 절차를 거쳐야 한다.',
-    reason: '장기요양보험이 시작됐다.',
+    reason: '장기요양보험',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1276,7 +1276,7 @@ export default [
     id: 'ext.199', ages: [18, 65], years: [2008, 2009], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H15'],
     when: L => self(L) && ['4','5'].includes(maj(L)),
     text: '손님은 줄었지만 임대료와 인건비는 정해진 날에 나간다.',
-    reason: '손님은 줄었지만 임대료와 인건비는 정해진 날에 나간다.',
+    reason: '고정비 부담',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1293,7 +1293,7 @@ export default [
     id: 'ext.200', ages: [18, 65], years: [2009, 2009], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H31'],
     when: L => kidsN(L,0,6)>=1 || L.age>=65 || parentsAlive(L).length>0,
     text: '감염병 소식이 이어진다. 일과 돌봄의 결석 계획이 필요하다.',
-    reason: '감염병 소식이 이어진다.',
+    reason: '감염병 소식',
     sensitive: 'illness',
     choice: {
       prompt: '어떻게 할까?',
@@ -1311,7 +1311,7 @@ export default [
     id: 'ext.201', ages: [18, 65], years: [2010, 2019], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H20'],
     when: L => (L.home?.regionGroup==='seoul'||L.home?.regionGroup==='capital') && tenant(L),
     text: '보증금 인상 요구가 왔다. 같은 동네를 지키려면 저축을 더 꺼내야 한다.',
-    reason: '보증금 인상 요구가 왔다.',
+    reason: '보증금 인상 요구',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1328,7 +1328,7 @@ export default [
     id: 'ext.202', ages: [20, 32], years: [2010, 2019], p: 0.1, once: true, tags: ['ext'], src: ['EXT.H20'],
     when: L => L.home?.tenure==='monthly' && emp(L),
     text: '처음 받은 월급에서 월세와 관리비를 빼니 생각보다 적게 남는다.',
-    reason: '처음 받은 월급에서 월세와 관리비를 빼니 생각보다 적게 남는다.',
+    reason: '첫 월급의 잔액',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1345,7 +1345,7 @@ export default [
     id: 'ext.203', ages: [18, 65], years: [2010, 2019], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && /간호/.test(L.job?.title ?? ''),
     text: '다음 달 야간근무가 늘었다. 쉬는 날에도 잠을 맞추기 어렵다.',
-    reason: '다음 달 야간근무가 늘었다.',
+    reason: '야간근무 증가',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1362,7 +1362,7 @@ export default [
     id: 'ext.204', ages: [18, 65], years: [2010, 2019], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H30'],
     when: L => working(L) && (code(L)==='42210' || /요양보호/.test(L.job?.title ?? '')),
     text: '돌봄 시간 사이에 긴 이동이 끼어 있다. 근무표만으로는 하루가 보이지 않는다.',
-    reason: '돌봄 시간 사이에 긴 이동이 끼어 있다.',
+    reason: '돌봄 사이 이동',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1379,7 +1379,7 @@ export default [
     id: 'ext.205', ages: [18, 65], years: [2010, 2019], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && /학원|강사/.test(L.job?.title ?? ''),
     text: '수강생이 줄었다. 다음 계약의 보장 시간도 줄 수 있다고 한다.',
-    reason: '수강생이 줄었다.',
+    reason: '수강생 감소',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1396,7 +1396,7 @@ export default [
     id: 'ext.206', ages: [18, 65], years: [2010, 2019], p: 0.06, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && ['7','8'].includes(maj(L)),
     text: '거래처 주문이 줄었다. 회사는 근무시간부터 조정하려 한다.',
-    reason: '거래처 주문이 줄었다.',
+    reason: '주문 감소',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1413,7 +1413,7 @@ export default [
     id: 'ext.207', ages: [18, 65], years: [2010, 2019], p: 0.08, once: true, tags: ['ext'], src: ['EXT.H21'],
     when: L => self(L) && ['4','5'].includes(maj(L)),
     text: '배달 주문을 받으면 손님은 늘 수 있다. 수수료와 포장비도 붙는다.',
-    reason: '배달 주문을 받으면 손님은 늘 수 있다.',
+    reason: '배달 주문',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1430,7 +1430,7 @@ export default [
     id: 'ext.208', ages: [18, 65], years: [2010, 2019], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && (!!L.job?.platform || /택배|배달|배송/.test(L.job?.title ?? '')),
     text: '오늘 더 뛰면 수입은 늘지만 내일 회복 시간은 줄어든다.',
-    reason: '오늘 더 뛰면 수입은 늘지만 내일 회복 시간은 줄어든다.',
+    reason: '배달 물량',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1447,7 +1447,7 @@ export default [
     id: 'ext.209', ages: [18, 65], years: [2010, 2019], p: 0.15, cooldown: 3, tags: ['ext'], src: ['EXT.H22'],
     when: L => (L.family?.children ?? []).some(c => c && c.disability),
     text: '학교 지원과 치료 일정이 겹쳤다. 아이의 배움은 이동에도 묶여 있다.',
-    reason: '학교 지원과 치료 일정이 겹쳤다.',
+    reason: '학교와 치료 일정',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1464,7 +1464,7 @@ export default [
     id: 'ext.210', ages: [18, 65], years: [2010, 2019], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => dis(L) && seeking(L),
     text: '직무는 할 수 있지만 출입과 작업 도구가 맞지 않는다.',
-    reason: '직무는 할 수 있지만 출입과 작업 도구가 맞지 않는다.',
+    reason: '맞지 않는 작업 환경',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1481,7 +1481,7 @@ export default [
     id: 'ext.211', ages: [18, 65], years: [2010, 2019], p: 0.08, cooldown: 4, tags: ['ext'], src: ['EXT.H20'],
     when: L => prov(L) && kidsN(L,6,17)>=1,
     text: '가까운 학교의 통폐합 이야기가 나왔다. 통학과 돌봄이 함께 달라진다.',
-    reason: '가까운 학교의 통폐합 이야기가 나왔다.',
+    reason: '학교 통폐합',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1498,7 +1498,7 @@ export default [
     id: 'ext.212', ages: [18, 65], years: [2010, 2019], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => true,
     text: '친구의 집과 여행 사진이 이어진다. 내 생활비 장부는 그대로다.',
-    reason: '친구의 집과 여행 사진이 이어진다.',
+    reason: '친구의 SNS',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1515,7 +1515,7 @@ export default [
     id: 'ext.213', ages: [18, 65], years: [2011, 2019], p: 0.1, once: true, tags: ['ext'], src: ['EXT.H27'],
     when: L => emp(L) && ['micro','small'].includes(sz(L)),
     text: '작은 직장에도 노동시간 기준이 달라졌다. 실제 퇴근 시간은 아직 비슷하다.',
-    reason: '작은 직장에도 노동시간 기준이 달라졌다.',
+    reason: '노동시간 기준 확대',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1532,7 +1532,7 @@ export default [
     id: 'ext.214', ages: [19, 30], years: [2012, 2019], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H22'],
     when: L => student(L),
     text: '장학금 안내가 왔다. 소득 관련 서류와 신청 기한을 챙겨야 한다.',
-    reason: '장학금 안내가 왔다.',
+    reason: '장학금 안내',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1549,7 +1549,7 @@ export default [
     id: 'ext.215', ages: [26, 40], years: [2013, 2019], p: 0.06, once: true, tags: ['ext'], src: ['EXT.H20'],
     when: L => (partner(L) || !!L.family?.dating) && parentsAlive(L).length>0 && !owned(L),
     text: '부모가 보증금을 돕겠다고 한다. 고마움과 함께 의견도 많아졌다.',
-    reason: '부모가 보증금을 돕겠다고 한다.',
+    reason: '부모의 보증금 지원',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1566,7 +1566,7 @@ export default [
     id: 'ext.216', ages: [18, 70], years: [2014, 2014], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H32'],
     when: L => true,
     text: '참사 소식이 이어진다. 확인되지 않은 말도 같은 화면에 섞여 있다.',
-    reason: '참사 소식이 이어진다.',
+    reason: '참사 소식',
     sensitive: 'disaster',
     choice: {
       prompt: '어떻게 할까?',
@@ -1584,7 +1584,7 @@ export default [
     id: 'ext.217', ages: [18, 65], years: [2015, 2015], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H31'],
     when: L => chronic(L) || L.age>=65 || kidsN(L,0,6)>=1,
     text: '감염병 소식 때문에 예정된 병원 방문이 걱정된다.',
-    reason: '감염병 소식 때문에 예정된 병원 방문이 걱정된다.',
+    reason: '감염병 속 병원 방문',
     sensitive: 'illness',
     choice: {
       prompt: '어떻게 할까?',
@@ -1602,7 +1602,7 @@ export default [
     id: 'ext.218', ages: [35, 60], years: [2015, 2019], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => kidsN(L,6,15)>=1 && caring(L),
     text: '자녀의 하교와 부모의 통원 시간이 겹쳤다. 내 일정은 맨 나중이다.',
-    reason: '자녀의 하교와 부모의 통원 시간이 겹쳤다.',
+    reason: '하교와 통원 시간',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1619,7 +1619,7 @@ export default [
     id: 'ext.219', ages: [18, 70], years: [2016, 2017], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H26'],
     when: L => true,
     text: '광장에 사람들이 모인다. 가족과 동료의 생각이 꼭 같지는 않다.',
-    reason: '광장에 사람들이 모인다.',
+    reason: '광장 집회',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1636,7 +1636,7 @@ export default [
     id: 'ext.220', ages: [18, 65], years: [2016, 2019], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && /웹툰|만화|일러스트|애니/.test(L.job?.title ?? ''),
     text: '연재 일정이 당겨졌다. 작업 분량과 단가는 그대로다.',
-    reason: '연재 일정이 당겨졌다.',
+    reason: '연재 일정',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1653,7 +1653,7 @@ export default [
     id: 'ext.221', ages: [18, 65], years: [2016, 2019], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && /경비|보안|수위/.test(L.job?.title ?? ''),
     text: '휴게시간으로 적힌 시간에도 호출이 온다. 쉬는 곳은 일터와 붙어 있다.',
-    reason: '휴게시간으로 적힌 시간에도 호출이 온다.',
+    reason: '휴게시간 호출',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1670,7 +1670,7 @@ export default [
     id: 'ext.222', ages: [18, 65], years: [2017, 2019], p: 0.03, cooldown: 5, tags: ['ext'], src: ['EXT.H22'],
     when: L => kidsN(L,7,18)>=1,
     text: '아이가 학교 가기를 힘들어한다. 먼저 안전과 사실 확인이 필요하다.',
-    reason: '아이가 학교 가기를 힘들어한다.',
+    reason: '등교 거부',
     sensitive: 'violence',
     choice: {
       prompt: '어떻게 할까?',
@@ -1688,7 +1688,7 @@ export default [
     id: 'ext.223', ages: [18, 65], years: [2018, 2019], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H17'],
     when: L => emp(L) && ['large','public'].includes(sz(L)),
     text: '노동시간 기준이 바뀌었다. 업무량과 수당은 어떻게 될지 아직 모른다.',
-    reason: '노동시간 기준이 바뀌었다.',
+    reason: '노동시간 변경',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1705,7 +1705,7 @@ export default [
     id: 'ext.224', ages: [18, 65], years: [2018, 2019], p: 0.15, cooldown: 3, tags: ['ext'], src: ['EXT.H29'],
     when: L => working(L) && ['6','7','9'].includes(maj(L)),
     text: '더운 시간이 길어진다. 일을 멈추는 시간도 생계와 연결된다.',
-    reason: '더운 시간이 길어진다.',
+    reason: '긴 더위',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1722,7 +1722,7 @@ export default [
     id: 'ext.225', ages: [18, 65], years: [2019, 2019], p: 0.12, once: true, tags: ['ext'], src: ['EXT.H20'],
     when: L => self(L),
     text: '단체방에 대박 이야기가 돈다. 손실과 실제 비용을 말하는 사람은 적다.',
-    reason: '단체방에 대박 이야기가 돈다.',
+    reason: '단체방 투자 소문',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1739,7 +1739,7 @@ export default [
     id: 'ext.226', ages: [18, 65], years: [2020, 2021], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H16'],
     when: L => kidsN(L,6,18)>=1 && (L.stats?.wealth ?? 50) < 55,
     text: '두 아이의 수업이 같은 시간에 열린다. 쓸 수 있는 기기는 하나다.',
-    reason: '두 아이의 수업이 같은 시간에 열린다.',
+    reason: '겹친 수업 시간',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1756,7 +1756,7 @@ export default [
     id: 'ext.227', ages: [18, 65], years: [2020, 2021], p: 0.1, once: true, tags: ['ext'], src: ['EXT.H16', 'EXT.H21'],
     when: L => emp(L) && (partner(L) || kidsN(L,0,18)>0) && ['jeonse','monthly'].includes(L.home?.tenure),
     text: '회사 일과 가족 수업이 같은 방에 들어왔다. 조용할 시간도 겹친다.',
-    reason: '회사 일과 가족 수업이 같은 방에 들어왔다.',
+    reason: '재택 근무와 원격 수업',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1773,7 +1773,7 @@ export default [
     id: 'ext.228', ages: [18, 65], years: [2020, 2022], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H31'],
     when: L => self(L) && ['4','5'].includes(maj(L)),
     text: '영업이 제한된다. 임대료와 재료비는 매출만큼 빨리 줄지 않는다.',
-    reason: '영업이 제한된다.',
+    reason: '영업 제한',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1790,7 +1790,7 @@ export default [
     id: 'ext.229', ages: [18, 65], years: [2020, 2022], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H31'],
     when: L => working(L) && /간호|요양|보건|간병|의료/.test(L.job?.title ?? ''),
     text: '업무가 늘고 가족 만남은 조심스러워졌다. 일과 집 모두에서 긴장한다.',
-    reason: '업무가 늘고 가족 만남은 조심스러워졌다.',
+    reason: '업무 증가',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1807,7 +1807,7 @@ export default [
     id: 'ext.230', ages: [18, 65], years: [2020, 2022], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && /공연|행사|연예|배우|음악|연주|무대|무용/.test(L.job?.title ?? ''),
     text: '행사가 취소됐다. 취소된 수입과 이미 쓴 준비비는 다르다.',
-    reason: '행사가 취소됐다.',
+    reason: '행사 취소',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1824,7 +1824,7 @@ export default [
     id: 'ext.231', ages: [18, 65], years: [2020, 2026], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => working(L) && (!!L.job?.platform || /배달|배송|택배/.test(L.job?.title ?? '')),
     text: '비 오는 날 추가 보상이 붙었다. 오래 달릴수록 몸과 장비의 부담도 커진다.',
-    reason: '비 오는 날 추가 보상이 붙었다.',
+    reason: '우천 할증',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1841,7 +1841,7 @@ export default [
     id: 'ext.232', ages: [24, 55], years: [2020, 2026], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H18'],
     when: L => tenant(L),
     text: '보증금이 싸 보인다. 계약을 서두르라는 연락이 자주 온다.',
-    reason: '보증금이 싸 보인다.',
+    reason: '싼 보증금',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1858,7 +1858,7 @@ export default [
     id: 'ext.233', ages: [18, 65], years: [2022, 2026], p: 0.15, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => hasDebt(L),
     text: '갱신한 대출 이자가 늘었다. 생활비를 줄여도 고정비는 무겁다.',
-    reason: '갱신한 대출 이자가 늘었다.',
+    reason: '대출 갱신 이자',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1875,7 +1875,7 @@ export default [
     id: 'ext.234', ages: [18, 65], years: [2021, 2026], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H21'],
     when: L => emp(L) && /반도체|장비|설비/.test(L.job?.title ?? ''),
     text: '긴급 호출이 가족 진료일과 겹쳤다. 장비는 개인 일정대로 멈추지 않는다.',
-    reason: '긴급 호출이 가족 진료일과 겹쳤다.',
+    reason: '긴급 호출',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1892,7 +1892,7 @@ export default [
     id: 'ext.235', ages: [18, 65], years: [2023, 2026], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H33'],
     when: L => working(L) && /번역|디자이너|통역|작가/.test(L.job?.title ?? ''),
     text: '고객이 AI로 초안을 만들었다며 단가를 낮추자고 한다. 검수 책임은 그대로다.',
-    reason: '고객이 AI로 초안을 만들었다며 단가를 낮추자고 한다.',
+    reason: 'AI 단가 압박',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1909,7 +1909,7 @@ export default [
     id: 'ext.236', ages: [18, 65], years: [2022, 2026], p: 0.06, cooldown: 3, tags: ['ext'], src: ['EXT.H33'],
     when: L => emp(L) && ['7','8'].includes(maj(L)),
     text: '새 제품에 맞춘 공정 교육이 열린다. 기존 숙련이 어디까지 쓰일지 모른다.',
-    reason: '새 제품에 맞춘 공정 교육이 열린다.',
+    reason: '신제품 공정 교육',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1926,7 +1926,7 @@ export default [
     id: 'ext.237', ages: [18, 65], years: [2022, 2026], p: 0.05, once: true, tags: ['ext'], src: ['EXT.H21'],
     when: L => self(L) && ['4','5'].includes(maj(L)) && (L.money?.assets ?? 0) >= 3000,
     text: '브랜드를 달면 손님이 온다고 한다. 매출표에는 내 임대료가 빠져 있다.',
-    reason: '브랜드를 달면 손님이 온다고 한다.',
+    reason: '프랜차이즈 권유',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1943,7 +1943,7 @@ export default [
     id: 'ext.238', ages: [18, 65], years: [2022, 2026], p: 0.06, cooldown: 3, tags: ['ext'], src: ['EXT.H29'],
     when: L => urban(L) && (lowW(L) || L.home?.tenure==='monthly'),
     text: '많은 비 예보가 왔다. 집의 낮은 출입구가 신경 쓰인다.',
-    reason: '많은 비 예보가 왔다.',
+    reason: '호우 예보',
     sensitive: 'disaster',
     choice: {
       prompt: '어떻게 할까?',
@@ -1961,7 +1961,7 @@ export default [
     id: 'ext.239', ages: [20, 50], years: [2023, 2026], p: 0.02, cooldown: 5, tags: ['ext'], src: ['EXT.H18'],
     when: L => L.home?.tenure==='jeonse',
     text: '계약이 끝났는데 보증금이 돌아오지 않는다. 다음 집도 기다려 주지 않는다.',
-    reason: '계약이 끝났는데 보증금이 돌아오지 않는다.',
+    reason: '돌려받지 못한 보증금',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1978,7 +1978,7 @@ export default [
     id: 'ext.240', ages: [20, 45], years: [2023, 2026], p: 0.06, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => emp(L),
     text: '직장 티어표에 내 회사가 있다. 실제 근무시간과 복지는 한 줄도 없다.',
-    reason: '직장 티어표에 내 회사가 있다.',
+    reason: '직장 티어표',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -1995,7 +1995,7 @@ export default [
     id: 'ext.241', ages: [26, 45], years: [2023, 2026], p: 0.04, once: true, tags: ['ext'], src: ['EXT.H20'],
     when: L => !L.family?.married && !partner(L),
     text: '직업과 자산을 등급으로 말하는 상담을 받았다. 서로의 삶은 아직 모른다.',
-    reason: '직업과 자산을 등급으로 말하는 상담을 받았다.',
+    reason: '등급 상담',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2012,7 +2012,7 @@ export default [
     id: 'ext.242', ages: [19, 34], years: [2023, 2026], p: 0.12, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => seeking(L),
     text: '취업 준비를 더 하고 싶지만 생활비가 먼저 끝나 간다.',
-    reason: '취업 준비를 더 하고 싶지만 생활비가 먼저 끝나 간다.',
+    reason: '바닥난 생활비',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2029,7 +2029,7 @@ export default [
     id: 'ext.243', ages: [18, 90], years: [2023, 2026], p: 0.08, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => prov(L),
     text: '버스가 줄어 병원과 시장을 하루에 다녀오기 어려워졌다.',
-    reason: '버스가 줄어 병원과 시장을 하루에 다녀오기 어려워졌다.',
+    reason: '버스 감축',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2046,7 +2046,7 @@ export default [
     id: 'ext.244', ages: [18, 65], years: [2024, 2026], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H22'],
     when: L => emp(L) && /교사|교원|교수|강사/.test(L.job?.title ?? ''),
     text: '퇴근 뒤 연락과 행정업무가 겹친다. 수업 준비는 뒤로 밀렸다.',
-    reason: '퇴근 뒤 연락과 행정업무가 겹친다.',
+    reason: '퇴근 뒤 업무',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2063,7 +2063,7 @@ export default [
     id: 'ext.245', ages: [38, 62], years: [2024, 2026], p: 0.1, cooldown: 3, tags: ['ext'], src: ['EXT.H20'],
     when: L => kidsN(L,0,22)>=1 && parentsAlive(L).length>0 && lowW(L),
     text: '부모 병원비와 자녀 교육비가 같은 달에 몰렸다. 내 검진도 예약돼 있다.',
-    reason: '부모 병원비와 자녀 교육비가 같은 달에 몰렸다.',
+    reason: '겹친 병원비와 교육비',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2080,7 +2080,7 @@ export default [
     id: 'ext.246', ages: [55, 80], years: [2024, 2026], p: 0.15, cooldown: 2, tags: ['ext'], src: ['EXT.H21'],
     when: L => seeking(L) || L.job?.status==='retired' || L.job?.status==='inactive',
     text: '다시 일을 구한다. 제시된 임금보다 오래 서 있는 시간이 걱정이다.',
-    reason: '다시 일을 구한다.',
+    reason: '재취업',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2097,7 +2097,7 @@ export default [
     id: 'ext.247', ages: [65, 90], years: [2024, 2026], p: 0.15, cooldown: 3, tags: ['ext'], src: ['EXT.H28'],
     when: L => true,
     text: '신청은 휴대폰으로 하라고 한다. 인증 화면에서 다시 막혔다.',
-    reason: '신청은 휴대폰으로 하라고 한다.',
+    reason: '휴대폰 신청',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2114,7 +2114,7 @@ export default [
     id: 'ext.248', ages: [18, 65], years: [2025, 2026], p: 0.1, cooldown: 2, tags: ['ext'], src: ['EXT.H20'],
     when: L => emp(L),
     text: '단체방의 정치 이야기가 가족 안부보다 길어졌다. 확인되지 않은 영상도 온다.',
-    reason: '단체방의 정치 이야기가 가족 안부보다 길어졌다.',
+    reason: '단체방 정치 이야기',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2131,7 +2131,7 @@ export default [
     id: 'ext.249', ages: [18, 65], years: [2025, 2026], p: 0.12, cooldown: 3, tags: ['ext'], src: ['EXT.H21', 'EXT.H28'],
     when: L => working(L) && (!!L.job?.platform || /작가|크리에이터|유튜|방송|콘텐츠/.test(L.job?.title ?? '')),
     text: '팔로워는 늘었지만 수입은 다르다. 인기와 생활비는 같은 그래프가 아니다.',
-    reason: '팔로워는 늘었지만 수입은 다르다.',
+    reason: '팔로워와 수입',
     choice: {
       prompt: '어떻게 할까?',
       options: [
@@ -2148,7 +2148,7 @@ export default [
     id: 'ext.250', ages: [18, 90], years: [2026, 2026], p: 0.15, once: true, tags: ['ext'], src: ['EXT.H19'],
     when: L => (L.birth?.month ?? 1) >= 4 && (L.age>=65 || dis(L)) && (chronic(L) || L.age>=75),
     text: '사는 곳에서 의료·요양·돌봄을 함께 상담할 수 있다는 안내가 왔다.',
-    reason: '사는 곳에서 의료·요양·돌봄을 함께 상담할 수 있다는 안내가 왔다.',
+    reason: '통합돌봄 안내',
     choice: {
       prompt: '어떻게 할까?',
       options: [

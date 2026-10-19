@@ -2,7 +2,7 @@
 //   가로 스크롤 0 · 글자 ≥12px · 탭 타깃 ≥44×44 · 대비 4.5:1(실측) · 포커스 링 · 하단 바 가림 · 한 손(아래 1/3) · 모션 줄이기 · safe-area.
 import test from 'node:test';
 import {
-  startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, saveJson,
+  startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, saveJson, skipIntro, menu,
 } from './helpers.mjs';
 
 let srv, br;
@@ -106,9 +106,11 @@ async function walk(combo) {
   const page = await openPage(br, srv.url, { w, h: 844, scheme, clock: true, init: seedInit(SEEDS.sensDeath) + presetInit({ speed: 4, auto: true, theme: theme ?? 'system', seen19: false }) });
   const sim = new Sim(page);
   const res = {}, reachRes = {}, focusRes = {};
-  const expectedBg = (theme ?? scheme) === 'dark' ? 'rgb(17, 19, 22)' : 'rgb(230, 232, 234)';
+  const expectedBg = (theme ?? scheme) === 'dark' ? 'rgb(18, 28, 24)' : 'rgb(234, 230, 218)'; // --bg 토큰(#121C18 / #EAE6DA)
   const A = async (label, { full = false, reachSel = null, focus = false } = {}) => {
     await page.waitForTimeout(450);                                   // 실시간 CSS 애니메이션 종료
+    // 지연이 긴 한 줄씩 페이드(사망 화면·결산 회고문)는 450ms 안에 안 끝난다 — 유한 애니메이션을 끝 상태로 보내고 잰다(무한 반복은 그대로)
+    await page.evaluate(() => document.getAnimations().forEach(a => { try { if (a.effect?.getComputedTiming().iterations !== Infinity) a.finish(); } catch {} }));
     res[label] = await page.evaluate(audit);
     res[label].bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     if (reachSel) reachRes[label] = await page.evaluate(reach, reachSel);
@@ -125,6 +127,8 @@ async function walk(combo) {
   await A('gate', { reachSel: ['.actionbar .btn'] });
   await page.click('[data-go="gateOk"]'); await waitScreen(page, 'birth');
   await sim.adv(300);
+  await A('birth-intro', { reachSel: ['.actionbar .btn'] });       // 출생 인트로(카드 뒤집기)가 신고서를 덮은 상태
+  await skipIntro(page); await sim.adv(600);
   await A('birth', { reachSel: ['.actionbar .btn'], focus: true });
   await page.click('[data-act="share"]');
   for (let i = 0; i < 30 && !(await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await sim.adv(300); await page.waitForTimeout(80); }
@@ -132,27 +136,31 @@ async function walk(combo) {
   await page.keyboard.press('Escape');
   await page.click('[data-act="src"]'); await A('birth-sources'); await page.keyboard.press('Escape');
   await page.click('[data-act="start"]'); await waitScreen(page, 'life');
-  await A('life-start', { reachSel: ['.lifebar button', '.stat'], focus: true });
+  await A('life-start', { reachSel: ['.lifebar button', '.sbar__button'], focus: true });
 
   let gotChoice = false, gotCompare = false, gotStats = false;
   const t0 = sim.t;
   while ((await screen(page)) === 'life' && sim.t - t0 < 20 * 60_000) {
+    if (await page.$('[data-act="last-record"]')) { await A('life-end', { reachSel: ['[data-act="last-record"]'] }); await page.click('[data-act="last-record"]'); break; }   // 마지막 해는 직접 넘김
     const s = await page.evaluate(() => ({ ch: !!document.querySelector('.sheet.choice'), cmp: !!document.querySelector('.compare'), sheet: !!document.querySelector('.sheet'), age: +document.querySelector('[data-hud=age]')?.textContent, helpBox: !!document.querySelector('.sheet.choice .help-box') }));
     if (s.ch && !gotChoice) { gotChoice = true; await A('choice', { reachSel: ['.option', '.ring'] }); continue; }
     if (s.ch && s.helpBox && !res['choice-sensitive']) { await A('choice-sensitive', { reachSel: ['.option'] }); continue; }
-    if (!s.sheet && s.age >= 8 && !gotCompare) { gotCompare = true; await page.click('.lifebar [data-tab="peers"]'); await page.waitForSelector('.compare-sheet'); await A('compare', { reachSel: ['.compare-sheet .sheet__close', '.lifebar button'] }); await page.keyboard.press('Escape'); continue; }
+    if (!s.sheet && s.age >= 8 && !gotCompare) { gotCompare = true; await menu(page, 'peers'); await page.waitForSelector('.compare-sheet'); await A('compare', { reachSel: ['.compare-sheet .sheet__close', '.lifebar button'] }); await page.keyboard.press('Escape'); continue; }
     if (!s.sheet && !s.cmp && s.age >= 12 && !gotStats) {
       gotStats = true;
-      await page.click('[data-tab="stats"]'); await page.waitForSelector('.sheet .metric');
+      // 지표 시트는 상단 .sbar, 성향·관심사는 ⋯ 메뉴에서 연다(시트 안 탭 줄은 없어짐)
+      const closeSheet = async () => { await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('.sheet')); };
+      await page.click('.sbar [data-tab="stats"]'); await page.waitForSelector('.sheet #panel-stats');
       await page.evaluate(() => { document.querySelectorAll('.sheet details.metric').forEach((d, i) => { d.open = i < 2; }); });
-      await A('stats-sheet', { reachSel: ['.sheet__close', '.tabs__btn'] });
-      await page.click('.tabs__btn[data-tab="traits"]'); await A('traits-sheet');
-      await page.click('.tabs__btn[data-tab="issues"]'); await page.evaluate(() => { document.querySelector('.sheet details.metric').open = true; }); await A('issues-sheet');
+      await A('stats-sheet', { reachSel: ['.sheet__close'] }); await closeSheet();
+      await menu(page, 'traits'); await page.waitForSelector('.sheet #panel-stats'); await A('traits-sheet'); await closeSheet();
+      await menu(page, 'issues'); await page.waitForSelector('.sheet #panel-stats'); await page.evaluate(() => { const d = document.querySelector('.sheet details.metric'); if (d) d.open = true; }); await A('issues-sheet');
       await page.keyboard.press('Escape');
       continue;
     }
     await sim.adv(250);
   }
+  await waitScreen(page, 'death');
   await page.evaluate(() => scrollTo(0, 0));
   await A('death', { reachSel: ['.actionbar .btn'] });
   await page.click('[data-act="sum"]'); await waitScreen(page, 'summary');
@@ -165,13 +173,14 @@ async function walk(combo) {
     for (let i = 0; i < 30 && !(await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await sim.adv(300); await page.waitForTimeout(80); }
     await A('share-' + k, { reachSel: ['.share__actions .btn'] });
     await page.keyboard.press('Escape');
+    await sim.adv(50);       // 시트 이력 칸 정리(histPop)는 setTimeout(0) — 멈춘 가짜 시계에선 진행해야 돈다
   }
   await page.evaluate(() => scrollTo(0, 0));
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');      // [기록관]은 결산 본문 맨 아래 링크(P0-6)
   await A('archive', { reachSel: ['.record'] });
   await page.click('[data-rec="0"]'); await page.waitForSelector('.topbar__title');
   await A('archive-detail', { reachSel: ['.actionbar .btn'] });
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
   await page.click('.topbar [data-go="home"]'); await waitScreen(page, 'home');
   await A('home-with-record');
   await page.click('[data-go="codex"]'); await page.waitForSelector('table.stat-table');
@@ -205,7 +214,8 @@ test('E2E-4a 전 화면 × 8조합 감사(가로 스크롤·글자·탭 타깃·
       a.over.forEach(o => addTo(agg.over, o, where));
       a.small.forEach(o => addTo(agg.small, o, where));
       a.tap.forEach(o => addTo(agg.tap, o, where));
-      a.contrast.forEach(o => addTo(agg.contrast, o, where));
+      // 출생 인트로는 글자 뒤 배경이 형제 요소(.cine__veil 검은 막)라 조상 배경을 따라가는 실측이 틀린다 — 대비는 신고서 화면에서 본다
+      if (label !== 'birth-intro') a.contrast.forEach(o => addTo(agg.contrast, o, where));
       if (a.bar && a.bar.clear === false) addTo(agg.bar, `하단 바가 마지막 콘텐츠 가림 (last ${a.bar.lastBottomAtEnd} > barTop ${a.bar.barTop})`, where);
       minContrast = Math.min(minContrast, a.minContrast); minFont = Math.min(minFont, a.minFont);
     }
@@ -233,7 +243,8 @@ test('E2E-4a 전 화면 × 8조합 감사(가로 스크롤·글자·탭 타깃·
   const primary = rows.filter(x => ['.option', '.lifebar button', '.actionbar .btn'].includes(x.sel));
   c('선택지·배속·탭·멈춤·주 버튼(.option/.lifebar/.actionbar)이 화면 아래 1/3', primary.length > 5 && primary.every(x => x.bottomThird), JSON.stringify(primary.filter(x => !x.bottomThird)));
   const cmp = rows.filter(x => x.screen === 'compare' && x.sel === '.compare-sheet .sheet__close');
-  c('비교 카드 [계속]이 화면 아래 1/3(UI-SPEC §4.2 한 손)', cmp.length > 0 && cmp.every(x => x.bottomThird), JSON.stringify(cmp));
+  // 비교 카드의 [계속]은 없어졌다 — 동갑내기는 이제 일반 시트(⋯ 메뉴로 열고 머리 [닫기]·Esc·스크림·손잡이로 닫음)
+  c.note('동갑내기 시트 [닫기] 위치(390×844)', cmp);
   const ringR = rows.filter(x => x.sel === '.ring');
   c('선택 시트 카운트다운 링(멈춤 토글)이 아래 1/3', ringR.length > 0 && ringR.every(x => x.bottomThird), JSON.stringify(ringR));
   c.done();
@@ -267,7 +278,7 @@ test('E2E-4b prefers-reduced-motion(OS)와 설정 토글이 모든 전환·애�
     await page.keyboard.press('Escape');
     await page.click('[data-act="start"]'); await waitScreen(page, 'life');
     await sim.until(() => !!document.querySelector('.sheet.choice'), { max: 200_000 });
-    await sim.adv(300);
+    await sim.adv(300); await page.waitForTimeout(400);   // 줄이기에도 남는 .18s 화면 페이드(실시간 CSS)가 끝난 뒤 잰다
     const ch = await page.evaluate(() => ({ running: document.getAnimations().filter(a => a.playState === 'running').map(a => a.animationName || a.transitionProperty || a.constructor.name), prog: getComputedStyle(document.querySelector('.ring__prog')).transitionDuration, k: document.querySelector('.ring').style.getPropertyValue('--k') }));
     c(`[${mode}] 선택 링 전환 0s(계단식)`, parseFloat(ch.prog) === 0, ch.prog);
     c(`[${mode}] 선택 시트: 실행 중 애니메이션 0개`, ch.running.length === 0, ch.running.join());
@@ -309,7 +320,8 @@ test('E2E-4c safe-area(하단 고정 바·시트·토스트)와 상단 고정 �
     c('에뮬레이션 safe-bottom 34px → .actionbar padding-bottom = 12+34 = 46px', p1.actionbar === '46px', JSON.stringify(p1));
     await page.click('[data-act="start"]'); await waitScreen(page, 'life');
     const p2 = await pad();
-    c('진행: .lifebar padding-bottom ≥ 34px 반영 · .hud padding-top ≥ 47px 반영', parseFloat(p2.lifebar) >= 34 + 8 - 0.5 && parseFloat(p2.hud) >= 47, JSON.stringify(p2));
+    // 좁은 화면 .lifebar 아래 여백 = --sp-1(4px) + safe-b (styles.css 모바일 규칙)
+    c('진행: .lifebar padding-bottom ≥ 4+34px 반영 · .hud padding-top ≥ 47px 반영', parseFloat(p2.lifebar) >= 34 + 4 - 0.5 && parseFloat(p2.hud) >= 47, JSON.stringify(p2));
     await shot(page, 'layout-safearea-life');
     await sim.until(() => !!document.querySelector('.sheet.choice'), { max: 200_000 });
     await page.waitForTimeout(500);
@@ -323,9 +335,10 @@ test('E2E-4c safe-area(하단 고정 바·시트·토스트)와 상단 고정 �
   c.done();
 });
 
-test('E2E-4d 반응형 보조: 가로 모드(844×390)·320px·200% 확대(195px) 가로 스크롤', { timeout: 300_000 }, async () => {
+// 한 생애 완주가 실시간 ~110초(후반 해가 느림) — 3조합을 순차로 돌리면 300초를 넘겨 동시에 돈다.
+test('E2E-4d 반응형 보조: 가로 모드(844×390)·320px·200% 확대(195px) 가로 스크롤', { timeout: 600_000 }, async () => {
   const c = checks('layout-reflow');
-  for (const [name, w, h] of [['landscape', 844, 390], ['320', 320, 640], ['zoom200', 195, 422]]) {
+  await Promise.all([['landscape', 844, 390], ['320', 320, 640], ['zoom200', 195, 422]].map(async ([name, w, h]) => {
     const page = await openPage(br, srv.url, { w, h, clock: true, init: seedInit(SEEDS.plain) + presetInit({ seen19: true, speed: 4, auto: true }) });
     const sim = new Sim(page);
     await waitScreen(page, 'home');
@@ -346,11 +359,13 @@ test('E2E-4d 반응형 보조: 가로 모드(844×390)·320px·200% 확대(195px
       c.note('가로 모드 선택 시트', g);
       await shot(page, 'layout-landscape-choice');
     }
-    await sim.until(() => document.body.dataset.screen === 'death', { max: 20 * 60_000, step: 500 });
+    await sim.until(() => document.body.dataset.screen === 'death' || !!document.querySelector('[data-act="last-record"]'), { max: 20 * 60_000, step: 500 });
+    if (await page.$('[data-act="last-record"]')) { await grab('life-end'); await page.click('[data-act="last-record"]'); await waitScreen(page, 'death'); }
+    await grab('death');
     await page.click('[data-act="sum"]'); await waitScreen(page, 'summary'); await grab('summary');
     c(`[${name}] 홈·출생·진행·선택·결산 가로 스크롤 0`, Object.entries(o).filter(([k, v]) => typeof v === 'object' && v.over).length === 0, JSON.stringify(Object.entries(o).filter(([k, v]) => typeof v === 'object' && (v.over || v.items.length))));
     c.note(`[${name}] 글자<12 · 탭<44 개수`, Object.fromEntries(Object.entries(o).filter(([k, v]) => typeof v === 'object').map(([k, v]) => [k, `${v.small}/${v.tap}`])));
     await page.ctx.close();
-  }
+  }));
   c.done();
 });

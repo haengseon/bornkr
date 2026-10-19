@@ -25,6 +25,11 @@ const EDU_RANK = { none: 0, mid: 0, high: 1, '2yr': 2, '4yr': 3, grad: 4 };
 const NONREG_ADJ = { 9: 1.8, 4: 1.4, 2: 0.8, 3: 0.7 };
 const REASON = { bankrupt: '사업 부진', layoff: '권고사직', mandatory: '정년', age: '그만둘 나이', other: '개인 사정' };
 const working = j => j.status === 'employed' || j.status === 'self';
+// 치매·장기요양 판정이면 일하지 못한다(B-01·M2)
+const frail = L => !!L.aging?.ltc || !!L.health.conditions?.some(c => c.active && c.key === 'dementia');
+// 면허 직종 가중: 면허가 있으면 ×3. 현장에서 따는 자격(운전·돌봄·기술·복지·회계)은 젊을 때만 ×.5, 전문가급(skill 4)은 전문대 이상(m6)
+const LIC_SOFT = ['drive', 'care', 'tech', 'social', 'acct'];
+const licW = (r, lic, mine, senior) => (lic.includes(r.license) ? 3 : !senior && LIC_SOFT.includes(r.license) && (r.skill < 4 || mine >= 2) ? 0.5 : 0);
 
 // ── 직업 표 색인 ──
 let BY_MAJOR = null, BY_CODE = null;
@@ -51,29 +56,31 @@ export function assignJob(L, ctx, o = {}) {
   const era = T('OCC_ERA');
   // 직종은 쉽게 바뀌지 않는다: 일한 적이 있으면 가장 오래 한 일의 대분류·세부 직종 쪽으로 강하게 쏠린다
   const prev = prevJob(L), cont = prev ? (o.older ? 3 : 1) : 0;
+  const senior = age >= 60 || (o.older && age >= 55);   // 고령 재취업: 공공·면허 미보유·학력 초과·전문직(직전과 같은 직업이 아니면) 제외, 소분류 쏠림 없음(B-01)
   const wm = {};
   for (const m of Object.keys(BY_MAJOR)) {
     const base = byEdu?.[m] ?? 0;
     if (!base) continue;
     wm[m] = (prev && m === prev.major ? 1 + CONT.major * cont : 1) * base * (sexR?.[m] ?? 1) * (ageR?.[m] ?? 1) * (era[m] ? yr(era[m], year) : 1) * (colMajor ? majorAff(colMajor, m) : 1) * bias(L, 'occupationBias', m, 0.5, 2) * jobBias(L, m);   // 성향(MBTI) 약한 편향
   }
-  const major = ctx.weighted(wm) ?? '9';
+  const major = o.major ?? ctx.weighted(wm) ?? '9';
   const mine = EDU_RANK[level] ?? 0;
   const leaf = [];
   for (const r of BY_MAJOR[major]) {
     if (r.since > year || (r.until != null && r.until < year) || !r.w) continue;
+    if (senior && (r.public || (r.band >= 4 && r.code !== prev?.code))) continue;
     let w = r.w;
-    if (r.edu === 'license') w *= lic.includes(r.license) ? 3 : ['drive', 'care', 'tech', 'social', 'acct'].includes(r.license) ? 0.5 : 0;
-    else { const need = EDU_RANK[r.edu] ?? 0; w *= need <= mine ? 1 : need === mine + 1 ? 0.2 : 0; }
+    if (r.edu === 'license') w *= licW(r, lic, mine, senior);
+    else { const need = EDU_RANK[r.edu] ?? 0; w *= need <= mine ? 1 : need === mine + 1 && !senior ? 0.2 : 0; }
     if (r.rural) w *= rural ? 3 : 0.3;
     const core = r.core && CORE_BY.get(r.code);
     if (core?.entry?.some(e => entryOk(e, { level, colMajor, age, year, lic }))) w *= 3;
-    if (prev && cont) w *= r.code === prev.code ? 1 + CONT.code * cont : r.code.slice(0, 2) === prev.code.slice(0, 2) ? 1 + CONT.sub * cont : 1;
+    if (prev && cont) w *= r.code === prev.code ? 1 + CONT.code * cont : r.code.slice(0, 2) === prev.code.slice(0, 2) && !senior ? 1 + CONT.sub * cont : 1;
     const fem = r.female ?? 0.446;
     w *= sex === 'F' ? Math.pow(fem / 0.446, 0.7) : Math.pow((1 - fem) / 0.554, 0.7);
     if (w > 0) leaf.push([r, w]);
   }
-  if (!leaf.length) return BY_MAJOR[major][0];
+  if (!leaf.length) return major === '9' ? BY_MAJOR[major][0] : assignJob(L, ctx, { ...o, major: '9' });   // 대분류에 맞는 자리가 없으면 단순노무(관리직 첫 행으로 새지 않게)
   const tot = leaf.reduce((s, x) => s + x[1], 0);
   let r = ctx.rand() * tot;
   for (const [row, w] of leaf) if ((r -= w) < 0) return row;
@@ -126,7 +133,8 @@ export function makeOffer(L, ctx, { older = false, boost = 1 } = {}) {
     const e = L.edu, pL = (e.level === '4yr' || e.level === 'grad') && e.college?.capital ? 0.3 : EDU_RANK[e.level] >= 2 ? 0.15 : 0.08;
     firmSize = ctx.weighted({ large: pL * boost * (older ? 0.3 : 1), mid: 0.25, small: 0.35, micro: Math.max(0.05, 0.4 - pL) });
   }
-  return { ...pickRow(row), regular, firmSize, wage: wageFor(L, ctx, row, { regular, firmSize }) };
+  const w = wageFor(L, ctx, row, { regular, firmSize }), last = L.flags.lastJob?.wage;
+  return { ...pickRow(row), regular, firmSize, wage: L.flags.mainExited && L.age >= 50 && last > 0 ? Math.min(w, Math.round(last * 0.8)) : w };   // 주된 일자리를 떠난 50세+ 재취업은 직전 임금보다 낮다(m6)
 }
 const pickRow = r => ({ code: r.code, title: r.name, major: r.major, band: r.band, ai: r.ai, hazard: r.hazard, public: !!r.public });
 
@@ -162,7 +170,10 @@ function exitMain(L, ctx, reasonKey) {
 // 재취업(60세+ 고용률 근거). 주된 일자리를 떠나 '다시 일한다'를 고른 사람은 85세 전까지 해마다 다시 구한다(QA-S-06)
 function tryReemploy(L, ctx) {
   const p = ag(D.SENIOR_EMPLOYMENT[L.sex], Math.max(60, L.age)) * LABOR_CAL.senior;
-  if (L.age < 80 && ctx.chance(p ?? 0)) { ctx.act.startJob(makeOffer(L, ctx, { older: true })); return true; }
+  if (L.age < 75 && !frail(L) && ctx.chance(p ?? 0)) {   // 75세 이상·치매·요양 판정은 새로 뽑히지 않는다(M2)
+    ctx.act.startJob(makeOffer(L, ctx, { older: true }));
+    return true;
+  }
   return false;
 }
 
@@ -175,6 +186,7 @@ function askLost(L, ctx, reasonLabel) {
 
 export function step(L, ctx) {
   const j = L.job, a = L.age, fl = L.flags, y = L.year;
+  if (j.gig && y > j.gig.until) { ctx.sys('sys.job.gig_end', { kind: j.gig.kind }); j.gig = null; }   // 짧은 일이 끝나면 원래 고용 상태로 돌아간 것을 남긴다
   if (j.status === 'military') return;
   if ((j.status === 'none' || j.status === 'student') && a >= 15 && L.edu.stage === 'done') {
     j.status = 'seeking'; j.searchYears = 0;
@@ -186,6 +198,7 @@ export function step(L, ctx) {
   }
   if (working(j) && fl.careStart === y - 1 && ctx.chance(L.sex === 'F' ? 0.3 : 0.1)) return careerBreak(L, ctx, '돌봄');
   if (working(j) && ['cancer', 'stroke', 'heart'].some(k => L.health.dx[k] === y - 1) && ctx.chance(0.25)) return careerBreak(L, ctx, '건강');
+  if (working(j) && frail(L)) return careerBreak(L, ctx, '건강');
 
   if (j.status === 'seeking') return seek(L, ctx);
   if (j.status === 'employed') return employed(L, ctx);
@@ -194,7 +207,7 @@ export function step(L, ctx) {
     const kids = L.family.children.filter(c => c.alive);
     const youngest = kids.length ? y - Math.max(...kids.map(c => c.birthYear)) : 99;
     if (a >= 60) { j.status = 'retired'; return; }
-    if (youngest >= 6 && ctx.chance((a >= 50 ? 0.5 : 1) * LABOR_CAL.ret)) {
+    if (youngest >= 6 && !frail(L) && ctx.chance((a >= 50 ? 0.5 : 1) * LABOR_CAL.ret)) {
       const n = y - (fl.breakYear ?? y);
       ctx.act.startJob({ ...makeOffer(L, ctx, { older: a >= 45 }), silent: true });
       ctx.sys('sys.job.return', { n: Math.max(1, n) });
@@ -207,7 +220,7 @@ export function step(L, ctx) {
 function seek(L, ctx) {
   const j = L.job, a = L.age, fl = L.flags, y = L.year;
   j.searchYears++;
-  if (a >= 60 && j.searchYears >= 3) { j.status = 'retired'; return; }
+  if ((a >= 60 && j.searchYears >= 3) || a >= 75 || frail(L)) { j.status = a >= 60 ? 'retired' : 'inactive'; return; }
   if (fl.examUntil != null) {
     if (y <= (fl.examStarted ?? fl.civilExam ?? -1)) return;
     if (ctx.chance(0.15)) {
@@ -249,11 +262,14 @@ function seek(L, ctx) {
   ctx.act.startJob(offer);
 }
 
+// 연차 상승·이직이 직급 상한을 넘지 않게: 같은 직업·규모 기준 임금의 공공 1.6배·민간 2배 [추정: 공무원 최고 호봉·대기업 임원 전 단계]
+const wageCap = L => { const j = L.job; return Math.round((T('BAND_BASE')[j.band] ?? 470) * 12 * (T('FIRM')[j.firmSize] ?? 1) * yr(T('ERA_INCOME_INDEX'), L.year) * (j.public ? 1.6 : 2)); };
 function employed(L, ctx) {
   const j = L.job, a = L.age, fl = L.flags, y = L.year;
   j.years++;
   const wr = T('WAGE_RAISE'), eraG = yr(T('ERA_INCOME_INDEX'), y) / yr(T('ERA_INCOME_INDEX'), y - 1);   // 연차 상승 + 시대 실질 임금 성장(R20)
-  j.wage = Math.round(j.wage * eraG * (1 + (j.regular ? ag(j.public ? wr.public : wr.regular, a) : wr.nonreg)));
+  const raised = Math.round(j.wage * eraG * (1 + (j.regular ? ag(j.public ? wr.public : wr.regular, a) : wr.nonreg)));
+  j.wage = Math.min(raised, Math.max(wageCap(L), j.wage));
   if (j.regular && [5, 10, 15, 20].includes(j.years)) ctx.sys('sys.job.raise', { n: j.years }, { quiet: true });
   if (!j.regular) {
     if (ctx.chance(LABOR_CAL.convert)) { j.regular = true; return ctx.sys('sys.job.convert'); }
@@ -263,6 +279,11 @@ function employed(L, ctx) {
       ctx.sys('sys.job.contract_end');
       return askLost(L, ctx, '계약 만료');
     }
+  }
+  const man = Math.round(yr(T('MANDATORY_AGE'), y));
+  if (j.public && a >= man) {                         // 공공 부문 정년(55 → 2016년 60): 재취업 자리라도 넘기지 않는다(M2)
+    if (!fl.mainExited) return exitMain(L, ctx, 'mandatory');
+    ctx.act.retire(); return ctx.sys('sys.job.retire', {}, { quiet: true });
   }
   const shock = T('ERA_SHOCKS')[y]?.job ?? D.ERA_SHOCKS.default?.job ?? 1;
   let pLose = (j.regular ? 0.018 : 0.03) * shock * (j.ai === 'high' && y >= 2025 ? 1.3 : 1) * (j.firmSize === 'micro' ? 1.5 : 1) * (j.public ? 0.2 : 1);
@@ -281,7 +302,6 @@ function employed(L, ctx) {
   }
   // 주된 일자리 퇴직(GDD §5.3)
   if (!fl.mainExited && j.years >= 5 && a >= (L.sex === 'M' ? 45 : 40)) {
-    const man = Math.round(yr(T('MANDATORY_AGE'), y));
     const eh = T('EXIT_HAZARD'), mand = D.EXIT_HAZARD.mandatory ?? { at: 0.45, after: 0.25 };
     const p = j.public ? (a >= man ? 1 : 0.005) : a === man ? mand.at : a > man ? mand.after : (ag(eh[L.sex], a) ?? 0) * LABOR_CAL.exit;
     if (a >= 65 || ctx.chance(p)) {
@@ -295,24 +315,25 @@ function employed(L, ctx) {
     if (a < t.ages[0] || a > t.ages[1] || j.years < t.minYears || !ctx.chance(t.p)) continue;
     const to = jobByCode(t.to);
     const lic = fl.licenses || [];
-    if (!to || (to.edu === 'license' ? !lic.includes(to.license) && !['drive', 'care', 'tech', 'social', 'acct'].includes(to.license) : (EDU_RANK[to.edu] ?? 0) > (EDU_RANK[L.edu.level] ?? 0) + 1)) continue;
+    if (!to || (to.edu === 'license' ? !licW(to, lic, EDU_RANK[L.edu.level] ?? 0, false) : (EDU_RANK[to.edu] ?? 0) > (EDU_RANK[L.edu.level] ?? 0) + 1)) continue;
     const h = j.history[j.history.length - 1];
     if (h) { h.to = y; h.reason = t.reason; }
-    Object.assign(j, pickRow(to), { years: 0, wage: Math.max(j.wage, wageFor(L, ctx, to, { regular: j.regular, firmSize: j.firmSize })) });
+    const nw = wageFor(L, ctx, to, { regular: j.regular, firmSize: j.firmSize });
+    Object.assign(j, pickRow(to), { years: 0, wage: Math.round(Math.max(nw, Math.min(j.wage, nw * 1.2))) });   // 새 직종 임금 기준, 경력 몫은 +20%까지만(이전 임금을 통째로 승계하지 않는다)
     j.history.push({ code: to.code, title: to.name, from: y, to: null, reason: null, ...(to.public && { public: true }) });
     return ctx.sys('sys.job.transition', { title: to.name, reason: t.reason });
   }
   if (j.regular && a >= 50 && a <= 58 && !j.public && !L.yr.asked && ctx.chance(0.06)) {
     return ctx.ask({ eventId: 'sys.job.honorary', options: ['accept', 'stay'], defaultId: 'stay' });
   }
-  if (a >= 25 && a <= 49 && j.years >= 3 && !L.yr.asked && ctx.chance(0.12)) {
+  if (a >= 25 && a <= 49 && y - (j.history.at(-1)?.from ?? y) >= 3 && !L.yr.asked && ctx.chance(0.12)) {
     const mult = 1.05 + 0.2 * ctx.rand();
     return ctx.ask({ eventId: 'sys.job.offer', options: ['move', 'stay'], defaultId: 'stay', data: { mult, regular: ctx.chance(0.8) } });
   }
   if (j.years >= 10 && a <= 55 && !L.yr.asked && ctx.chance(0.03)) return ctx.ask({ eventId: 'sys.job.business', options: ['open', 'job'], defaultId: 'job' });
   if (j.ai === 'high' && y >= 2024 && !fl.aiShift && ctx.chance(0.1)) { fl.aiShift = y; ctx.sys('sys.job.ai_shift'); }
   if (!j.regular && a >= 20 && a <= 60 && y >= 2015 && !j.platform && ctx.chance(0.08)) { j.platform = true; ctx.sys('sys.job.platform'); }
-  if (fl.mainExited && (a >= 85 || (a >= 65 && ctx.chance(0.12)))) { ctx.act.retire(); ctx.sys('sys.job.retire', {}, { quiet: true }); }
+  if (a >= 85 || (a >= 65 && ctx.chance(0.12))) { ctx.act.retire(); ctx.sys('sys.job.retire', {}, { quiet: true }); }
 }
 
 function selfEmployed(L, ctx) {
@@ -337,7 +358,7 @@ export function askChildcare(L, ctx) {
   const y = L.year;
   // 여: 2015+는 사용률만큼 휴직, 아니면 퇴직 기준 p로 그만둔다(GDD §5.3 기본값 근거)
   const def = L.sex === 'M' ? 'keep' : y >= 2015 && ctx.chance(yr(T('PARENTAL_LEAVE').F, y)) ? 'leave' : ctx.chance(Math.min(0.85, yr(T('FEMALE_QUIT_BIRTH'), y) * LABOR_CAL.quitBirth)) ? 'quit' : 'keep';
-  ctx.ask({ eventId: 'sys.job.childcare', options: ['leave', 'quit', 'keep'], defaultId: def });
+  ctx.ask({ eventId: 'sys.job.childcare', options: y >= 1988 ? ['leave', 'quit', 'keep'] : ['quit', 'keep'], defaultId: def });   // 육아휴직 1988~(남녀고용평등법)
 }
 
 export const choices = {
@@ -376,7 +397,7 @@ export const choices = {
     const j = L.job, h = j.history[j.history.length - 1];
     if (h) { h.to = L.year; h.reason = '이직'; }
     j.history.push({ code: j.code, title: j.title, from: L.year, to: null, reason: null });
-    j.wage = Math.round(j.wage * mult); j.regular = regular; j.years = 0;
+    j.wage = Math.round(Math.min(j.wage * mult, Math.max(wageCap(L), j.wage))); j.regular = regular;   // 경력은 이어진다: years(직급 연차) 유지(m6)
     ctx.apply({ stats: { relations: -3 } }, { reason: '회사를 옮겼다' });
   },
   'sys.job.business'(L, ctx, opt) {

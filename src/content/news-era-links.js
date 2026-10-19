@@ -246,7 +246,7 @@ export const ERA_LINKS_MAP = {
   ],
   'era.2015.mers': [
     k(sick, '다니던 병원 진료가 미뤄졌다.', { issues: { medical: 4 } }, '메르스 진료 차질'),
-    k(hasKid(3, 12), '아이 학교가 휴업해 돌봄을 구하느라 애먹었다.', { issues: { care: 3 } }, '휴업 돌봄'),
+    k(hasKid(7, 12), '아이 학교가 휴업해 돌봄을 구하느라 애먹었다.', { issues: { care: 3 } }, '휴업 돌봄'),
     k(self, '손님이 끊겨 매출이 크게 줄었다.', { issues: { living: 3 } }, '감염병 매출 감소'),
     g('마스크를 쓰고 병원 출입을 피했다.', { issues: { medical: 2 } }, '메르스'),
   ],

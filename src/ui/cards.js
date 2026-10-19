@@ -138,7 +138,7 @@ function drawBirth(p, C, ctx, d) {
   p.rect(88, 243, 904, 3, C.ink);
   const region = String(cert.regionLabel ?? '').includes('·') ? cert.regionLabel : `${cert.regionLabel} · ${cert.urban ? '도시' : '농촌'}`;
   const rows = [['성명', `${L.name} (${sexLabel(L.sex)})`], ['출생일', dateKo(b)], ['출생지', region], ['가구 형편', cert.quintileLabel],
-    ['부모', cert.parentsLine], ['주거', cert.homeLine], ['돌봄', cert.careLine], ['의료 접근', cert.accessLine], ['시대', cert.eraLine]];
+    ['부모', cert.parentsLine], ['주거', cert.homeLine], ['의료 접근', cert.accessLine], ['시대', cert.eraLine]];
   const vf = p.f(400, 30, 'sans');
   rows.forEach(([label, value], k) => {
     const top = 268 + 74 * k;

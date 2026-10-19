@@ -4,10 +4,10 @@ import { syncMortgages } from '../loan-schedules.js';
 // 시도가 바뀌는 이동은 L.home.moves[].reason·from·region에 사유가 남는다. 자가를 두고 떠나면 L.rentals에 세 준 집으로 남는다.
 import { SGG, bias } from '../sigungu.js';
 import { T, D, yr, ag, isCapital, REGION, houseYoy, regionGroup } from '../tables.js';
-import { indep, becomeIndependent, homePrice, canOwn, TENURE_LABEL, pickTarget, priceAt, jeonseAt, rentAt, leaseIncome, tierOfL } from '../act.js';
+import { refreshDebt, indep, becomeIndependent, homePrice, canOwn, TENURE_LABEL, pickTarget, priceAt, jeonseAt, rentAt, leaseIncome, tierOfL, parentHelp, capJeonse } from '../act.js';
 import { econ } from '../stats.js';
-import { won, josa } from '../text.js';
-import { HOUSING_CAL, CLASS_CAL } from '../tuning.js';
+import { won, wonAt, josa } from '../text.js';
+import { HOUSING_CAL } from '../tuning.js';
 import { housingPlans, asOptions, settleMove, moveMath, moveCostFor, jeonseLoanRate } from '../plans.js';
 
 const RENTER = new Set(['jeonse', 'monthly', 'public']);
@@ -70,7 +70,7 @@ function planTo(L, ctx, id, label, { tenure, region = L.home.region, keep = 'sel
   const rent = rr ? rr.rent : 0, lease = h.owned && keep === 'lease' ? leaseIncome(h.sigungu, y, h.value) : 0;
   const moveCost = moveCostFor(L, dep || price);
   const cost = moveMath(L, { tenure: t.tenure, dep, price, rent, moveCost, keep, lease });
-  const note = [`${TENURE_LABEL[t.tenure]} · ${r?.name ?? ''}`, price && `집값 ${won(price)}만 원`, dep && `보증금 ${won(dep)}만 원`, rent && `월세 ${rent}만 원`, lease && `세 준 집 임대수익 연 ${won(lease)}만 원`].filter(Boolean).join(' · ');
+  const note = [`${TENURE_LABEL[t.tenure]} · ${r?.name ?? ''}`, price && `집값 ${wonAt(price, y)}만 원`, dep && `보증금 ${wonAt(dep, y)}만 원`, rent && `월세 ${wonAt(rent, y)}만 원`, lease && `세 준 집 임대수익 연 ${wonAt(lease, y)}만 원`].filter(Boolean).join(' · ');   // 그해 명목 금액
   return { id, label, tenure: t.tenure, region, to: t.place, dep, rent, price, keep, moveCost, cost: { ...cost, note } };
 }
 // 계획 실행: 남겨 둘 집을 먼저 빼고 → 이사(같은 숫자) → 이사비
@@ -113,7 +113,7 @@ function upgradeWhy(L) {
 const UP_WHY = { 결혼: '결혼으로 살림을 합쳤다.', 출산: '아이가 태어나 방이 좁아졌다.', '자녀 입학': '아이가 학교에 들어갈 나이가 되었다.', '일자리 변화': '일자리가 바뀌었다.', '계약 만기': '계약 만기가 돌아왔다.' };
 function tryUpgrade(L, ctx) {
   const h = L.home, a = L.age, w = upgradeWhy(L);
-  if (a < 26 || a > 70 || sinceMove(L) < 2 || h.tenure === 'facility') return false;
+  if (a < 26 || a > 70 || sinceMove(L) < 2 || h.tenure === 'facility' || L.flags.renewYear === L.year) return false;   // 같은 해 재계약 직후엔 옮기지 않는다(B-09)
   const renter = RENTER.has(h.tenure);
   const ownEv = h.owned && tierOfL(L) < 4 && (['결혼', '출산', '자녀 입학'].includes(w.ev) || sinceMove(L) >= 10);   // 자가: 가족 사건 또는 10년+ 거주 뒤 상급지 갈아타기
   if (!renter && !ownEv) return false;
@@ -164,7 +164,7 @@ function rentals(L, ctx) {
   const plans = [];
   if (back) {
     const mc = moveCostFor(L, 0);
-    plans.push({ id: 'back', label: '세입자를 내보내고 그 집으로 돌아가 산다', home: r, moveCost: mc, cost: { ...((c) => ({ ...c, monthly: c.monthly + rnd(r.rent / 12) }))(moveMath(L, { tenure: 'own', home: r, moveCost: mc })), note: '월세·보증금 대신 내 집에 산다. 임대수익은 끊긴다' } });
+    plans.push({ id: 'back', label: '내 집으로 돌아가 산다', home: r, moveCost: mc, cost: { ...((c) => ({ ...c, monthly: c.monthly + rnd(r.rent / 12) }))(moveMath(L, { tenure: 'own', home: r, moveCost: mc })), note: '월세·보증금 대신 내 집에 산다. 임대수익은 끊긴다' } });
   }
   plans.push({ id: 'sell', label: '세 준 집을 판다', proceeds, repay, cost: { cash: proceeds - repay, loan: -repay, monthly: rnd((r.rent - repay * (rate + 1 / 30)) / 12), note: '집값에서 중개비·세금 3%를 뺀 돈으로 대출부터 갚는다' } });
   if (r.empty) plans.push({ id: 'lease', label: '비워 둔 집에 세를 놓는다', cost: { cash: 0, loan: 0, monthly: -rnd(leaseIncome(r.sigungu, y, r.value) / 12), note: '공실·세금을 뺀 임대수익이 들어온다' } });
@@ -189,7 +189,10 @@ export function step(L, ctx) {
       fl.familyMove = y;
       ctx.sys('sys.home.family_move', { toLabel: TENURE_LABEL[h.tenure] });
     }
-    if (a >= 19 && !L.family.married) {
+    // 결혼한 뒤 부모 집에 들어갔거나 부모님이 모두 돌아가셨으면 그 집에 계속 '얹혀' 살지 않는다: 2년쯤 지나 따로 나간다
+    const par = L.family.parents, orphan = !par.father.alive && !par.mother.alive;
+    if (a >= 19 && L.job.status !== 'military' && ((indep(L) && L.family.married && sinceMove(L) >= 2) || (orphan && ctx.chance(0.5)))) return leaveHome(L, ctx, L.family.married ? 'jeonse' : 'monthly', orphan ? '부모님 별세' : '분가');
+    if (a >= 19 && !L.family.married && L.job.status !== 'military' && L.mil?.status !== 'serving') {   // 복무 중에는 독립을 묻지 않는다
       // 다른 지역의 일자리를 잡으면 그곳으로 나간다(청년 수도권행의 주된 경로)
       if (startedJob(L)) { const to = jobDest(L, ctx); if (to && to !== h.region) return leaveHome(L, ctx, 'monthly', '취업', to); }
       if (a <= 34 && ctx.chance(0.08)) return ctx.ask({ eventId: 'sys.home.independence', options: ['stay', 'room', 'jeonse'], defaultId: 'stay' });
@@ -236,14 +239,15 @@ export function step(L, ctx) {
     ctx.act.move('monthly', { reason: '전세사기', involuntary: true, silent: true });
   }
   // 주택 구입 기회
-  if (!h.owned && a >= 25 && a <= 64) {
+  if (!h.owned && !L.pending && a >= 25 && a <= 64) {   // 만기 선택이 걸린 해에는 묻지 않는다: 매수가 먼저 처리된 뒤 만기 정산이 새 집을 팔던 순서 꼬임
     const sz = 0.5 + 0.6 * ctx.rand(), price = Math.round(homePrice(L) * sz);
     const ltv = ltvOf(L);
     const afford = clamp((L.money.assets + (h.deposit || 0) + parentHelp(L) + ltv * price) / price, 0, 1.5);
     const cf = D.OWN_TRANSITION.cohortFactor, hc = HOUSING_CAL;
     // OWN_TRANSITION은 실측 전이율이므로 afford는 평균 근처(ref)에서 1이 되는 상대 배수로만 쓴다(QA-S-05)
     const lam = ag(T('OWN_TRANSITION'), a) * ag(hc.own, a) * (L.birth.year >= cf.fromBirthYear ? cf.mult * hc.cohortAdj : 1) * clamp(afford / hc.affordRef, 0.25, 1.5) * (fl.buyWait ? 0.8 : 1) * bias(L, 'tenureBias', 'own', 0.85, 1.15);
-    if (canOwn(L, ctx, sz) && ctx.chance(lam * recent(L))) return ctx.ask({ eventId: 'sys.home.buy', options: ['buy', 'wait'], defaultId: afford < hc.buyMin ? 'wait' : 'buy', data: { price } });
+    // 2년 계약으로 자주 옮기는 임차인은 recent 감쇠에 늘 걸려 첫 집 매수가 막혔다 → 매수엔 √만 적용(F4-a)
+    if (canOwn(L, ctx, sz) && ctx.chance(lam * Math.sqrt(recent(L)))) return ctx.ask({ eventId: 'sys.home.buy', options: ['buy', 'wait'], defaultId: afford < hc.buyMin ? 'wait' : 'buy', data: { price } });
   }
   // 공공임대
   if (h.tenure === 'monthly' && L.birth.quintile <= 2 && y >= 1989 && ctx.chance(0.03 * recent(L))) {
@@ -304,23 +308,20 @@ export function step(L, ctx) {
 }
 
 const ltvOf = L => yr(T('LTV')[L.home.regionGroup], L.year);
-// 부모 도움(주택 구입): 부모 생존 & 출생 형편 3분위+ → 부모 가구 순자산의 일부 [추정, 세대 간 이전 경로]
-function parentHelp(L) {
-  const par = L.family.parents;
-  if (!par.father.alive && !par.mother.alive) return 0;
-  return Math.round(Math.max(0, L.household.netWorth) * CLASS_CAL.help[L.birth.quintile - 1]);
-}
 
 // 임대 만료 뒤 선택: 계획의 보증금·월세·이사비를 그대로 정산하고, 선택이 자산·고민·인간관계에 남긴다
 function relocate(L, ctx, plan, reasonText, fx) {
-  const h = L.home, before = { D: h.deposit || 0 };
+  const h = L.home, before = { D: h.deposit || 0 }, credit0 = L.money.loans.credit || 0;
   const s = settleMove(L, { D: before.D, newDep: plan.newDep, moveCost: plan.moveCost });
-  ctx.act.move(plan.tenure, { reason: '계약 만기', involuntary: true, silent: true });
+  // 계획이 정한 점유 형태·금액 그대로(같은 생활권). 목적지를 다시 고르면 예산 사다리로 전세가 월세로 바뀌고 월세는 0원으로 남았다
+  ctx.act.move(plan.tenure, { reason: '계약 만기', involuntary: true, silent: true, to: { sigungu: h.sigungu, dong: h.dong, transit: h.transit }, dep: plan.newDep, rent: plan.rent });
   if (plan.tenure !== 'family') {
-    L.money.assets = s.assets; L.money.loans.jeonse = s.loanKeep;
+    L.money.assets = s.assets; L.money.loans.jeonse = s.loanKeep; L.money.loans.credit = credit0;   // 정산은 settleMove 숫자 하나로: move가 신용대출로 옮긴 전세대출 몫을 되돌려 두 번 세지 않는다
+    refreshDebt(L);
     h.deposit = plan.newDep; h.rent = plan.rent; h.contractEnd = L.year + 2; h.cheap = !!plan.cheaper || h.cheap;
     if (s.loanAdd) ctx.act.borrow(s.loanAdd, 'jeonse', { silent: true });
-  } else L.money.assets += s.cash;
+    capJeonse(L);
+  } else ctx.act.spend(plan.moveCost);                 // 부모 집: 보증금 회수·전세대출 상환은 move가 이미 했다(s.cash를 더하면 보증금을 두 번 받는다)
   L.flags.lastExpire = { year: L.year, opt: plan.id };
   ctx.apply(fx, { reason: reasonText });
 }
@@ -328,6 +329,7 @@ const byId = (plans, opt) => plans.find(p => p.id === opt) || plans[0];
 const KEEP_FX = { sell: {}, lease: { issues: { housing: -1 } }, vacant: { issues: { housing: 1 } } };
 export const choices = {
   'sys.home.expire'(L, ctx, opt, { plans }) {
+    if (L.home.owned || !RENTER.has(L.home.tenure)) return;   // 선택을 기다리는 사이 집을 샀거나 옮겼으면 이 계약 정산은 끝났다
     const plan = plans.find(p => p.id === opt) || plans[0];
     const fx = {
       same: { issues: { housing: 3 }, stats: { leisure: -1 } },
@@ -344,12 +346,14 @@ export const choices = {
   },
   'sys.home.renew'(L, ctx, opt, { amount }) {
     const h = L.home;
+    if (h.tenure !== 'jeonse' || h.owned) return;
     if (opt === 'pay') {
       const own = Math.min(Math.max(0, L.money.assets), amount);
       L.money.assets -= own;
       h.deposit += amount;
       if (amount - own > 0) ctx.act.borrow(amount - own, 'jeonse', { silent: true });
-      return ctx.apply({ issues: { housing: 4 } }, { reason: `전세 보증금 ${won(amount)}만 원 인상` });
+      capJeonse(L);
+      return ctx.apply({ issues: { housing: 4 } }, { reason: `전세 보증금 ${wonAt(amount, L.year)}만 원 인상` });
     }
     L.tally.invol = (L.tally.invol || 0) + 1;
     if (opt === 'cheaper') {

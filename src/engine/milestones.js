@@ -35,19 +35,19 @@ export const META = {
   'sys.home.independence': { ch: 4, topic: 'housing', opts: { stay: [E(['relations', 1], ['leisure', -1]), 'low'], room: [E(['leisure', 1], ['wealth', -1], ['housing', 1]), 'mid'], jeonse: [E(['leisure', 1], ['wealth', -1, 2], ['housing', 1]), 'high'] } },
   'sys.home.renew': { ch: 4, topic: 'housing', once: true, opts: { pay: [E(['wealth', -1], ['housing', 1]), 'mid'], cheaper: [E(['leisure', -1], ['relations', -1]), 'low'], monthly: [E(['wealth', -1], ['living', 1]), 'mid'] } },
   'sys.fam.love': { ch: 5, topic: 'love', opts: { confess: [E(['relations', 1, 2], ['happiness', 1], ['leisure', -1]), 'high'], wait: [[], 'low'], focus: [E(['wealth', 1], ['relations', -1]), 'mid'] } },
-  'sys.fam.marry': { ch: 5, topic: 'marriage', opts: { marry: [E(['relations', 1, 2], ['wealth', -1], ['leisure', -1]), 'mid'], later: [E(['leisure', 1]), 'low'], single: [E(['leisure', 1, 2], ['relations', -1]), 'mid'] } },
+  'sys.fam.marry': { ch: 5, topic: 'marriage', opts: { marry: [E(['relations', 1, 2], ['wealth', -1], ['leisure', -1]), 'mid'], later: [E(['leisure', 1], ['relations', -1]), 'low'], single: [E(['leisure', 1, 2], ['relations', -1]), 'mid'] } },
   'sys.fam.divorce': { ch: 5, topic: 'marriage', opts: { divorce: [E(['relations', -1, 2], ['wealth', -1], ['happiness', 1]), 'high'], counsel: [E(['happiness', 1], ['wealth', -1]), 'mid'], stay: [E(['happiness', -1]), 'low'] } },
   'sys.fam.child': { ch: 6, topic: 'child', opts: { have: [E(['relations', 1, 2], ['leisure', -1, 2], ['wealth', -1], ['care', 1]), 'mid'], wait: [E(['leisure', 1]), 'low'], none: [E(['leisure', 1, 2], ['relations', -1]), 'mid'] } },
   'sys.job.childcare': { ch: 6, topic: 'child', opts: { leave: [E(['relations', 1], ['wealth', -1], ['job', 1]), 'mid'], quit: [E(['relations', 1], ['wealth', -1, 2]), 'high'], keep: [E(['wealth', 1], ['leisure', -1, 2], ['care', 1]), 'low'] } },
   'sys.job.offer': { ch: 7, topic: 'job', once: true, opts: { move: [E(['wealth', 1, 2], ['relations', -1], ['job', 1]), 'high'], stay: [[], 'low'] } },
-  'sys.job.business': { ch: 7, topic: 'job', opts: { open: [E(['wealth', 1, 2], ['leisure', -1, 2], ['job', 1]), 'high'], job: [E(['job', 1]), 'low'] } },
+  'sys.job.business': { ch: 7, topic: 'job', opts: { open: [E(['wealth', -1], ['leisure', -1, 2], ['job', 1]), 'high'], job: [E(['job', 1]), 'low'] } },   // open: 60세 순자산 −9,111만(취업 대비, B-11)
   'sys.chain.biz_crisis': { ch: 7, topic: 'job', chain: 'business', opts: { push: [E(['wealth', -1, 2], ['happiness', -1], ['job', 1]), 'high'], close: [E(['wealth', -1], ['leisure', 1]), 'mid'] } },
   'sys.chain.biz_rebuild': { ch: 7, topic: 'job', chain: 'business', opts: { again: [E(['wealth', 1, 2], ['leisure', -1, 2]), 'high'], work: [E(['wealth', 1], ['job', 1]), 'low'] } },
   'sys.home.expire': { ch: 0, topic: 'housing', opts: { same: [E(['housing', 1], ['wealth', -1]), 'mid'], down: [E(['living', 1], ['leisure', -1]), 'mid'], monthly: [E(['living', 1], ['wealth', -1]), 'mid'], family: [E(['relations', -1], ['leisure', -1, 2]), 'low'] } },
-  'sys.job.lost': { ch: 0, topic: 'job', opts: { seek: [E(['job', 1]), 'mid'], learn: [E(['intellect', 1, 2], ['wealth', -1]), 'mid'], temp: [E(['wealth', 1], ['health', -1]), 'mid'], shop: [E(['wealth', 1, 2], ['leisure', -1, 2]), 'high'], family: [E(['relations', -1], ['leisure', -1]), 'low'] } },
+  'sys.job.lost': { ch: 0, topic: 'job', opts: { seek: [E(['job', 1]), 'mid'], learn: [E(['intellect', 1, 2], ['wealth', -1]), 'mid'], temp: [E(['wealth', 1], ['health', -1]), 'mid'], shop: [E(['wealth', -1], ['leisure', -1, 2]), 'high'], family: [E(['relations', -1], ['leisure', -1]), 'low'] } },   // shop: 반사실 재산 −5.6, 순자산 −3,962만(임시 일 대비, B-11)
   'sys.invest.plan': { ch: 0, topic: 'money', opts: { safe: [E(['wealth', 1]), 'low'], mix: [E(['wealth', 1, 2]), 'mid'], stock: [E(['wealth', 1, 2], ['happiness', -1]), 'high'], gold: [E(['wealth', 1]), 'low'], fx: [E(['wealth', 1]), 'high'], realty: [E(['wealth', 1, 2]), 'high'], none: [E(['leisure', 1]), 'low'] } },
   'sys.invest.panic': { ch: 0, topic: 'money', opts: { sell: [E(['happiness', 1]), 'low'], hold: [E(['happiness', -1], ['health', -1]), 'mid'], add: [E(['happiness', -1, 2]), 'high'] } },
-  'sys.money.crunch': { ch: 0, topic: 'money', opts: { sellhome: [E(['housing', 1, 2]), 'high'], cut: [E(['leisure', -1], ['happiness', -1]), 'mid'], family: [E(['relations', -1]), 'low'], loan: [E(), 'high'], sellrental: [E(['happiness', -1]), 'mid'], cashout: [E(['happiness', -1]), 'mid'] } },
+  'sys.money.crunch': { ch: 0, topic: 'money', opts: { sellhome: [E(['housing', 1, 2]), 'high'], cut: [E(['leisure', -1], ['happiness', -1]), 'mid'], family: [E(['relations', -1]), 'low'], loan: [E(['wealth', -1], ['happiness', -1], ['living', 1]), 'high'], sellrental: [E(['happiness', -1]), 'mid'], cashout: [E(['happiness', -1]), 'mid'] } },
   'sys.invest.rental': { ch: 0, topic: 'money', opts: { officetel: [E(['happiness', 1]), 'mid'], apt: [E(['happiness', 1]), 'high'], shop: [E(['happiness', 1]), 'high'], no: [[], 'low'] } },
   'sys.money.sidejob': { ch: 0, topic: 'money', opts: { deliver: [E(['wealth', 1], ['leisure', -1, 2], ['health', -1]), 'mid'], online: [E(['wealth', 1], ['leisure', -1]), 'mid'], no: [E(['leisure', 1]), 'low'] } },
   'sys.money.pension': { ch: 0, topic: 'money', opts: { basic: [E(['wealth', 1]), 'low'], max: [E(['wealth', 1, 2], ['leisure', -1]), 'low'], no: [E(['leisure', 1]), 'mid'] } },
@@ -59,8 +59,8 @@ export const META = {
   'sys.home.rental': { ch: 0, topic: 'housing', opts: { back: [E(['housing', 1], ['happiness', 1]), 'low'], sell: [E(), 'mid'], lease: [E(), 'mid'], keep: [E(), 'mid'] } },
   'sys.chain.mortgage': { ch: 7, topic: 'housing', chain: 'mortgage', opts: { hold: [E(['leisure', -1, 2], ['happiness', -1]), 'mid'], sell: [E(['wealth', -1], ['housing', 1]), 'mid'] } },
   'sys.fam.parent_care': { ch: 8, topic: 'care', opts: { home: [E(['relations', 1], ['leisure', -1, 2], ['care', 1, 2]), 'high'], facility: [E(['wealth', -1, 2], ['care', 1]), 'mid'], share: [E(['wealth', -1], ['leisure', -1], ['care', 1]), 'low'] } },
-  'sys.job.honorary': { ch: 9, topic: 'retire', opts: { accept: [E(['wealth', 1], ['job', 1, 2]), 'mid'], stay: [E(['job', 1]), 'high'] } },
-  'sys.job.after_main': { ch: 9, topic: 'retire', opts: { work: [E(['wealth', 1], ['leisure', -1]), 'low'], rest: [E(['leisure', 1, 2], ['wealth', -1]), 'mid'], shop: [E(['wealth', 1, 2], ['leisure', -1, 2]), 'high'] } },
+  'sys.job.honorary': { ch: 9, topic: 'retire', opts: { accept: [E(['wealth', -1], ['leisure', 1], ['job', 1, 2]), 'mid'], stay: [E(['job', 1]), 'high'] } },
+  'sys.job.after_main': { ch: 9, topic: 'retire', opts: { work: [E(['wealth', 1], ['leisure', -1]), 'low'], rest: [E(['leisure', 1, 2], ['wealth', -1]), 'mid'], shop: [E(['wealth', -1], ['leisure', -1, 2]), 'high'] } },   // shop: 재산 −4.5, 순자산 −3,376만(B-11)
   'sys.age.residence': { ch: 10, topic: 'retire', opts: { home: [E(['relations', 1], ['care', 1]), 'mid'], facility: [E(['wealth', -1], ['relations', -1]), 'low'], child: [E(['relations', 1, 2]), 'mid'] } },
   'sys.age.grandcare': { ch: 10, topic: 'care', opts: { yes: [E(['relations', 1, 2], ['health', -1], ['care', 1]), 'mid'], some: [E(['relations', 1]), 'low'], no: [E(['relations', -1], ['leisure', 1]), 'low'] } },
   'sys.era.shock': { ch: 0, topic: 'shock', opts: {
@@ -170,7 +170,7 @@ export function step(L, ctx) {
     return ctx.ask({ eventId: 'sys.chain.biz_rebuild', options: ['again', 'work'], defaultId: 'work' });
   }
   // 연쇄 ② 영끌·매수 → 금리 부담 → 버티기/매도
-  if (L.home.owned && L.home.boughtYear >= y - 5 && !fl.mortgageAsked && econ(L).dsr > 0.4) {
+  if (L.home.owned && L.home.boughtYear >= y - 5 && L.home.boughtYear < y && !fl.mortgageAsked && econ(L).dsr > 0.4) {
     fl.mortgageAsked = y;
     return ctx.ask({ eventId: 'sys.chain.mortgage', options: ['hold', 'sell'], defaultId: 'hold' });
   }
@@ -186,7 +186,7 @@ export const choices = {
   'sys.era.shock'(L, ctx, opt, { shock }) {
     const fl = L.flags, y = L.year;
     fl.shock = { id: shock, opt, year: y };
-    if (opt === 'move' && L.job.status === 'employed') { ctx.act.endJob('이직'); fl.waitBoost = y + 1; }
+    if (opt === 'move' && L.job.status === 'employed') { ctx.act.endJob('이직'); ctx.act.hire(); }   // 옮긴다 = 바로 다른 일자리(구직 중으로 남지 않게)
     else if (opt === 'close' && L.job.status === 'self') ctx.act.closeBusiness();
     else if (opt === 'cut') { ctx.act.repay(L.money.assets * 0.5); nudge(L, 'wealth', 0.4); ctx.apply({ stats: { leisure: -3 } }, { reason: '허리띠를 졸랐다' }); }
     else if (opt === 'learn') { ctx.act.spend(300 * yr(T('ERA_INCOME_INDEX'), y)); nudge(L, 'intellect', 0.4); fl.learnUntil = y + 3; }
@@ -212,7 +212,8 @@ export const choices = {
 
 // 결정 뒤 몇 해 지나 돌아오는 한 줄(PROCESS-V2 §3-6). 3년 뒤, 이정표 결정 1건씩.
 export function ripple(L) {
-  const d = (L.decisions || []).find(x => x.year === L.year - 3 && !x.rippled && !x.def);   // 파급은 기본값과 다른 결정만
+  const ended = x => x.topic === 'care' && (!L.family.caringFor || L.flags.careStart > x.year);   // 그 돌봄이 끝났으면(사망·종료·다른 대상) 돌봄 파급은 건너뛴다
+  const d = (L.decisions || []).find(x => x.year === L.year - 3 && !x.rippled && !x.def && !ended(x));   // 파급은 기본값과 다른 결정만
   if (!d) return null;
   d.rippled = true;
   return { topic: d.topic, label: d.label, eventId: d.eventId };

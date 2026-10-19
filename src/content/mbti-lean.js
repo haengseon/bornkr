@@ -17,8 +17,8 @@ export const LEAN = {
   'sys.home.renew': { pay: { S: 1 }, cheaper: { J: 0.6, T: 0.6 }, monthly: { P: 1 } },
   'sys.home.buy': { buy: { J: 1, T: 0.3 }, wait: { P: 1, N: 0.3 } },
   'sys.home.expire': { same: { S: 0.6, J: 0.6 }, down: { J: 0.6, T: 0.6 }, monthly: { P: 1 }, family: { F: 0.6, I: 0.6 } },
-  'sys.fam.marry': { marry: { F: 0.6, J: 0.6, E: 0.3 }, later: { P: 1 }, single: { I: 0.6, T: 0.6, N: 0.3 } },
-  'sys.fam.child': { have: { F: 1, J: 0.3 }, wait: { P: 1 }, none: { T: 0.6, I: 0.4, N: 0.3 } },
+  'sys.fam.marry': { marry: { F: 0.25, J: 0.1 }, later: { P: 0.3 }, single: { I: 0.2 } },   // 결혼 여부는 성향 차가 작다: 뚜렷한 유형만 기본값이 바뀐다(B-02)
+  'sys.fam.child': { have: { F: 0.25, J: 0.1 }, wait: { P: 0.3 }, none: { T: 0.2 } },   // 출산 여부도 성향 차가 작다(B-02와 같은 이유: 기본값이 늘 미루면 무자녀가 과다)
   'sys.fam.divorce': { divorce: { T: 1, N: 0.3 }, counsel: { F: 1 }, stay: { S: 0.6, J: 0.6 } },
   'sys.fam.love': { confess: { E: 1, P: 0.6 }, wait: { I: 1, J: 0.4 }, focus: { T: 1, J: 0.3 } },
   'sys.fam.parent_care': { home: { F: 1 }, facility: { T: 1 }, share: { J: 1, E: 0.3 } },

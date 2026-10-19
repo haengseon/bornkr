@@ -22,7 +22,7 @@ export function step(L, ctx) {
       const options = lifeEventOptions(L, event);
       const defaultOption = options.find(o => ['retain-current-schedule', 'keep-hobby-paused'].includes(o.operation.actionId)) || options.at(-1);
       ctx.ask({ eventId: event.id, prompt: event.text,
-        options: options.map(o => ({ id: o.id, label: o.label, hint: o.hint, personality: o.personality })),
+        options: options.map(o => ({ id: o.id, label: o.label, hint: o.hint, personality: o.personality, ...(o.operation?.cost > 0 && { cost: { cash: -o.operation.cost, ...(o.operation.kind === 'request' && { note: '승인 뒤' }) } }) })),
         defaultId: defaultOption.id, data: { lifeEventId: event.id } });
       return;
     }
@@ -30,9 +30,9 @@ export function step(L, ctx) {
   if (L.age < 19 || L.year < 1999 || !d.routines.length || d.nextActivityYear > L.year || L.stageChoices[stage].sys >= STAGE_CAP[stage].sys) return;
   ctx.ask({ eventId: 'sys.daily.activity', prompt: '남겨 둔 개인 시간에 오늘 할 수 있는 일을 하나 골라 볼까?',
     options: [
-      { id: 'access', label: '집 안에서 무리 없이 움직일 공간을 살핀다', hint: '집 안에서 가볍게 움직일 자리가 있는지 살핀다.', personality: { weights: { S: .4, J: .2 } } },
-      { id: 'media', label: '개인 시간 15분을 미디어 감상에 쓴다', feasible: d.summary.time.personal >= 15, personality: { weights: { I: .4 } } },
-      { id: 'keep', label: '이번에는 따로 활동을 정하지 않는다', personality: { weights: {} } },
+      { id: 'access', label: '움직일 공간을 살핀다', hint: '집 안에서 가볍게 움직일 자리가 있는지 살핀다.', personality: { weights: { S: .4, J: .2 } } },
+      { id: 'media', label: '15분 미디어를 감상한다', feasible: d.summary.time.personal >= 15, personality: { weights: { I: .4 } } },
+      { id: 'keep', label: '이번에는 넘긴다', personality: { weights: {} } },
     ], defaultId: 'keep' });
 }
 

@@ -58,7 +58,7 @@ export function prepareLifeWorld(L, ctx) {
   if (previous?.contextKey !== contextKey) {
     const entry = { id: `world.context.${L.year}.${roll(L, contextKey)}`, year: L.year, age: L.age,
       kind: 'world-context', status: 'confirmed', sourceKind, sourceEventId: 'game-world',
-      evidenceLevel: 'game-assumption', text: '현재 학교·주거·생활물품과 시설 접근의 게임 배경을 설정했다. 개인 통계나 과거 선택·계약을 확인한 기록은 아니다.' };
+      evidenceLevel: 'game-assumption', text: '사는 곳과 다니는 곳, 쓰는 물건이 조금 바뀌었다.' };
     if (!d.history.some(e => e.id === entry.id)) { d.history.push(entry); ctx?.emit?.({ kind: 'personal', ...entry }); }
   }
   world.contextKey = contextKey;

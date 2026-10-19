@@ -49,8 +49,8 @@ export function deathStory(L) {
   if (d.age >= 85 && (c === 'senility' || !F.length)) F.push([d.year, `${d.age}년의 세월이 몸에 쌓여 있었다`]);
   const seen = new Set();
   const chain = F.filter(([year]) => year >= L.birth.year && year <= d.year).filter(([, s]) => !seen.has(s) && seen.add(s)).sort((a, b) => a[0] - b[0]).map(([, s]) => s).slice(0, 5);
-  const event = c === 'transport' ? '운수사고로 일상이 멈췄다.' : c === 'fall' ? '추락 사고로 생이 멈췄다.' : c === 'external' ? '예기치 못한 사고로 생이 멈췄다.' : `${josa(d.causeLabel, '으로')} 생이 멈췄다.`;
+  const event = c === 'transport' ? '운수사고로 일상이 멈췄다.' : c === 'fall' ? '추락 사고로 생이 멈췄다.' : c === 'external' ? '예기치 못한 사고로 생이 멈췄다.' : `${d.causeLabel}${josa(String(d.causeLabel).replace(/\([^)]*\)$/, ''), '으로')} 생이 멈췄다.`;
   const close = familyMembers(L).filter(({ member: p }) => p.alive !== false && (p.bond ?? 65) >= 50).slice(0, 3).map(x => x.label);
-  const narrative = `${d.year}년, ${d.age === 0 ? '첫 생일을 맞기 전' : d.age + '세'}. ${event} ` + (d.age < 5 ? '막 시작된 삶의 다음 계절은 오지 못했다.' : '이어질 줄 알았던 하루는 더 이어지지 못했다.') + (close.length ? ` 마지막 가족 기록에는 ${close.join('·')}와의 가까운 관계가 남았다.` : '');
+  const narrative = `${d.year}년, ${d.age === 0 ? '첫 생일을 맞기 전' : d.age + '세'}. ${event} ` + (d.age < 5 ? '막 시작된 삶의 다음 계절은 오지 못했다.' : '이어질 줄 알았던 하루는 더 이어지지 못했다.') + (close.length ? ` 마지막 가족 기록에는 ${close.join('·')}${josa(close.at(-1), '와')}의 가까운 관계가 남았다.` : '');
   return { ...base, chain, narrative, statistic: deathContext(c) };
 }

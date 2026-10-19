@@ -59,8 +59,9 @@ export function optionIcon(label = '') {
 }
 
 // ───────── 물결 링(6지표) ─────────
+let ringSeq = 0;   // clipPath id는 문서 전체에서 고유해야 한다(.aux__stats와 지표 시트가 같은 링을 동시에 그린다)
 export function ringSvg(key, v) {
-  const id = `rc-${key}`;
+  const id = `rc-${key}-${++ringSeq}`;
   return `<svg class="ring6" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
 <defs><clipPath id="${id}"><circle cx="22" cy="22" r="19"/></clipPath></defs>
 <circle class="ring6__bg" cx="22" cy="22" r="19"/>

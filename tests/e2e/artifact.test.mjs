@@ -3,14 +3,15 @@ import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, ROOT, saveJson, pageText,
+  startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, ROOT, saveJson, pageText, simToDeath, deathToSummary, menu, pauseClock,
 } from './helpers.mjs';
 
 let srv, br;
 test.before(async () => { srv = await startServer(); br = await launch(); });
 test.after(async () => { await br?.close(); srv?.stop(); });
 
-const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+// core.autocrlf=true 체크아웃은 CRLF — 다크 블록 정규식이 깨지지 않게 LF로 맞춘다
+const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
 const walkDir = (d, out = []) => { for (const f of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walkDir(p, out); else out.push(p); } return out; };
 const lineOf = (txt, idx) => txt.slice(0, idx).split('\n').length;
 
@@ -25,7 +26,9 @@ test('E2E-6a 정적 검사: <title> 8KB 안, 금지 API grep, 외부 URL, localS
   c.note('UI-SPEC §1 예시 title 은 "태어나보니 대한민국: 한 번뿐인 인생"(콜론형) — 구현은 짧은 이름(fe-notes 의도)', title);
   c('index.html: 외부 <script src> 없음(모듈 상대경로만)', [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].every(m => !/^https?:/.test(m[1])), '');
   const links = [...html.matchAll(/<link[^>]*href="([^"]+)"/g)].map(m => m[1]);
-  c('index.html: <link> 외부는 Google Fonts(googleapis/gstatic)만', links.filter(h => /^https?:/.test(h)).every(h => /^https:\/\/fonts\.(googleapis|gstatic)\.com/.test(h)), links.join(' '));
+  // rel=canonical 은 자기 배포 주소(a9631f1)를 가리킬 뿐 리소스를 받지 않는다 — 그 밖의 외부 <link>는 Google Fonts만
+  const canon = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+  c('index.html: <link> 외부는 Google Fonts(googleapis/gstatic) + 자기 canonical(bornkr.click)만', links.filter(h => /^https?:/.test(h)).every(h => /^https:\/\/fonts\.(googleapis|gstatic)\.com/.test(h) || (h === canon && /^https:\/\/bornkr\.click\/$/.test(h))), links.join(' '));
   c('index.html: 폰트 대체 스택(--font-*) + font-display=swap', /display=swap/.test(html) && /--font-sans:[^;]*(sans-serif|system-ui)/.test(read('styles.css')), '');
   c('index.html: lang=ko · viewport-fit=cover · color-scheme meta', /<html lang="ko"/.test(html) && /viewport-fit=cover/.test(html) && /name="color-scheme" content="light dark"/.test(html), '');
 
@@ -43,7 +46,9 @@ test('E2E-6a 정적 검사: <title> 8KB 안, 금지 API grep, 외부 URL, localS
     find(/tel:/g, 'tel');
     find(/\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource/g, 'fetch');
     find(/\beval\s*\(|new Function\s*\(|document\.write/g, 'eval');
-    find(/localStorage|sessionStorage|indexedDB/g, 'ls');
+    find(/localStorage|indexedDB/g, 'ls');
+    // sessionStorage: 카드 접힘 같은 탭 한정 편의값(0ba9a1a) — 같은 줄 try/catch 로 감쌌는지만 본다
+    for (const m of t.matchAll(/sessionStorage/g)) { const ln = t.split('\n')[lineOf(t, m.index) - 1]; if (!/index\.html/.test(f) && !/try \{[\s\S]*\} catch/.test(ln)) hits.ls.push(`${f}:${lineOf(t, m.index)} sessionStorage(try/catch 없음)`); }
     find(/document\.cookie/g, 'cookie');
     if (/^src[\\/](ui|main)/.test(f) || f === 'index.html' || f === 'styles.css') find(/https?:\/\/[^\s"'`)]+/g, 'ext');
   }
@@ -51,14 +56,14 @@ test('E2E-6a 정적 검사: <title> 8KB 안, 금지 API grep, 외부 URL, localS
   c('window.print 0(grep)', hits.print.length === 0, hits.print.join(' | '));
   c('fetch/XHR/WebSocket/eval/document.write 0', hits.fetch.length === 0 && hits.eval.length === 0, hits.fetch.concat(hits.eval).join(' | '));
   c('document.cookie 0', hits.cookie.length === 0);
-  c('localStorage 접근은 src/ui/store.js + index.html 인라인(try/catch)에만', hits.ls.every(h => /store\.js|index\.html/.test(h)), hits.ls.join(' | '));
+  c('localStorage 접근은 src/ui/store.js + index.html 인라인(try/catch)에만, sessionStorage 는 try/catch 안에서만', hits.ls.every(h => /store\.js|index\.html/.test(h) && !/try\/catch 없음/.test(h)), hits.ls.join(' | '));
   const stSrc = read('src/ui/store.js');
   c('store.js: get/put 모두 try/catch', /function get[\s\S]*?try \{[\s\S]*?\} catch/.test(stSrc) && /function put[\s\S]*?try \{[\s\S]*?\} catch/.test(stSrc), '');
   c('index.html 인라인 부트 스크립트 try/catch', /<script>[\s\S]*try \{[\s\S]*localStorage[\s\S]*\} catch/.test(html), '');
   c.note('<a download> 사용(UI-SPEC §5 S11: 쓰지 않는다 / fe-notes: 일반 웹 최상위 창에서만 보조)', hits.download);
   c.note('Web Share 사용(보조 경로: canShare(files)일 때만 버튼 노출)', hits.share);
   c.note('tel: 사용(S15 도움 시트 보조 링크)', hits.tel);
-  const extUi = hits.ext.filter(h => !/fonts\.(googleapis|gstatic)\.com|claude\.com/.test(h));
+  const extUi = hits.ext.filter(h => !/fonts\.(googleapis|gstatic)\.com|claude\.com/.test(h) && !/^index\.html:\d+ https:\/\/bornkr\.click\/$/.test(h));
   c('UI 코드 외부 URL 은 Google Fonts 외 없음(코드·CSS·HTML)', extUi.length === 0, extUi.join(' | '));
   c.note('UI 코드 외부 URL 목록', hits.ext);
 
@@ -111,12 +116,11 @@ test('E2E-6b 네트워크: 완주 중 요청은 localhost + Google Fonts 만, �
   await waitScreen(page, 'home');
   await page.click('[data-go="born"]'); await waitScreen(page, 'gate'); await page.click('[data-go="gateOk"]'); await waitScreen(page, 'birth');
   await page.click('[data-act="start"]'); await waitScreen(page, 'life');
-  await sim.until(() => document.body.dataset.screen === 'summary', { max: 25 * 60_000, step: 500 }).catch(async () => { await page.click('[data-act="sum"]'); });
-  await waitScreen(page, 'summary');
+  await simToDeath(page, sim); await deathToSummary(page);
   await page.click('[data-card="verdict"]');
   for (let i = 0; i < 40 && !(await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await sim.adv(300); await page.waitForTimeout(80); }
-  await page.keyboard.press('Escape');
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.keyboard.press('Escape'); await sim.adv(50);
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
   await page.click('.topbar [data-go="home"]'); await waitScreen(page, 'home');
   await page.click('[data-go="codex"]'); await page.waitForSelector('table.stat-table');
   await page.click('.topbar [data-go="home"]'); await waitScreen(page, 'home');
@@ -145,13 +149,14 @@ function sentinelAudit() {
   const names = [];
   for (const sh of document.styleSheets) { let rules; try { rules = sh.cssRules; } catch { continue; } for (const rule of rules) {
     const styles = rule.style ? [rule] : [...(rule.cssRules || [])];
-    for (const r of styles) { if (!r.style) continue; if (!/^:root/.test(r.selectorText || '')) continue; for (const p of r.style) if (p.startsWith('--') && /^(--(bg|paper|paper-2|ink|ink-2|ink-3|rule|rule-2|accent|on-accent|seal|warn|danger|good|scrim|ring-wave|cine-.*|sc-.*|card-.*))$/.test(p)) names.push(p); }
+    for (const r of styles) { if (!r.style) continue; if (!/^:root/.test(r.selectorText || '')) continue; for (const p of r.style) if (p.startsWith('--') && /^(--(bg|paper|paper-2|ink|ink-2|ink-3|rule|rule-2|accent|on-accent|seal|warn|danger|good|scrim|ring-wave|cine-.*|sc-.*|card-.*|news-.*|topic-.*|id-.*))$/.test(p)) names.push(p); }
   } }
   const uniq = [...new Set(names)];
   const set = new Map();
   uniq.forEach((n, i) => { const rgb = [201 + (i % 50), 17 + (i * 3) % 200, 33 + (i * 5) % 200]; set.set(rgb.join(','), n); root.style.setProperty(n, `rgb(${rgb.join(',')})`); });
   root.style.setProperty('--shadow-float', '0 0 0 1px rgb(201,17,33)');
   root.style.setProperty('--shadow-sheet', '0 0 0 1px rgb(201,17,33)');
+  root.style.setProperty('--shadow-menu', '0 0 0 1px rgb(201,17,33)');
   const leaks = new Map();
   const parse = s => [...String(s).matchAll(/rgba?\(([^)]+)\)/g)].map(m => m[1].split(/[ ,/]+/).filter(Boolean).slice(0, 4).map(Number));
   const check = (el, pseudo, prop, val) => {
@@ -196,11 +201,11 @@ test('E2E-6c 토큰 센티널: 모든 색 토큰을 덮어써도 화면의 색�
   await page.click('[data-act="start"]'); await waitScreen(page, 'life');
   await sim.until(() => !!document.querySelector('.sheet.choice') , { max: 200_000 }); await run('choice');
   await sim.until(() => !document.querySelector('.sheet'), { max: 120_000, step: 250 });
-  await page.click('.lifebar [data-tab="peers"]'); await page.waitForSelector('.compare-sheet'); await run('compare'); await page.keyboard.press('Escape');
+  await menu(page, 'peers'); await page.waitForSelector('.compare-sheet'); await run('compare'); await page.keyboard.press('Escape');
   await sim.until(() => !document.querySelector('.sheet') && +document.querySelector('[data-hud=age]').textContent >= 10, { max: 300_000, step: 250 });
   await run('life');
-  await page.click('[data-tab="stats"]'); await page.waitForSelector('.sheet .metric'); await page.evaluate(() => { document.querySelector('.sheet details.metric').open = true; }); await run('stats-sheet'); await page.keyboard.press('Escape');
-  await sim.until(() => document.body.dataset.screen === 'death', { max: 25 * 60_000, step: 500 }); await run('death');
+  await page.click('.sbar [data-tab="stats"]'); await page.waitForSelector('.sheet .metric'); await page.evaluate(() => { document.querySelector('.sheet details.metric').open = true; }); await run('stats-sheet'); await page.keyboard.press('Escape');
+  await simToDeath(page, sim); await run('death');
   await page.click('[data-act="sum"]'); await waitScreen(page, 'summary'); await page.evaluate(() => document.querySelectorAll('details').forEach(d => { d.open = true; })); await run('summary');
   // 공유 카드(캔버스) — --card-paper 센티널이 그대로 배경 픽셀이 되는가
   await page.click('[data-card="verdict"]');
@@ -301,7 +306,7 @@ test('E2E-6e Artifact 뷰어 모사: claude.hot 스냅숏·이어 하기, 샌드
     const p = await openPage(br, srv.url, { clock: true, init: (env === 'claude' ? hotInit(null) : '') + seedInit(SEEDS.short) + presetInit({ seen19: true, speed: 4, auto: true }) });
     const s = new Sim(p);
     await waitScreen(p, 'home'); await p.click('[data-go="born"]'); await waitScreen(p, 'birth'); await p.click('[data-act="start"]'); await waitScreen(p, 'life');
-    await s.until(() => document.body.dataset.screen === 'death', { max: 600_000, step: 500 }); await p.click('[data-act="sum"]'); await waitScreen(p, 'summary');
+    await simToDeath(p, s, { max: 600_000 }); await deathToSummary(p);
     await p.click('[data-card="verdict"]');
     for (let i = 0; i < 40 && !(await p.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await s.adv(300); await p.waitForTimeout(80); }
     await p.waitForTimeout(300);
@@ -340,7 +345,7 @@ test('E2E-6e Artifact 뷰어 모사: claude.hot 스냅숏·이어 하기, 샌드
   let fr;
   for (let i = 0; i < 100 && !fr; i++) { fr = hp.frames().find(f => f.url().startsWith(srv.url)); if (!fr) await hp.waitForTimeout(100); }
   await fr.waitForFunction(() => document.body?.dataset?.screen === 'home', null, { timeout: 15000 });
-  await hp.clock.pauseAt(new Date('2026-10-15T09:00:05+09:00'));
+  await pauseClock(hp, new Date('2026-10-15T09:00:05+09:00'), fr);
   const lsErr = await fr.evaluate(() => { try { localStorage.getItem('x'); return 'ok'; } catch (e) { return e.name; } });
   c('샌드박스 iframe: localStorage 접근이 실제로 SecurityError', lsErr === 'SecurityError', lsErr);
   const hs = new Sim(hp);
@@ -349,7 +354,10 @@ test('E2E-6e Artifact 뷰어 모사: claude.hot 스냅숏·이어 하기, 샌드
   await fr.click('[data-act="start"]'); await fr.waitForFunction(() => document.body.dataset.screen === 'life');
   await fr.click('[data-speed="4"]'); await fr.click('.lifebar [data-act="auto"]');
   let t = 0;
-  while (t < 25 * 60_000 && (await fr.evaluate(() => document.body.dataset.screen)) === 'life') { await hp.clock.runFor(500); t += 500; }
+  while (t < 25 * 60_000 && (await fr.evaluate(() => document.body.dataset.screen)) === 'life') {
+    if (await fr.$('[data-act="last-record"]')) { await fr.click('[data-act="last-record"]'); break; }      // 마지막 해는 직접 넘김
+    await hp.clock.runFor(500); t += 500;
+  }
   c('샌드박스 iframe: 저장소 없이도 사망 화면까지 완주', (await fr.evaluate(() => document.body.dataset.screen)) === 'death', await fr.evaluate(() => document.body.dataset.screen));
   await fr.click('[data-act="sum"]'); await fr.waitForFunction(() => document.body.dataset.screen === 'summary');
   await fr.click('[data-card="verdict"]');
@@ -361,8 +369,8 @@ test('E2E-6e Artifact 뷰어 모사: claude.hot 스냅숏·이어 하기, 샌드
   const cp = await fr.evaluate(() => ({ toast: document.querySelector('.toast')?.textContent, sel: (() => { const ta = document.querySelector('.share__text'); return ta.selectionEnd - ta.selectionStart; })() }));
   c.note('샌드박스 iframe: 클립보드 복사 결과(허용되면 복사 토스트, 차단되면 선택 토스트)', cp);
   c('샌드박스 iframe: 복사 → 토스트(성공 또는 선택 안내)', /복사했습니다|선택해 두었습니다/.test(cp.toast || ''), JSON.stringify(cp));
-  await fr.click('.sheet__close');
-  await fr.click('.actionbar [data-go="archive"]'); await fr.waitForFunction(() => document.body.dataset.screen === 'archive');
+  await fr.click('.sheet__close'); await hp.clock.runFor(50);
+  await fr.click('.sum-more [data-go="archive"]'); await fr.waitForFunction(() => document.body.dataset.screen === 'archive');
   c('샌드박스 iframe: 기록관 빈 상태(저장 불가)', /아직 끝난 생애가 없습니다/.test(await fr.evaluate(() => document.querySelector('.empty')?.textContent || '')));
   c('샌드박스 iframe: 콘솔·페이지 에러 0', perrs.length === 0 && errs.length === 0, perrs.concat(errs).join('|'));
   await hostCtx.close();

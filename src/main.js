@@ -49,7 +49,7 @@ addEventListener('pagehide', persist);
 const hot = window.claude?.hot;
 try {
   hot?.snapshot?.(() => (S.L?.alive && S.clock && document.body.dataset.screen === 'life'
-    ? { forcedYear: S.forced?.year, seed: S.L.seed, choices: S.L.choices, elapsed: Math.round(S.clock.elapsed()), age: S.L.age, name: S.L.name, year: S.L.year }
+    ? { forcedYear: S.forced?.year, guess: S.guess, seed: S.L.seed, choices: S.L.choices, elapsed: Math.round(S.clock.elapsed()), age: S.L.age, name: S.L.name, year: S.L.year }
     : null));
 } catch {}
 if (!(hot?.data?.seed != null && tryResume(hot.data))) go('home');

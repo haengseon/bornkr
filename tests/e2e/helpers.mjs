@@ -49,7 +49,7 @@ const HOOKS = `
   window.__qa = { dialogs: [], canvas: [] };
   const ft = CanvasRenderingContext2D.prototype.fillText;
   CanvasRenderingContext2D.prototype.fillText = function (t, ...r) { window.__qa.canvas.push(String(t)); return ft.call(this, t, ...r); };
-  // 큰 사건·속보 카드는 [확인]을 눌러야 넘어간다 — 기존 시나리오가 멈추지 않게 자동 확인(새 UI 테스트는 noAutoMajor)
+  // 큰 사건·속보·작은 카드의 [확인]은 이제 선택 사항(읽기 시간 뒤 저절로 닫힘, F-3) — 시나리오를 빨리 돌리려 자동 확인(읽기 시간 검증은 noAutoMajor)
   if (!window.__noAutoMajor) new MutationObserver(() => { const b = document.querySelector('.major__ok'); if (b && !b.__t) { b.__t = 1; setTimeout(() => b.click(), 60); } }).observe(document, { subtree: true, childList: true });
   for (const k of ['alert', 'confirm', 'prompt', 'print']) {
     window[k] = function () { window.__qa.dialogs.push(k); return k === 'confirm' ? false : null; };
@@ -84,9 +84,21 @@ export async function openPage(browser, baseUrl, opts = {}) {
   // 'load' 는 Google Fonts 응답까지 기다려 간헐 지연(30초+)이 생기므로 DOMContentLoaded 로 받고 부팅 화면만 확인한다.
   await page.goto(baseUrl + url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   if (clock || !opts.noBootWait) await page.waitForFunction(() => document.body?.dataset?.screen && document.body.dataset.screen !== 'boot', null, { timeout: 60000 }).catch(() => {});
-  if (clock) await page.clock.pauseAt(new Date('2026-10-15T09:00:05+09:00'));
+  if (clock) await pauseClock(page, new Date('2026-10-15T09:00:05+09:00'));
   page.ctx = ctx;
   return page;
+}
+
+// 가짜 시계를 at(또는 그보다 뒤, 지금 시각 + 여유)에서 멈춘다. 설치된 시계는 pause 전까지 실시간으로 흐르므로
+// 서버·부팅이 느리면 at 이 이미 지나 pauseAt 이 "Cannot fast-forward to the past"로 실패했다(간헐).
+// 페이지 시각을 읽어 그 뒤로 클램프하고, 읽은 뒤 pauseAt 사이에 흐른 실시간 때문에 또 실패하면 여유를 늘려 다시 한다.
+// frame: 시계를 읽을 프레임(샌드박스 iframe 등). 기본은 page.
+export async function pauseClock(page, at, frame = page) {
+  for (let i = 0; ; i++) {
+    const now = await frame.evaluate(() => Date.now());
+    try { return await page.clock.pauseAt(Math.max(+at, now + 250 * 2 ** i)); }
+    catch (e) { if (i >= 4 || !/past/i.test(String(e?.message))) throw e; }
+  }
 }
 
 // 폰트·네트워크 실패는 앱 결함이 아니므로 분리한다.
@@ -105,10 +117,21 @@ export async function toBirth(page, { confirmGate = true } = {}) {
   if (s === 'gate' && confirmGate) { await page.click('[data-go="gateOk"]'); }
   await waitScreen(page, 'birth');
 }
-// 출생 신고서 → 진행
+// 출생 신고서 → 진행. 출생 인트로(카드 뒤집기 → 가족사 → "몇 살까지?")가 아직 덮고 있으면 [건너뛰기]로 걷어 낸다.
+export async function skipIntro(page) {
+  if (await page.$('[data-cine]:not(.is-out)')) await page.click('.cine__tap');
+  await page.waitForFunction(() => !document.querySelector('[data-cine]:not(.is-out)'), null, { timeout: 5000 });
+}
 export async function startLife(page) {
+  await skipIntro(page);
   await page.click('[data-act="start"]');
   await waitScreen(page, 'life');
+}
+
+// 진행 화면 ⋯ 메뉴(가족·성향·관심사·뉴스·동갑내기)에서 시트 열기 — 예전 하단 탭(.lifebar .tabbtn) 자리
+export async function menu(page, tab) {
+  await page.click('.life-menu summary');
+  await page.click(`.life-menu [data-tab="${tab}"]`);
 }
 
 // 가짜 시계를 step씩 진행하며 pred(페이지 안 함수)가 참이 될 때까지. 진행한 가짜 ms를 돌려준다.
@@ -134,12 +157,14 @@ export async function shot(page, name, { wait = 400, ...opts } = {}) {
   await page.screenshot({ path: path.join(SHOTS, name + '.png'), ...opts });
 }
 
-// 완주: 선택 시트가 뜨면 handler(page, n)로 처리(없으면 방치). 사망 화면 도달까지. 반환 { fakeMs, choices }
+// 완주: 선택 시트가 뜨면 handler(page, n)로 처리(없으면 방치). 마지막 해 [마지막 페이지로]는 직접 넘겨야 하므로 눌러 준다.
+// 사망 화면 도달까지. 반환 { fakeMs, choices }
 export async function playToDeath(page, { handler, step = 500, max = 25 * 60_000 } = {}) {
   let t = 0, n = 0, seen = false;
   while (t < max) {
     const s = await screen(page);
     if (s === 'death' || s === 'summary') return { fakeMs: t, choices: n };
+    if (await page.$('[data-act="last-record"]')) { await page.click('[data-act="last-record"]'); continue; }
     if (handler && await choiceOpen(page)) {
       if (!seen) { seen = true; n++; await handler(page, n); }
     } else seen = false;
@@ -149,16 +174,31 @@ export async function playToDeath(page, { handler, step = 500, max = 25 * 60_000
   throw new Error('playToDeath 시간 초과');
 }
 
+// 가짜 시계로 마지막 해까지 진행 → [마지막 페이지로] → 사망 화면. 자동결정이어도 마지막 해·사망 화면은 직접 넘긴다.
+export async function simToDeath(page, sim, { max = 25 * 60_000, step = 500 } = {}) {
+  await sim.until(() => document.body.dataset.screen === 'death' || !!document.querySelector('[data-act="last-record"]'), { max, step });
+  if (await page.$('[data-act="last-record"]')) await page.click('[data-act="last-record"]');
+  await waitScreen(page, 'death');
+}
+// 사망 화면 → 결산: 검정 마지막 페이지의 버튼 하나로 넘어간다(F-9)
+export async function deathToSummary(page) {
+  await waitScreen(page, 'death');
+  await page.click('[data-act="sum"]');
+  await waitScreen(page, 'summary');
+}
+
 export const median = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
 
 // ───────── 결정적 시나리오용 ─────────
 // 새 생애의 시드를 고정(UI는 crypto.getRandomValues로 시드를 만든다). seeds는 엔진 스캔으로 고른 값.
+// 주의(2026-10-19): 엔진 개편 뒤 아래 주석의 사건이 더는 나오지 않는다(예: 529 → 85세 암, 10·90 민감 선택 없음, plain 67 → 장수).
+// safety.test 의 민감 시나리오는 엔진 작업이 끝난 뒤 시드를 다시 스캔해야 한다.
 export const SEEDS = {
   plain: 67,        // 23세 사망(선택 8회), 비교 카드 7·19세
-  sensDeath: 529,   // 23세, 고의적 자해 사망(민감)
-  sensChoice: 10,   // 17세 민감 선택(illness), 80세 사망
-  sensChoiceV: 90,  // 8세 민감 선택(violence)
-  sensLog: 6,       // 1세 재난 민감 피드(help)
+  sensDeath: 226,   // 23세, 고의적 자해 사망(민감)
+  sensChoice: 24,   // 13세 민감 선택(illness, school.low.mood)
+  sensChoiceV: 9,   // 9세 민감 선택(violence, school.bully.witness)
+  sensLog: 16,      // 1세 민감 피드(형제 사망)
   infant: 25,       // 0세 사망
   long: 20,         // 107세 사망(15분 상한 압박)
   short: 8,         // 3세 사망, 선택 0회
@@ -186,7 +226,8 @@ export class Sim {
 }
 
 // 금지 문구(결산·카드·공유 문구): 백분위·순위·직급·금액
-export const RE_RANK = /백분위|순위|상위\s*\d|하위\s*\d|\d\s*%\s*(상위|하위)|등급|승리|패배|성공한|실패한/;
+// '장기요양 N등급'은 돌봄 제도 사실(사람 서열 아님)이라 등급에서 뺀다
+export const RE_RANK = /백분위|순위|상위\s*\d|하위\s*\d|\d\s*%\s*(상위|하위)|(?<!장기요양\s*\d\s*)등급|승리|패배|성공한|실패한/;
 export const RE_MONEY = /\d[\d,]*(\.\d+)?\s*(만\s?원|억\s?원?|천\s?원|원\b|만원)/;
 export const RE_JOBRANK = /(대리|과장|차장|부장|이사|상무|전무|사장|임원|팀장)(으로|급)|직급\s*[:은이]/;
 export const RE_CAUSE_SENS = /자해|자살|극단적/;

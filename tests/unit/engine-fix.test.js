@@ -16,11 +16,12 @@ test('QA-S-02: 선택지가 1개면 묻지 않고 기본 결과를 적용한다(
   assert.ok(L.choices.at(-1).forced);
 });
 
-test('QA-S-03: 생활비 부족 신용대출은 max(3,000, 연소득×3)을 넘지 않는다', () => {
+test('QA-S-03·B1: 신용 한도 max(3,000, 연소득×3)를 넘는 부족액은 사라지지 않고 연체 빚으로 남는다', () => {
   const L = E.newLife({ seed: 43 });
   L.flags.indep = L.year; L.year = 2025; L.money.income = 2000;
   makeCtx(L, 'c').act.spend(50_000);
-  assert.ok(L.money.loans.credit <= 6000, `${L.money.loans.credit}`);
+  assert.equal(L.money.loans.credit, 50_000);
+  assert.equal(L.money.debt, 50_000);
 });
 
 test('QA-S-16: 변형 배열은 같은 생애에서 모두 쓰기 전에는 반복하지 않는다', () => {
@@ -58,6 +59,7 @@ test('선택의 방향(GDD §13.1): lean이 쌓이면 구조 오즈가 ×0.6~×1
   const o = leanOdds(L, 'relations');
   assert.ok(o > 1.5 && o < 1.7, `${o}`);
   E.advanceYear(L);
+  if (L.pending) E.choose(L, L.pending.defaultId, { auto: true });   // 1세 부모의 첫 결정이 해를 멈추면 마저 진행(옅어지기는 drift 단계)
   assert.ok(L.lean.relations < 1);
 });
 

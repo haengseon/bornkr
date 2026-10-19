@@ -1,7 +1,7 @@
 // 일자리 상실·임대 만료 뒤의 '다음 걸음' 계획(순수 계산). 금액은 엔진 단위(2025년 실질 만원)이고, 화면이 그해 명목·2026 환산으로 바꾼다.
 // 각 계획: { id, label, cost:{cash,loan,monthly,note}, ...적용에 필요한 값 }. 미리보기와 적용이 같은 숫자를 쓴다.
 import { yr, ag, T } from './tables.js';
-import { homePrice } from './act.js';
+import { homePrice, budgetOf, parentHelp, ownShare, CASH_BUFFER, indep } from './act.js';
 import * as P from '../data/lifeplans.js';
 
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -48,9 +48,13 @@ export function moveMath(L, { tenure, dep = 0, price = 0, rent = 0, moveCost = 0
   const m = L.money, h = L.home, J0 = m.loans.jeonse || 0, M0 = m.loans.mortgage || 0;
   let A = m.assets + (h.deposit || 0), J = J0, M = M0, C = 0;
   if (h.owned && keep === 'sell') { A += h.value; const r = Math.min(M, A); A -= r; M -= r; C += M; M = 0; }
-  const jl = Math.min(J, A); A -= jl; J -= jl;
-  if (tenure === 'own' && !home) { const own = Math.max(0, A - 300), loan = Math.max(0, price - own); A -= price - loan; M += loan; }
-  else if (tenure === 'jeonse' || tenure === 'monthly') { const own = Math.min(Math.max(0, A), dep * (tenure === 'jeonse' ? 0.2 : 0.5)); A -= own; J += dep - own; }
+  const jl = Math.min(J, A); A -= jl; J -= jl; C += J; J = 0;          // 못 갚은 전세대출은 신용대출로(act capJeonse)
+  if (tenure === 'own' && !home) {                                     // act.move와 같은 LTV·DSR 한도, 부모 도움, 남는 몫 신용
+    const cap = Math.min(yr(T('LTV')[h.regionGroup], L.year) * price, budgetOf(L, keep !== 'sell').loanCap);
+    A += Math.min(parentHelp(L), Math.max(0, price - Math.max(0, A - 300) - cap));
+    const own = Math.max(0, A - 300), loan = rnd(Math.min(Math.max(0, price - own), cap)); A -= price - loan; M += loan;
+  }
+  else if (tenure === 'jeonse' || tenure === 'monthly') { const own = ownShare(A, dep, tenure === 'jeonse' ? 0.8 : 0.5); A -= own; J += dep - own; const over = J - rnd(dep * 0.8); if (over > 0) { J -= over; C += over; } }
   A -= moveCost; if (A < 0) { C -= A; A = 0; }
   const r = jeonseLoanRate(L.year), oldRent = ['monthly', 'public'].includes(h.tenure) ? h.rent || 0 : 0;
   return { cash: rnd(A - m.assets), loan: rnd(J + M + C - J0 - M0), monthly: rnd(rent - oldRent + ((J - J0) * r + (M - M0) * (r + 1 / 30)) / 12 - lease / 12) };
@@ -66,17 +70,17 @@ export function housingPlans(L, rise) {
     out.push({ id, label, newDep, rent, moveCost: mc, settle: s, ...extra, cost: { cash: s.cash, loan: s.loanAdd, monthly } });
   };
   if (h.tenure === 'jeonse') {
-    mk('same', '같은 동네에서 전세 계약을 새로 잡는다', rnd(D * (1 + rise)), 0, { tenure: 'jeonse' });
-    mk('down', '외곽의 작은 집 전세로 줄여 간다', rnd(D * 0.75), 0, { tenure: 'jeonse', cheaper: true });
+    mk('same', '같은 동네 전세를 새로 얻는다', rnd(D * (1 + rise)), 0, { tenure: 'jeonse' });
+    mk('down', '외곽 작은 전셋집으로 간다', rnd(D * 0.75), 0, { tenure: 'jeonse', cheaper: true });
     const dep = rnd(D * 0.15), rent = Math.max(5, rnd((D - dep) * rentRate(y) / 12));
     mk('monthly', '보증금을 빼서 월세로 옮긴다', dep, rent, { tenure: 'monthly' });
   } else {
-    mk('same', '같은 동네에서 월세로 새 집을 구한다', D, rnd(R * (1 + rise)), { tenure: 'monthly' });
-    mk('down', '더 작고 싼 월세방으로 줄여 간다', rnd(D * 0.6), rnd(R * 0.7), { tenure: 'monthly', cheaper: true });
+    mk('same', '같은 동네 월셋집을 구한다', D, rnd(R * (1 + rise)), { tenure: 'monthly' });
+    mk('down', '더 싼 월세방으로 줄인다', rnd(D * 0.6), rnd(R * 0.7), { tenure: 'monthly', cheaper: true });
   }
   if (parentsAlive(L) && L.age < 55 && !L.family.children.some(c => c.alive)) {
     const s = settleMove(L, { D, newDep: 0, moveCost: 20 });
-    out.push({ id: 'family', label: '부모님 집으로 들어가 몇 해 더 모은다', newDep: 0, rent: 0, moveCost: 20, settle: s, tenure: 'family', cost: { cash: s.cash, loan: 0, monthly: -R } });
+    out.push({ id: 'family', label: '부모님 집에서 몇 해 모은다', newDep: 0, rent: 0, moveCost: 20, settle: s, tenure: 'family', cost: { cash: s.cash, loan: 0, monthly: -R } });
   }
   return out;
 }
@@ -87,16 +91,17 @@ export function jobPlans(L, lost, offerFn) {
   // ponytail: 가입 이력 대신 정규직·근속 1년 이상을 수급 요건으로 근사(비정규직 가입률 반영은 생략)
   const b = lost.regular ? benefitFor(y, L.age, lost.years || 0, w) : { days: 0, total: 0 };
   const benefit = b.total, months = Math.round(b.days / 30);
-  out.push({ id: 'seek', label: '실업급여를 받으며 같은 분야부터 다시 구한다', benefit, cost: { cash: benefit, note: benefit ? `실업급여 ${b.days}일(약 ${months}개월)분` : '실업급여 대상 아님' } });
+  out.push({ id: 'seek', label: benefit ? '실업급여로 같은 일을 찾는다' : '저금으로 같은 일을 찾는다', benefit, cost: { cash: benefit, note: benefit ? `실업급여 ${b.days}일(약 ${months}개월)분` : '실업급여 대상 아님' } });
   const tuition = trainingCost(y);
-  out.push({ id: 'learn', label: '직업훈련·자격 과정을 들으며 한 해를 준비한다', tuition, benefit, cost: { cash: benefit - tuition, note: '한 해 동안 구직이 늦어지는 대신 자격을 쌓는다' } });
+  out.push({ id: 'learn', label: '직업훈련·자격 과정을 듣는다', tuition, benefit, cost: { cash: benefit - tuition, note: '한 해 동안 구직이 늦어지는 대신 자격을 쌓는다' } });
   const offer = offerFn?.();
-  if (offer && L.age < 65) out.push({ id: 'temp', label: '당장은 임시·일용 일자리로 버틴다', offer, cost: { cash: 0, monthly: rnd(offer.wage / 12) * -1, note: '소득은 낮고 계약은 짧다' } });
+  if (offer && L.age < 65) out.push({ id: 'temp', label: '임시·일용 일로 버틴다', offer, cost: { cash: 0, monthly: rnd(offer.wage / 12) * -1, note: '소득은 낮고 계약은 짧다' } });
   if (L.age >= 28 && L.age <= 60) {
     const capital = rnd(8500 * (0.7 + 0.6 * L.stats.wealth / 100));   // 소상공인 평균 창업비용 약 8,500만(2025 실질) [STARTUP_COST]
-    out.push({ id: 'shop', label: '퇴직금과 대출로 작은 가게를 낸다', capital, cost: { loan: capital, monthly: rnd(capital * creditRate(L.year) / 12), note: '창업 자금 전액을 사업 대출로 빌린다. 성공하면 내 일, 실패하면 빚이 남는다' } });
+    const cash = indep(L) ? Math.min(Math.max(0, rnd(L.money.assets) - CASH_BUFFER), capital) : 0, loan = capital - cash;   // act.startBusiness와 같은 순서: 모은 돈 먼저
+    out.push({ id: 'shop', label: '퇴직금·대출로 가게를 낸다', capital, cost: { cash: -cash, loan, monthly: rnd(loan * creditRate(L.year) / 12), note: loan ? '모은 돈을 먼저 넣고 모자란 창업 자금은 사업 대출로 빌린다. 성공하면 내 일, 실패하면 빚이 남는다' : '창업 자금을 모은 돈으로 댄다. 실패하면 그 돈을 잃는다' } });
   }
-  if (parentsAlive(L) && L.age < 50 && !L.home.owned && !L.family.partner) out.push({ id: 'family', label: '부모님 집에 들어가 숨을 돌린다', cost: { cash: benefit, monthly: 0, note: '생활비는 줄지만 마음은 불편하다' } });
+  if (parentsAlive(L) && L.age < 50 && !L.home.owned && !L.family.partner) out.push({ id: 'family', label: '부모님 집에서 숨을 돌린다', cost: { cash: benefit, monthly: 0, note: '생활비는 줄지만 마음은 불편하다' } });
   return out;
 }
 

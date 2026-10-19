@@ -13,6 +13,7 @@ import { fxEffects, fxRisk } from './milestones.js';
 import { eventFrom } from './anachro.js';
 import { variantText } from './variants.js';
 import { NEWS_GENERAL, ERA_LINKS } from '../content/news-general.js';
+import { NEWS_ARCHIVE } from '../content/news-archive.js';
 
 const LIMITED = new Set(['violence', 'abuse', 'sexual']);
 let BUCKET = null;
@@ -84,12 +85,13 @@ function fire(L, ctx, ev) {
   if (ev.tags?.includes('victim')) L.flags.victim = L.year;
   if (LIMITED.has(ev.sensitive)) L.tally.sens = (L.tally.sens || 0) + 1;
   const entry = ctx.emit({ kind: 'event', id: ev.id, text: txt, ...(ev.reason && { reason: ev.reason }), ...(ev.tags && { tags: ev.tags }), ...(ev.fx && { effects: ev.fx }), ...(ev.src && { src: ev.src }), ...sens(L, ev.sensitive) });
-  ctx.apply(ev.fx, { reason: ev.reason ?? txt, src: ev.src });
+  ctx.apply(ev.fx, { reason: ev.reason ?? txt, src: ev.src, entry });
   ev.do?.(L, ctx.act);
   if (ev.choice) {
     entry.asked = ctx.ask({
       ...(ev.topic && { topic: ev.topic, major: true }), eventId: ev.id, prompt: fill(ev.choice.prompt, vars, ctx), defaultId: typeof ev.choice.default === 'function' ? ev.choice.default(L, ctx) : ev.choice.default, sensitive: ev.sensitive || undefined,
-      options: ev.choice.options.map(o => ({ id: o.id, label: o.label, ...(o.hint && { hint: o.hint }), effects: fxEffects(o), risk: fxRisk(o) })),
+      ...(ev.tags?.includes('parentChoice') && { cadence: true }),   // 유아기라 중대 결정 주제는 없지만 직접 묻는다(구간 우연 선택 상한과 별개)
+      options: ev.choice.options.filter(o => !o.when || o.when(L)).map(o => ({ id: o.id, label: o.label, ...(o.hint && { hint: o.hint }), effects: fxEffects(o), risk: fxRisk(o) })),
     });
   }
 }
@@ -163,11 +165,23 @@ function generalNews(L, ctx, eraFired) {
   if (link?.fx) ctx.apply(link.fx, { reason: link.reason ?? link.line, src: n.src });
 }
 
-// 4단계: 우연 사건(1년 최대 2건, 선택 1건, 5세 firstChoice 보장)
+// 엔진 뉴스가 없는 해의 연표 뉴스(NEWS_ARCHIVE)도 로그에 남긴다 → 이어 하기·다시 보기 피드에서 사라지지 않는다(D1).
+// 화면(pickNews)과 같은 규칙: 그해 아직 보이는(민감하지 않은) 뉴스가 없을 때 연표의 첫 건. 난수를 쓰지 않는다.
+export function archiveNews(L, ctx) {
+  if (L.log.slice(L.yr.start).some(e => e.kind === 'news' && !e.sensitive)) return;
+  const a = NEWS_ARCHIVE.find(x => x.year === L.year);
+  if (a) ctx.emit({ kind: 'news', id: a.id, text: `${a.headline}. ${a.summary ?? ''}`.trim(), essential: true, ...(a.axes && { axes: a.axes }), ...(a.src && { src: a.src }), ...((a.scenario || a.future) && { scenario: true }) });
+}
+
+// 4단계: 우연 사건(1년 최대 2건, 선택 1건, 1세 부모의 첫 결정·5세 firstChoice 보장)
 export function chanceStep(L, ctx) {
   index();
   const age = Math.min(120, L.age), st = stageOf(L.age).id;
   let n = 0;
+  if (L.age === 1 && !L.yr.asked && !L.pending) {        // 0세 끝: 부모가 낮 돌봄을 정한다(가족 형태·시대별로 한 건만 맞는다)
+    const pc = BUCKET[1].find(ev => ev.tags?.includes('parentChoice') && basicOk(L, ev, ctx));
+    if (pc) { fire(L, ctx, pc); n++; }
+  }
   if (L.age === 5 && L.flags.firstChoice == null && !L.yr.asked && !L.pending && L.stageChoices[st].chance < STAGE_CAP[st].chance) {
     const fc = BUCKET[age].filter(ev => ev.choice && ev.tags?.includes('firstChoice') && basicOk(L, ev, ctx));
     if (fc.length) { fire(L, ctx, ctx.pick(fc)); n++; }
@@ -202,8 +216,8 @@ export function resolveEventChoice(L, ctx, req, optId, auto) {
   const o = ev?.choice?.options.find(x => x.id === optId);
   if (!o) return;
   const txt = fill(o.result, textVars(L), ctx);
-  ctx.emit({ kind: 'choice', id: ev.id, option: optId, label: o.label, auto, text: txt, ...(ev.reason && { reason: ev.reason }), ...(o.fx && { effects: o.fx }), ...(ev.src && { src: ev.src }), ...(ev.sensitive && { sensitive: ev.sensitive }) });
-  ctx.apply(o.fx, { reason: ev.reason ?? txt, src: ev.src });
+  const entry = ctx.emit({ kind: 'choice', id: ev.id, option: optId, label: o.label, auto, text: txt, ...(ev.reason && { reason: ev.reason }), ...(o.fx && { effects: o.fx }), ...(ev.src && { src: ev.src }), ...(ev.sensitive && { sensitive: ev.sensitive }) });
+  ctx.apply(o.fx, { reason: ev.reason ?? txt, src: ev.src, entry });
   leanFromChoice(L, ev.choice.options, o);
   o.do?.(L, ctx.act);
 }

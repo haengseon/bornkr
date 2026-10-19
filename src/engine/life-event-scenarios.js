@@ -127,12 +127,12 @@ function ruleAvailable(L, event, original) {
     (rule.needs !== 'public-internet' || world(L).access?.publicInternet === true);
 }
 
-/** 실행 직전 현재 견적을 표시한다. 원본 선택의 성향 가중치는 바꾸지 않는다. */
+/** 실행 직전 현재 견적을 칩 한 줄(시간·금액)로 표시한다. 라벨은 반복하지 않는다. 원본 선택의 성향 가중치는 바꾸지 않는다. */
 export function scenarioChoiceDetails(L, event, choice) {
   const profile = SCENARIO_PROFILES[event.id];
   const rule = resolvedRule(L, event, profile.steps[event.choices.findIndex(c => c.id === choice.id)]);
   return { ...choice, operation: { ...choice.operation, ...rule },
-    hint: `${choice.playerHint ?? choice.label} · 시간 ${rule.minutes}분${rule.cost ? ` · ${rule.cost}만 원${rule.kind === 'request' ? '(승인 뒤)' : ''}` : ' · 추가 비용 없음'}` };
+    hint: rule.minutes ? `${rule.minutes}분` : '' };   // 금액은 cost 칩(operation.cost)이 보여 준다
 }
 
 export function scenarioChoiceAvailable(L, event, choice) {
@@ -238,10 +238,7 @@ export function performScenarioChoice(L, event, choice) {
       kind: rule.record || rule.kind, status: 'completed', promise: rule.record === 'letter-promise' });
     if (rule.kind === 'introduction') (d.socialGroups ||= []).push({ id: `group.${scene.id}`, joinedYear: L.year, personId: scene.personId });
   }
-  const immediate = requested ? `${choice.label} 쪽으로 요청을 전했다. ${choice.text}는 상대의 확인·승인이 필요하며 아직 적용되지 않았다.` :
-    rule.kind === 'hold' ? `${choice.label}. 이번에는 추가 비용과 새 약속을 만들지 않았다.` :
-      `${choice.label}. ${choice.text}${rule.cost ? ` · ${rule.cost}만 원을 실제로 썼다.` : ''}${rule.minutes ? ` · 개인 시간 ${rule.minutes}분을 배분했다.` : ''}`;
-  return { text: immediate, scenarioId: scene.id, requested, scenarioRecord: record };
+  return { scenarioId: scene.id, requested, scenarioRecord: record };
 }
 
 export const scenarioOutcomeHandler = {
@@ -258,14 +255,14 @@ export const scenarioOutcomeHandler = {
     const accepted = r.rule.kind !== 'request' || hash(L.seed, item.id, 'scenario-response') < .7;
     const status = accepted ? 'approved' : 'declined';
     d.history.push({ id: `${item.id}:response`, year: L.year, kind: 'scenario-response',
-      eventId: r.eventId, status, text: accepted ? '요청한 방식을 확인하고 가능한 범위에서 받아들이기로 했다.' : '요청한 방식을 받아들이기 어려워 기존 상태를 유지했다.',
+      eventId: r.eventId, status, text: accepted ? `${r.label}: 상대가 받아들였다.` : `${r.label}: 상대가 어렵다고 했다.`,
       evidenceLevel: 'fictional-response-game-tuning' });
     if (!accepted) return;
     if (r.rule.kind === 'request' && r.rule.cost) L.money.assets -= r.rule.cost;
     if (r.rule.kind === 'request') applyRecordedChange(L, r);
     const executed = { id: `${item.id}:executed`, year: L.year, kind: 'scenario-executed',
       eventId: r.eventId, status: 'confirmed', record: r.rule.record || null,
-      text: `${r.label}에 따른 절차를 이행했다. ${r.rule.record?.includes('exam') ? '응시 접수 기록이며 합격·자격 취득 기록은 아니다.' : r.rule.record?.includes('course') ? '수강 기록이며 수료·채용·승진을 뜻하지 않는다.' : '실제 비용과 일정 기록을 남겼다.'}` };
+      text: r.rule.record?.includes('exam') ? '시험 접수를 마쳤다.' : r.rule.record?.includes('course') ? '수강 신청을 마쳤다.' : '약속한 대로 했다.' };
     if (r.rule.change) {
       (d.scheduleChanges ||= []).push({ id: executed.id, year: L.year, kind: r.rule.change,
         minutes: r.rule.minutesChange || 0, eventId: r.eventId, status: 'approved',

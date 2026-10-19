@@ -63,7 +63,7 @@ export function effectsOf(src) {
     return { ...e, kind, label, arrows, tone: toneOf(kind, e.dir), text: `${label} ${e.size === 2 ? '크게 ' : ''}${e.dir > 0 ? '오름' : '내림'}` };
   });
 }
-// 사건 단위 변화만(entry.impact·effects). 없으면 비어 있다 — 연간 합산(lastDeltas)을 이 일의 결과로 대입하지 않는다.
+// 사건 단위 변화만(entry.impact → applied(실제 반영값) → effects). 없으면 비어 있다 — 연간 합산(lastDeltas)을 이 일의 결과로 대입하지 않는다.
 // 사별·진단 같은 상실 사건에는 좋은 방향(지표 ▲·관심사 ▼)으로 읽히는 칩을 붙이지 않는다.
 const SOFT_TOPICS = new Set(['loss', 'care', 'bereave']);
 export function eventImpact(e) {
@@ -72,8 +72,8 @@ export function eventImpact(e) {
   const soft = SOFT_TOPICS.has(topicOf(e));
   const pick = (kind, o, min) => Object.entries(o || {}).filter(([, d]) => Math.abs(d) >= min && !(soft && toneOf(kind, d) === 'good'));
   return {
-    stats: pick('stat', toObj(im?.stats) ?? fx.stats, 1),
-    issues: pick('issue', toObj(im?.issues) ?? fx.issues, 2),
+    stats: pick('stat', toObj(im?.stats) ?? e?.applied?.stats ?? fx.stats, 1),
+    issues: pick('issue', toObj(im?.issues) ?? e?.applied?.issues ?? fx.issues, 2),
     profile: Array.isArray(im?.profile) ? im.profile.map(x => x.text).filter(Boolean) : [],
   };
 }

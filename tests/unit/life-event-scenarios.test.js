@@ -110,7 +110,7 @@ test('소유 가전의 현재 수리 견적만 차감하고 작동 상태를 복
   L.dailyLife.scenarios[event.id].context.targetItemId = 'owned-fridge';
   const option = lifeEventOptions(L, event).find(c => c.id === 'a');
   assert.equal(option.operation.cost, 8);
-  assert.match(option.hint, /8만 원/);
+  assert.doesNotMatch(option.hint, /만 원/);   // 금액은 cost 칩 몫
   assert.equal(eventActions(L, event, option).executed, true);
   assert.equal(L.money.assets, 92);
   assert.equal(L.dailyLife.world.inventory[0].working, true);

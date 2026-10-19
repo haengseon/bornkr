@@ -1,11 +1,13 @@
 // E2E-1 전체 흐름(가짜 시계): 홈 → 19세 안내 → 출생 신고서 → 진행 → 선택 3경로 → 비교 카드 → 사망 → 결산 → 공유 카드 3종
 //        → 기록관(재열람 일치) → 통계 도감 → 설정 → 도움 자원 시트.  UI-SPEC §2·§5·§7, 00-plan 검증 기준.
+//        2026-10-19 개편 반영: 게임 화면 광고 영역 없음(5ddecb9), 기본 2배속·읽기 시간 비례 카운트다운(HOOK-30S P0-4, C1),
+//        결과·카드는 [확인] 없이 읽기 시간 뒤 닫힘(F-3·C5), 마지막 해 [마지막 페이지로] → 검정 페이지 버튼 1개로 결산(F-9).
 import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
   startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, SEEDS, checks, SHOTS, saveJson,
-  RE_RANK, RE_MONEY, RE_JOBRANK, forbiddenHits,
+  RE_RANK, RE_MONEY, RE_JOBRANK, RE_CAUSE_SENS, forbiddenHits,
 } from './helpers.mjs';
 
 let srv, br;
@@ -23,6 +25,10 @@ const choiceInfo = page => page.evaluate(() => {
   };
 });
 
+// 결과 블록(일반 .choice__result / 중대 .reveal)의 읽기 시간 — 앱 readMs와 같은 셈(접힌 details·sr-only 제외, 초당 9자, 최소 3초).
+// 시트가 닫히기 전 마지막으로 본 값을 window.__rms 에 남긴다.
+const RESULT_MS = () => { const r = document.querySelector('.sheet.choice .choice__result, .sheet.choice .reveal'); if (r) { const c = r.cloneNode(true); c.querySelectorAll('details, .sr-only').forEach(x => x.remove()); window.__rms = Math.max(3000, c.textContent.replace(/\s+/g, '').length / 9 * 1000); } return !document.querySelector('.sheet.choice'); };
+
 // 선택 시트 하나를 처리하며 진행. onChoice(k, sim)가 시트를 끝낸다. 비교 카드 열림/닫힘 시각을 기록.
 async function driveLife(page, sim, { onChoice, step = 250, max = 20 * 60_000, onCompare }) {
   const out = { choices: [], compare: [] };
@@ -30,6 +36,7 @@ async function driveLife(page, sim, { onChoice, step = 250, max = 20 * 60_000, o
   while (sim.t - t0 < max) {
     const s = await screen(page);
     if (s !== 'life') return Object.assign(out, { screen: s });
+    if (await page.$('[data-act="last-record"]')) return Object.assign(out, { screen: 'life-end' });
     const ci = await choiceInfo(page);
     if (ci && !ci.done && ci.key !== lastKey) { lastKey = ci.key; k++; out.choices.push({ k, key: ci.key, at: sim.t }); await onChoice(k, sim, ci); continue; }
     const cmp = await page.evaluate(() => !!document.querySelector('.compare'));
@@ -57,7 +64,7 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
       focus: document.activeElement?.tagName, title: document.title, lang: document.documentElement.lang,
     }));
     c('S01 h1 = 태어나보니 대한민국', d.h1 === '태어나보니 대한민국', d.h1);
-    c('S01 광고 자리 1칸', d.ads === 1, d.ads);
+    c('S01 광고 영역 없음(게임 화면 광고 제거 5ddecb9, 광고는 콘텐츠 페이지만 — HOOK-30S §3)', d.ads === 0, d.ads);
     c('S01 이어 하기 없음(첫 방문)', !d.resume);
     c('S01 메뉴 3개 기록관·통계 도감·설정', d.menu.join() === '기록관,통계 도감,설정', d.menu.join());
     c('S01 CTA 태어나기', d.cta === '태어나기', d.cta);
@@ -72,7 +79,7 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     await page.click('[data-go="born"]');
     await waitScreen(page, 'gate');
     const d = await page.evaluate(() => ({ items: document.querySelectorAll('.notice-list li').length, btns: [...document.querySelectorAll('.actionbar .btn')].map(b => b.textContent), focus: document.activeElement?.tagName, ads: document.querySelectorAll('.ad-slot').length }));
-    c('S02 안내 5항', d.items === 5, d.items);
+    c('S02 안내 3항', d.items === 3, d.items);
     c('S02 버튼 홈으로 / 확인하고 태어나기', d.btns.join() === '홈으로,확인하고 태어나기', d.btns.join());
     c('S02 첫 포커스 h1', d.focus === 'H1', d.focus);
     c('S02 광고 없음', d.ads === 0);
@@ -98,7 +105,7 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
       btns: [...document.querySelectorAll('.actionbar .btn')].map(b => b.textContent), story: !!document.querySelector('.doc__lede'),
       text: document.querySelector('.birth').innerText,
     }));
-    c('S03 서식 9행', d.rows.join() === '성명,출생일,출생지,가구 형편,부모,주거,돌봄,의료 접근,시대', d.rows.join());
+    c('S03 서식 8행(돌봄 행 삭제)', d.rows.join() === '성명,출생일,출생지,가구 형편,부모,주거,의료 접근,시대', d.rows.join());
     c('S03 모든 값 비어 있지 않음', d.vals.every(v => v && !/undefined|NaN|null/.test(v)), d.vals.join(' / '));
     c('S03 같은 날 태어난 3명', d.peers === 3, d.peers);
     c('S03 소득 점 aria-label', /다섯 단계 중/.test(d.dots || ''), d.dots);
@@ -131,35 +138,33 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
   await t.test('S04~S07 진행·선택·비교', async () => {
     const hud = await page.evaluate(() => ({
       h1: document.querySelector('h1.sr-only')?.textContent, age: document.querySelector('[data-hud=age]').textContent,
-      stages: document.querySelectorAll('.chap__seg').length, stats: document.querySelectorAll('.stat').length,
-      tabs: [...document.querySelectorAll('.lifebar .tabbtn')].map(b => b.textContent), speed: [...document.querySelectorAll('[data-speed]')].map(b => b.getAttribute('aria-pressed')),
+      stages: document.querySelectorAll('.chap__seg').length, stats: document.querySelectorAll('.sbar .sbar__i').length,
+      tabs: [...document.querySelectorAll('.life-menu__items button')].map(b => b.textContent), speed: [...document.querySelectorAll('[data-speed]')].map(b => b.getAttribute('aria-pressed')),
       auto: document.querySelector('.lifebar [data-act=auto]').getAttribute('aria-checked'), pause: document.querySelector('[data-act=pause]').textContent, ads: document.querySelectorAll('.ad-slot').length,
     }));
     c('S04 h1.sr-only 생애 진행', hud.h1 === '생애 진행');
-    c('S04 챕터 10 · 지표 6 · 탭 4', hud.stages === 10 && hud.stats === 6 && hud.tabs.join() === '지표,성향,관심사·고민,동갑내기', JSON.stringify(hud));
-    c('S04 기본 배속 1× 선택', hud.speed.join() === 'true,false,false,false', hud.speed.join());
+    c('S04 챕터 10 · 상단 지표 6 · ⋯ 메뉴 5(가족·성향·관심사·뉴스·동갑내기)', hud.stages === 10 && hud.stats === 6 && hud.tabs.join() === '가족,성향,관심사,뉴스,동갑내기', JSON.stringify(hud));
+    c('S04 기본 배속 2× 선택(HOOK-30S P0-4)', hud.speed.join() === 'false,true,false,false,false', hud.speed.join());
     c('S04 광고 없음', hud.ads === 0);
+    c('S04 자동결정 기본 켬(설정 미저장)', hud.auto === 'true', hud.auto);
+    await page.click('.lifebar [data-act="auto"]');          // 직접·무응답 경로를 재려고 끈다(k===3에서 다시 켬)
     await shot(page, 'flow-04-life-start');
-    const modes = { arming: null, timeout: null, auto: null };
+    const modes = { direct: null, timeout: null, auto: null };
     const res = await driveLife(page, sim, {
       onChoice: async (k, s, ci) => {
-        if (k === 1) {                       // 직접 선택 + 0.7초 오탭 방지
+        if (k === 1) {                       // 직접 선택 · 링 멈춤 · 하단 바 일시정지(C2) · 결과 읽기 시간(C5)
           await shot(page, 'flow-05-choice');
           const first = await page.evaluate(() => {
             const el = document.querySelector('.sheet.choice');
-            return { arming: el.querySelector('.options').classList.contains('is-arming'), defaults: el.querySelectorAll('.option.is-default').length, defTag: el.querySelector('.option.is-default .tag')?.textContent, status: el.querySelector('.choice__status').textContent, labels: [...el.querySelectorAll('.option__label')].map(x => x.textContent), hints: [...el.querySelectorAll('.option__hint')].map(x => x.textContent), ring: el.querySelector('.ring__num').textContent, activeEl: document.activeElement?.className };
+            return { defaults: el.querySelectorAll('.option.is-default').length, defTag: el.querySelector('.option.is-default .tag')?.textContent, labels: [...el.querySelectorAll('.option__label')].map(x => x.textContent), hints: [...el.querySelectorAll('.option__hint')].map(x => x.textContent), ring: el.querySelector('.ring__num').textContent, chars: el.querySelector('.sheet__body').textContent.replace(/\s+/g, '').length, activeEl: document.activeElement?.className };
           });
-          c('S06 열린 직후 is-arming(0.7초)', first.arming);
           c('S06 기본 선택지 1개 + 태그 기본', first.defaults === 1 && first.defTag === '기본', JSON.stringify(first));
-          c('S06 상태 문구 "시간이 다 되면"', /시간이 다 되면 '.+'(으로|로) 정합니다\./.test(first.status), first.status);
-          c('S06 선택지 라벨 ≤14자', first.labels.every(l => l.length <= 14), first.labels.join('|'));
+          c('S06 선택지 라벨 ≤16자(D R2)', first.labels.every(l => l.length <= 16), first.labels.join('|'));
           c('S06 힌트 ≤16자(있으면)', first.hints.every(l => l.length <= 16), first.hints.join('|'));
-          c('S06 링 12초 시작', first.ring === '12', first.ring);
+          // 카운트다운 = max(12초, 본문 글자 수/초당 9자 + 3초), 최대 40초(C1). 첫 틱이 지났을 수 있어 1초 여유
+          const want = Math.min(40, Math.max(12, Math.ceil(first.chars / 9 + 3)));
+          c('S06 링 시작값 = 글자 수 비례(최소 12초·최대 40초)', +first.ring >= 12 && +first.ring <= 40 && Math.abs(+first.ring - want) <= 1, `ring ${first.ring} / want ${want} (${first.chars}자)`);
           c('S06 첫 포커스 선택 질문(h2)', /choice__prompt/.test(first.activeEl), first.activeEl);
-          await page.click('[data-opt]:not(.is-default)', { force: true });          // 0.7초 안: 무시
-          modes.arming = await page.evaluate(() => !document.querySelector('.options').classList.contains('is-done'));
-          c('S06 0.7초 안 탭은 무시', modes.arming);
-          await s.adv(800);
           await s.adv(2000);
           const n1 = await page.evaluate(() => document.querySelector('.ring__num').textContent);
           await page.click('.ring');
@@ -167,14 +172,24 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
           const n2 = await page.evaluate(() => ({ num: document.querySelector('.ring__num').textContent, pressed: document.querySelector('.ring').getAttribute('aria-pressed') }));
           c('S06 링 눌러 멈춤(숫자 자리 "멈춤", aria-pressed)', n2.num === '멈춤' && n2.pressed === 'true', `${n1} → ${JSON.stringify(n2)}`);
           await page.click('.ring');
+          await s.adv(500);
+          const k0 = await page.evaluate(() => document.querySelector('.ring').style.getPropertyValue('--k'));
+          await page.click('.lifebar [data-act="pause"]');           // 시트가 떠 있어도 하단 바는 눌린다(C2)
+          await s.adv(10_000);
+          const p1 = await page.evaluate(() => ({ num: document.querySelector('.ring__num')?.textContent, k: document.querySelector('.ring')?.style.getPropertyValue('--k'), open: !!document.querySelector('.sheet.choice .ring') }));
+          c('S06 하단 바 일시정지 중 카운트다운 정지(숫자 Ⅱ, 10초 지나도 링 그대로)', p1.open && p1.num === 'Ⅱ' && p1.k === k0, `${k0} → ${JSON.stringify(p1)}`);
+          await page.click('.lifebar [data-act="pause"]');
+          modes.direct = true;
           await page.click('[data-opt]:not(.is-default)');
-          const done = await page.evaluate(() => ({ done: document.querySelector('.options').classList.contains('is-done'), picked: document.querySelectorAll('.option.is-picked[aria-pressed="true"]').length, disabled: document.querySelectorAll('.option:disabled').length, result: document.querySelector('.choice__result')?.textContent, autoTag: !!document.querySelector('.choice__result .tag') }));
-          c('S06 선택 → is-done · 선택 1 · 나머지 disabled · 결과 문장', done.done && done.picked === 1 && done.disabled === ci.n - 1 && !!done.result, JSON.stringify(done));
+          const done = await page.evaluate(() => ({ resolved: document.querySelector('.sheet.choice').classList.contains('is-resolved'), options: document.querySelectorAll('.sheet.choice .option').length, picked: document.querySelector('.picked dt')?.textContent + ':' + document.querySelector('.picked dd')?.textContent, ring: !!document.querySelector('.sheet.choice .ring'), result: !!document.querySelector('.choice__result, .reveal'), autoTag: [...document.querySelectorAll('.choice__result .tag, .reveal .tag')].some(t => t.textContent === '기본 행동') }));
+          c('S06 선택 → 결과 상태(선택지 접힘 · "고른 행동" 1행 · 링 제거 · 결과 블록)', done.resolved && done.options === 0 && /^고른 행동:.+/.test(done.picked) && !done.ring && done.result, JSON.stringify(done));
           c('S06 직접 선택에는 "기본 행동" 태그 없음', !done.autoTag);
-          await s.adv(1300);
-          c('S06 결과 1.5초 이전 아직 열림', await page.evaluate(() => !!document.querySelector('.sheet.choice')));
-          await s.adv(300);
-          c('S06 결과 1.5초 뒤 닫힘', await page.evaluate(() => !document.querySelector('.sheet.choice')));
+          await page.evaluate(RESULT_MS);
+          const readMs = await page.evaluate(() => window.__rms);     // 결과는 읽기 시간(초당 9자, 최소 3초) 뒤 [확인] 없이 닫힌다(C5·F-3)
+          await s.adv(2600);
+          c('S06 결과 2.6초 뒤에도 아직 열림(최소 3초)', await page.evaluate(() => !!document.querySelector('.sheet.choice')));
+          await s.adv(readMs - 2600 + 600);
+          c('S06 결과 읽기 시간 뒤 저절로 닫힘', await page.evaluate(() => !document.querySelector('.sheet.choice')), `${readMs}ms`);
           const entry = await page.evaluate(() => { const e = document.querySelector('.entry--choice'); return e ? { text: e.textContent, auto: [...e.querySelectorAll('.tag')].some(x => x.textContent === '기본 행동') } : null; });
           c('S04 피드에 선택 기록(직접 → 기본 행동 태그 없음)', entry && !entry.auto, JSON.stringify(entry));
           await page.click('[data-speed="4"]');
@@ -182,20 +197,23 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
         } else if (k === 2) {                // 카운트다운 무응답 → 기본값
           const t0 = s.t;
           const def = await page.evaluate(() => document.querySelector('.option.is-default .option__label').textContent);
-          await s.until(() => !document.querySelector('.sheet.choice'), { step: 250 });
-          const dt = s.t - t0;
+          const ring0 = await page.evaluate(() => +document.querySelector('.ring__num').textContent * 1000);
+          await page.evaluate(() => { window.__rms = 0; });
+          await s.until(RESULT_MS, { step: 250 });
+          const dt = s.t - t0, rMs = await page.evaluate(() => window.__rms);
           const e = await page.evaluate(() => { const e = document.querySelector('.entry--choice'); return e ? { label: e.querySelector('.entry__label')?.textContent, auto: [...e.querySelectorAll('.tag')].some(x => x.textContent === '기본 행동') } : null; });
-          modes.timeout = { ms: dt, def, e };
-          c('S06 무응답 12초(+결과 1.5초) 안에 기본값 처리', dt >= 12000 && dt <= 14500, `${dt}ms`);
+          modes.timeout = { ms: dt, def, e, ring0, rMs };
+          c('S06 무응답: 링 시간(≥12초) + 결과 읽기 시간 뒤 기본값 처리', dt >= 12000 + 3000 - 1000 && dt <= ring0 + rMs + 750, `${dt}ms / ring ${ring0} / result ${rMs}`);
           c('S06 무응답 → 기본 행동 태그 + 기본 선택지가 반영', e?.auto && e.label === def, JSON.stringify({ def, e }));
         } else if (k === 3) {                // 자동결정 모드
           await page.click('.choice__foot [data-act="auto"]');
           const t0 = s.t;
           const sync = await page.evaluate(() => document.querySelector('.lifebar [data-act=auto]').getAttribute('aria-checked'));
           c('S06 자동결정 스위치 ↔ 하단 바 동기', sync === 'true', sync);
-          await s.until(() => !document.querySelector('.sheet.choice'), { step: 100 });
-          const dt = s.t - t0;
-          c('S06 자동결정 1.2초 + 결과 1.5초', dt >= 2400 && dt <= 3300, `${dt}ms`);
+          await page.evaluate(() => { window.__rms = 0; });
+          await s.until(RESULT_MS, { step: 100 });
+          const dt = s.t - t0, rMs = await page.evaluate(() => window.__rms);
+          c('S06 자동결정 1.2초 + 결과 읽기 시간', dt >= 1200 + rMs - 300 && dt <= 1200 + rMs + 500, `${dt}ms / result ${rMs}`);
           modes.auto = dt;
         } else {
           await s.until(() => !document.querySelector('.sheet.choice'), { step: 250 });
@@ -203,8 +221,13 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
       },
     });
     c('S07 비교 카드 자동 팝업 없음(하단 [동갑내기]로만 연다)', res.compare.length === 0, JSON.stringify(res.compare));
-    c('S04 선택 3경로 모두 실행', !!modes.timeout && modes.auto != null && modes.arming != null, JSON.stringify(modes));
+    c('S04 선택 3경로 모두 실행', !!modes.timeout && modes.auto != null && modes.direct != null, JSON.stringify(modes));
     c.note('driveLife', { choices: res.choices.length, compare: res.compare, modes });
+    // 마지막 해: 자동결정이 켜져 있어도 사망 화면으로 저절로 넘어가지 않는다(직접 넘김)
+    c('S08 마지막 해에서 멈추고 [마지막 페이지로] 표시', res.screen === 'life-end', res.screen);
+    await sim.adv(30_000);
+    c('S08 30초 지나도 진행 화면에 머묾', (await screen(page)) === 'life', await screen(page));
+    await page.click('[data-act="last-record"]');
   });
 
   // ── S09 사망
@@ -213,7 +236,8 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     const d = await page.evaluate(() => ({
       text: document.querySelector('.death').innerText, ads: document.querySelectorAll('.ad-slot').length,
       focus: document.activeElement?.className, rec: JSON.parse(localStorage.getItem('hj.v1.records') || '[]').length, cur: localStorage.getItem('hj.v1.current'),
-      btn: document.querySelector('.actionbar .btn')?.textContent, note: document.querySelector('.actionbar__note')?.textContent.trim(), sheets: document.querySelectorAll('.sheet').length,
+      btn: document.querySelector('.actionbar .btn')?.textContent, btns: document.querySelectorAll('.actionbar .btn').length, note: document.querySelector('.actionbar__note')?.textContent.trim(), sheets: document.querySelectorAll('.sheet').length,
+      dcine: !!document.querySelector('[data-dcine]'), dcineText: document.querySelector('[data-dcine]')?.innerText.replace(/\n+/g, ' ') ?? '',
     }));
     c('S09 기록관 저장이 사망 화면보다 먼저(기록 1개)', d.rec === 1, d.rec);
     c('S09 이어 하기 저장 삭제(hj.v1.current)', d.cur == null, d.cur);
@@ -221,11 +245,13 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     c('S09 "세상을 떠났습니다" 문구', /세상을 떠났습니다\./.test(d.text), d.text.replace(/\n/g, ' '));
     c('S09 광고 없음', d.ads === 0);
     c('S09 시트·공유 자동 열림 없음', d.sheets === 0);
-    c('S09 8초 뒤 결산 안내 + 결산 보기', /8초 뒤 결산으로 넘어갑니다/.test(d.note) && d.btn === '결산 보기', `${d.note}/${d.btn}`);
+    c('S09 직접 넘김 안내 + 버튼 1개 "살아온 날들 돌아보기"(F-9)', /직접 넘겨/.test(d.note) && d.btn === '살아온 날들 돌아보기' && d.btns === 1, `${d.note}/${d.btn}/${d.btns}`);
+    c('S09 검정 마지막 페이지(dcine)에 사인 문구', d.dcine && /세상을 떠났습니다/.test(d.dcineText), d.dcineText.slice(0, 120));
     await shot(page, 'flow-07-death');
-    const t0 = sim.t;
-    await sim.until(() => document.body.dataset.screen === 'summary', { step: 250 });
-    c('S09 자동 8초 뒤 결산', sim.t - t0 >= 7500 && sim.t - t0 <= 8500, `${sim.t - t0}ms`);
+    await sim.adv(30_000);
+    c('S09 자동으로 결산에 넘어가지 않음(30초)', (await screen(page)) === 'death', await screen(page));
+    await page.click('[data-act="sum"]');
+    c('S09 버튼 한 번으로 결산', (await screen(page)) === 'summary', await screen(page));
   });
 
   // ── S10 결산
@@ -234,26 +260,30 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     await waitScreen(page, 'summary');
     const d = await page.evaluate(() => ({
       focus: document.activeElement?.className, scroll: scrollY, ads: document.querySelectorAll('.ad-slot').length, sheets: document.querySelectorAll('.sheet,.scrim').length,
-      main: document.querySelector('.verdict__main')?.textContent, reasons: document.querySelectorAll('.verdict__reasons li').length,
+      main: document.querySelector('.verdict__main')?.textContent, epi: document.querySelector('.epi__title')?.textContent, paras: document.querySelectorAll('.verdict .epi__body p').length,
       closing: [...document.querySelectorAll('section[aria-labelledby=sum-closing] .metric')].map(m => m.querySelector('.metric__label').textContent + ':' + m.querySelector('.metric__value').textContent),
       issues: document.querySelectorAll('section[aria-labelledby=sum-issues] .metric').length,
       tl: [...document.querySelectorAll('.timeline .tl')].map(x => x.innerText.replace(/\n+/g, ' ')),
       peers: document.querySelectorAll('section[aria-labelledby=sum-peers] .peer').length, selfPeers: document.querySelectorAll('section[aria-labelledby=sum-peers] .peer .tag').length,
-      cards: document.querySelectorAll('[data-card]').length, btns: [...document.querySelectorAll('.actionbar .btn')].map(b => b.textContent),
-      full: document.querySelector('.summary').innerText, head: document.querySelector('.lifehead').innerText.replace(/\n/g, ' '),
+      cards: new Set([...document.querySelectorAll('[data-card]')].map(b => b.dataset.card)).size, more: [...document.querySelectorAll('.sum-more .linkrow__title')].map(b => b.textContent).join(), btns: [...document.querySelectorAll('.actionbar .btn')].map(b => b.textContent),
+      full: (() => { const c = document.querySelector('.summary').cloneNode(true); c.querySelector('.stand')?.remove(); return c.innerText; })(), stand: !!document.querySelector('.summary .stand'), head: document.querySelector('.lifehead').innerText.replace(/\n/g, ' '),
     }));
     live = d;
     c('S10 첫 포커스 h1 · 스크롤 맨 위', /lifehead__name/.test(d.focus) && d.scroll === 0, `${d.focus}/${d.scroll}`);
     c('S10 광고 없음(전체)', d.ads === 0, d.ads);
     c('S10 공유 시트 자동 열림 없음', d.sheets === 0, d.sheets);
-    c('S10 판정문 주문 + 이유 2줄', !!d.main && d.reasons === 2, `${d.main} / ${d.reasons}`);
+    c('S10 판정문 주문 + 회고문 제목·문단(이유 목록은 0ba9a1a에서 회고문으로 대체)', !!d.main && !!d.epi && d.paras >= 1, `${d.main} / ${d.epi} / ${d.paras}`);
     c('S10 결산 5지표', d.closing.length === 5, d.closing.join());
     c('S10 뉴스 10축', d.issues === 10, d.issues);
     c('S10 연표 6~16줄', d.tl.length >= 6 && d.tl.length <= 16, d.tl.length);
     c('S10 같은 날 4행 + 본인 1', d.peers === 4 && d.selfPeers === 1, `${d.peers}/${d.selfPeers}`);
-    c('S10 카드 3종 + 버튼', d.cards === 3 && d.btns.join() === '기록관,다시 태어나기', `${d.cards} ${d.btns}`);
+    c('S10 카드 3종 + 하단 [같은 출생으로 다시][다시 태어나기](HOOK-30S P0-6)', d.cards === 3 && d.btns.join() === '같은 출생으로 다시,다시 태어나기', `${d.cards} ${d.btns}`);
+    c('S10 [기록관]·[시대 선택해 태어나기]는 본문 맨 아래 링크', d.more === '기록관,시대 선택해 태어나기', d.more);
     const fh = forbiddenHits(d.full);
-    c('S10 승패·백분위·순위·직급 서열 문구 없음(결산 전체, 부정 안내문 제외)', fh.length === 0, fh.join(' | '));
+    // '이 생애의 위치'(.stand, 0ef8ffa)는 성인·비민감 사망에만 통계 비교 %를 보이는 의도된 섹션 — 그 밖의 결산 본문은 그대로 금지어 검사.
+    // (UI-SPEC §5 S10 '백분위 금지'와 충돌: 보고서에 기재)
+    c('S10 승패·백분위·순위·직급 서열 문구 없음(결산 본문, .stand 섹션·부정 안내문 제외)', fh.length === 0, fh.join(' | '));
+    c.note('S10 이 생애의 위치(.stand) 섹션 표시', d.stand);
     c.note('S10 결산 화면 안 금액 표기(UI-SPEC은 "만 원" 허용, 카드·공유 문구는 금지)', (d.full.match(new RegExp(RE_MONEY, 'g')) || []).slice(0, 8));
     c('S10 느낌표·이모지 없음', !/!|[\u{1F300}-\u{1FAFF}☀-➿]/u.test(d.full), '');
     await shot(page, 'flow-08-summary-top');
@@ -284,9 +314,15 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
       c(`S11 ${kind} "이미지를 길게 눌러 저장" 안내 + 문구 복사 버튼`, /길게 눌러 저장/.test(d.hint) && d.copyBtn);
       c(`S11 ${kind} 종류 탭 3개`, d.tabs === 3, d.tabs);
       const joined = [d.text, d.alt, ...d.canvas].join('\n');
-      c(`S11 ${kind} 백분위·순위·직급·금액 없음(문구·alt·캔버스 글자)`, !RE_RANK.test(joined) && !RE_MONEY.test(joined) && !RE_JOBRANK.test(joined), (joined.match(RE_RANK) || joined.match(RE_MONEY) || joined.match(RE_JOBRANK) || [''])[0]);
-      c(`S11 ${kind} 사인(원인 문구) 없음`, !/질환|암\(|폐렴|패혈증|뇌혈관|심장|노쇠|알츠하이머|사고|자해|자살|당뇨|간 질환|추락|코로나/.test(joined), (joined.match(/질환|폐렴|패혈증|뇌혈관|심장|노쇠|알츠하이머|사고|자해|자살|당뇨|추락|코로나/) || [''])[0]);
-      c(`S11 ${kind} 문구 말미 "— 태어나보니 대한민국"`, /— 태어나보니 대한민국$/.test(d.text), d.text.slice(-30));
+      // 붙여 넣는 문구·alt: 백분위·순위·직급·금액·사인 모두 없음(cards.js shareText 계약).
+      // 캔버스: '나의 인생 기록' 카드(0ef8ffa)가 순자산 금액·비민감 사인을 의도적으로 그린다 → 순위·직급·민감 사인만 금지(UI-SPEC §8.1), 금액·사인은 기록만.
+      const said = [d.text, d.alt].join('\n'), drawn = d.canvas.join('\n');
+      const CAUSE = /질환|암\(|폐렴|패혈증|뇌혈관|심장|노쇠|알츠하이머|사고|자해|자살|당뇨|간 질환|추락|코로나/;
+      c(`S11 ${kind} 문구·alt: 백분위·순위·직급·금액 없음`, !RE_RANK.test(said) && !RE_MONEY.test(said) && !RE_JOBRANK.test(said), (said.match(RE_RANK) || said.match(RE_MONEY) || said.match(RE_JOBRANK) || [''])[0]);
+      c(`S11 ${kind} 문구·alt: 사인(원인 문구) 없음`, !CAUSE.test(said), (said.match(CAUSE) || [''])[0]);
+      c(`S11 ${kind} 캔버스: 백분위·순위·직급·민감 사인 없음`, !RE_RANK.test(drawn) && !RE_JOBRANK.test(drawn) && !RE_CAUSE_SENS.test(drawn), (drawn.match(RE_RANK) || drawn.match(RE_JOBRANK) || drawn.match(RE_CAUSE_SENS) || [''])[0]);
+      c.note(`S11 ${kind} 캔버스 금액·비민감 사인 표기`, { money: (drawn.match(new RegExp(RE_MONEY, 'g')) || []).slice(0, 4), cause: (drawn.match(CAUSE) || [''])[0] });
+      c(`S11 ${kind} 문구 말미 "— 태어나보니 대한민국 · bornkr.click"(717d1ce 주소 서명)`, /— 태어나보니 대한민국 · bornkr\.click$/.test(d.text), d.text.slice(-40));
       c(`S11 ${kind} 해시태그·도발 문구 없음`, !/#|너는 몇 살/.test(d.text));
       fs.writeFileSync(path.join(SHOTS, `flow-card-${kind}.png`), Buffer.from(d.src.split(',')[1], 'base64'));
       saveJson(`flow-card-${kind}.json`, { text: d.text, alt: d.alt, canvas: d.canvas });
@@ -296,7 +332,7 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
       c(`S11 ${kind} 문구 복사 → 클립보드 일치`, clip.split('\r\n').join('\n') === d.text, clip.slice(0, 40));
       c(`S11 ${kind} 복사 토스트`, await page.evaluate(() => /복사했습니다/.test(document.querySelector('.toast')?.textContent || '')));
       await page.keyboard.press('Escape');
-      await page.waitForFunction(() => !document.querySelector('.sheet'));
+      await page.waitForFunction(() => !document.querySelector('.sheet')); await sim.adv(50);   // 시트 이력 칸 정리(histPop)는 setTimeout(0) — 멈춘 가짜 시계에선 진행해야 돈다
     }
     await page.click('[data-card="verdict"]');
     await page.waitForSelector('.share__text');
@@ -306,16 +342,16 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     c('S11 복사 실패 → textarea 선택 + 안내 토스트', sel.sel === sel.len && /선택해 두었습니다/.test(sel.toast || ''), JSON.stringify(sel));
     await page.evaluate(() => { navigator.clipboard.writeText = window.__w; });
     await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.querySelector('.sheet'));
+    await page.waitForFunction(() => !document.querySelector('.sheet')); await sim.adv(50);
   });
 
   // ── S12 기록관 + 재열람 일치
   await t.test('S12 기록관·재열람', async () => {
-    await page.click('.actionbar [data-go="archive"]');
+    await page.click('.sum-more [data-go="archive"]');
     await waitScreen(page, 'archive');
     const d = await page.evaluate(() => ({ items: document.querySelectorAll('.records li').length, tally: document.querySelector('.tally')?.innerText.replace(/\n/g, ' '), cap: document.querySelector('.archive__cap')?.textContent, ads: document.querySelectorAll('.ad-slot').length }));
     c('S12 기록 1개 · 이 기기에만 저장 문구', d.items === 1 && /이 기기에만 저장/.test(d.cap), JSON.stringify(d));
-    c('S12 목록 광고 1칸', d.ads === 1, d.ads);
+    c('S12 목록 광고 영역 없음(5ddecb9)', d.ads === 0, d.ads);
     c('S12 집계에 순위·비교 없음', !RE_RANK.test(d.tally || ''), d.tally);
     await shot(page, 'flow-10-archive');
     await page.click('[data-rec="0"]');
@@ -334,7 +370,7 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     c('S12-b 재열람 = 결산(머리글 사망·향년 일치)', strip(det.head) === strip(live.head), `${det.head} | ${live.head}`);
     c('S12-b 상세 광고 없음', det.ads === 0);
     await shot(page, 'flow-11-archive-detail');
-    await page.click('.actionbar [data-go="archive"]');
+    await page.click('.sum-more [data-go="archive"]');
     await waitScreen(page, 'archive');
   });
 
@@ -349,14 +385,13 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     const d = await page.evaluate(() => ({
       tables: document.querySelectorAll('table.stat-table').length, rows: [...document.querySelectorAll('.stat-table tbody tr')].map(r => r.innerText.replace(/\s+/g, ' ')), ads: document.querySelectorAll('.ad-slot').length,
       src: document.querySelectorAll('.src-item').length, filters: document.querySelectorAll('.filter [data-filter]').length,
-      adPos: (() => { const ad = document.querySelector('.ad-slot'); const tb = document.querySelectorAll('table.stat-table'); return tb.length > 1 && !!(tb[0].compareDocumentPosition(ad) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(ad.compareDocumentPosition(tb[1]) & Node.DOCUMENT_POSITION_FOLLOWING); })(),
       links: [...document.querySelectorAll('.src-item a')].map(a => a.target + '|' + a.rel),
     }));
     c('S13 주제 표 3개 이상 · 값 행 8개 이상', d.tables >= 3 && d.rows.length >= 8, `${d.tables}/${d.rows.length}`);
     c('S13 모든 값 행에 값·연도·배지(undefined/NaN 없음)', d.rows.every(r => !/undefined|NaN|null/.test(r) && /\d{4}/.test(r)), d.rows.filter(r => /undefined|NaN|null/.test(r) || !/\d{4}/.test(r)).join(' || '));
-    c('S13 광고 1칸(표 사이)', d.ads === 1 && d.adPos, `${d.ads}/${d.adPos}`);
+    c('S13 광고 영역 없음(5ddecb9)', d.ads === 0, d.ads);
     c('S13 출처 목록 50개 이상', d.src >= 50, d.src);
-    c('S13 필터 4개', d.filters === 4, d.filters);
+    c('S13 필터 3개(전체·통계·전망)', d.filters === 3, d.filters);
     c('S13 외부 링크 rel=noopener', d.links.every(l => /noopener/.test(l)), d.links.slice(0, 3).join());
     await page.click('[data-filter="measured"]');
     const f = await page.evaluate(() => ({ vis: [...document.querySelectorAll('.stat-table tbody tr')].filter(r => !r.hidden).length, bad: [...document.querySelectorAll('.stat-table tbody tr')].filter(r => !r.hidden && r.dataset.kind !== 'measured').length, pressed: document.querySelector('[data-filter="measured"]').getAttribute('aria-pressed') }));
@@ -374,14 +409,14 @@ test('E2E-1 전체 흐름(가짜 시계, 390x844)', { timeout: 900_000 }, async 
     c('S14 광고 없음', s.ads === 0);
     await page.click('[data-theme-set="dark"]');
     s = await get();
-    c('S14 테마 어둡게 → data-theme=dark · 저장 · 배경 어두움', s.theme === 'dark' && s.ls.theme === 'dark' && s.bg === 'rgb(17, 19, 22)', JSON.stringify(s));
+    c('S14 테마 어둡게 → data-theme=dark · 저장 · 배경 어두움(--bg #121C18)', s.theme === 'dark' && s.ls.theme === 'dark' && s.bg === 'rgb(18, 28, 24)', JSON.stringify(s));
     await shot(page, 'flow-13-settings-dark');
     await page.click('[data-theme-set="light"]');
-    s = await get(); c('S14 테마 밝게', s.theme === 'light' && s.bg === 'rgb(230, 232, 234)', JSON.stringify(s));
+    s = await get(); c('S14 테마 밝게(--bg #EAE6DA)', s.theme === 'light' && s.bg === 'rgb(234, 230, 218)', JSON.stringify(s));
     await page.click('[data-theme-set="system"]');
     s = await get(); c('S14 테마 기기 따라 → data-theme 제거', s.theme === null && s.ls.theme === 'system', JSON.stringify(s));
-    await page.click('[data-speed-set="2"]');
-    s = await get(); c('S14 기본 배속 2× 저장', s.ls.speed === 2, s.ls.speed);
+    await page.click('[data-speed-set="3"]');
+    s = await get(); c('S14 기본 배속 3× 저장(기본값 2×와 다른 값)', s.ls.speed === 3, s.ls.speed);
     const autoWas = s.ls.auto;
     await page.click('[data-set="auto"]');
     s = await get(); c('S14 자동결정 스위치 토글·저장', s.ls.auto === !autoWas, `${autoWas} → ${s.ls.auto}`);

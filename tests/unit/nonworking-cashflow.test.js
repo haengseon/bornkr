@@ -42,7 +42,7 @@ for (const model of [1, 2]) for (const status of ['retired', 'seeking', 'inactiv
 }
 
 test('여러 해 무소득이면 해마다 현금 소진, 잔액 부족 때 차입과 자금 압박 연결', () => {
-  const L = person(); L.money.assets = 2500;
+  const L = person(); L.money.assets = 2500; L.home.deposit = 12000;   // 보증금(재산)이 있어 생계급여 대상이 아니다
   let previous = econ(L).NW;
   for (let i = 0; i < 3; i++) {
     L.yr = { asked: false }; settle(L, context(L));

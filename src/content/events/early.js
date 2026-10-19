@@ -20,7 +20,44 @@ const younger = L => L?.family?.siblingMembers
   ? L.family.siblingMembers.filter(s => s.alive && s.birthYear > L.birth.year && s.birthYear <= L.year).length
   : (L?.family?.siblings ?? 0) - ((L?.birth?.order ?? 1) - 1);
 
+// ───────── 부모의 첫 결정(parentChoice, 1세 보장: events.js chanceStep) ─────────
+// 낮 돌봄을 고르면 birth.care·dualIncome이 바뀌어 이후 사건·고민(concerns)·비교 카드가 따라간다.
+// 두 부모 / 엄마 혼자(한부모·아빠 사망) × 어린이집 보급 전(~1990: 업고 일하기) / 후(1991 영유아보육법~).
+const momAlive = L => L?.family?.parents?.mother?.alive !== false;
+const dadHere = L => !L?.birth?.parents?.singleParent && L?.family?.parents?.father?.alive !== false;
+const grandma = L => (L?.family?.gp ?? [{ sex: 'F', alive: true }]).some(g => g.sex === 'F' && g.alive);
+const parentChoice = (solo, daycare) => {
+  const dual = v => (solo ? {} : { 'birth.parents.dualIncome': v });
+  const care = (c, d) => ({ 'birth.care': c, ...dual(d) });
+  const last = daycare
+    ? { id: 'daycare', label: '어린이집에 보낸다', fx: { stats: { wealth: solo ? 3 : 4, leisure: 2, happiness: -2 }, set: care('daycare', true) }, result: '아침마다 어린이집 문 앞에서 엄마 손을 놓았다.' }
+    : { id: 'carry', label: '업고 일하러 나간다', fx: { stats: { wealth: solo ? 2 : 3, relations: 2, health: -2 }, set: care('parent', true) }, result: '엄마 등에 업혀 일터를 따라다녔다.' };
+  return {
+    id: `early.parent.care.${solo ? 'solo' : 'two'}.${daycare ? 'new' : 'old'}`, ages: [1, 1], years: daycare ? [1991, 2100] : [1900, 1990],
+    p: 0.3, once: true, tags: ['parentChoice'],
+    when: L => momAlive(L) && (solo ? !dadHere(L) : dadHere(L)),
+    text: solo ? '엄마 혼자 벌어야 했고, 낮에 아이 볼 사람이 필요했다.' : '맞벌이를 하면 형편이 나아지지만, 아이 볼 사람이 필요했다.',
+    reason: '부모님이 정한 낮 돌봄',
+    choice: {
+      prompt: solo ? '엄마가 처음으로 정해야 할 일이 생겼다.' : '부모님이 처음으로 정해야 할 일이 생겼다.',
+      options: [
+        { id: 'grandma', label: '할머니께 맡긴다', when: grandma, fx: { stats: { wealth: solo ? 3 : 4, relations: 2, leisure: -2 }, set: care('grandparent', true) }, result: '할머니 등에 업혀 자란 기억이 오래 남았다.' },
+        { id: 'home', label: '엄마가 집에서 키운다', fx: { stats: { relations: 3, happiness: 2, wealth: solo ? -6 : -4 }, set: care('parent', false) }, result: '낮이면 엄마 무릎에서 낮잠을 잤다.', ...(!daycare && { hint: '흔한 행동' }) },
+        last,
+      ],
+      // 직접 고르지 않으면 출생 때 정해진 돌봄을 따른다(출생 신고서 문장과 맞춤)
+      default: L => {
+        const c = L?.birth?.care;
+        if (c === 'grandparent' && grandma(L)) return 'grandma';
+        if (c === 'daycare' || (c !== 'parent' && !grandma(L))) return last.id;
+        return !daycare && !solo && L?.birth?.parents?.dualIncome ? 'carry' : 'home';
+      },
+    },
+  };
+};
+
 export default [
+  parentChoice(false, false), parentChoice(false, true), parentChoice(true, false), parentChoice(true, true),
   // ───────── 첫 선택(firstChoice, 4~5세) ─────────
   {
     id: 'early.first.swing', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'],
@@ -37,7 +74,7 @@ export default [
     },
   },
   {
-    id: 'early.first.drawing', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'],
+    id: 'early.first.drawing', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'], when: momAlive,
     text: '선생님이 마음대로 그려 보라며 도화지를 나눠 주었다.',
     reason: '도화지에 무엇을 그릴지 정한 선택',
     choice: {
@@ -51,7 +88,7 @@ export default [
     },
   },
   {
-    id: 'early.first.cat', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'],
+    id: 'early.first.cat', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'], when: momAlive,
     text: '골목 담벼락 아래 길고양이가 있었다. 손에는 과자가 있었다.',
     reason: '길고양이 앞에서의 선택',
     choice: {
@@ -94,7 +131,7 @@ export default [
     },
   },
   {
-    id: 'early.first.puddle', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'],
+    id: 'early.first.puddle', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'], when: momAlive,
     text: '비 갠 아침, 현관 앞에 웅덩이가 크게 고여 있었다.',
     reason: '웅덩이 앞에서의 선택',
     choice: {
@@ -102,7 +139,7 @@ export default [
       options: [
         { id: 'jump', label: '뛰어든다', fx: { stats: { happiness: 3, leisure: 3, health: -2 }, traits: { open: 2 } }, result: '장화 속까지 젖었고, 웃음이 먼저 나왔다.' },
         { id: 'look', label: '물속을 들여다본다', fx: { stats: { intellect: 3, happiness: -1, leisure: -1 }, traits: { open: 1, sens: 1 } }, result: '물에 비친 구름이 내 발에 닿았다.' },
-        { id: 'hand', label: '엄마 손을 잡고 간다', fx: { stats: { relations: 2, happiness: -2, health: 1 }, traits: { consc: 1 } }, result: '웅덩이를 크게 돌아 어린이집에 도착했다.', hint: '흔한 행동' },
+        { id: 'hand', label: '엄마 손을 잡고 간다', fx: { stats: { relations: 2, happiness: -2, health: 1 }, traits: { consc: 1 } }, result: '웅덩이를 크게 돌아 골목을 빠져나왔다.', hint: '흔한 행동' },
       ],
       default: 'hand',
     },
@@ -122,7 +159,7 @@ export default [
     },
   },
   {
-    id: 'early.first.fall', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'],
+    id: 'early.first.fall', ages: [4, 5], p: 0.06, once: true, tags: ['firstChoice'], when: momAlive,
     text: '달리다 넘어져 무릎이 까졌다. 어른들은 조금 멀리 있었다.',
     reason: '넘어진 뒤의 선택',
     choice: {
@@ -240,6 +277,7 @@ export default [
   },
   {
     id: 'early.parent.overtime', ages: [0, 6], cooldown: 4,
+    when: L => momAlive(L) && (!!L?.birth?.parents?.singleParent || dadHere(L)),
     p: L => (L?.birth?.parents?.dualIncome ? 0.07 : 0.05),
     text: (L, c) => {
       const par = L?.birth?.parents;
@@ -314,7 +352,7 @@ export default [
   // ───────── 선택 ─────────
   {
     id: 'early.kinder.choice', ages: [5, 6], p: 0.3, once: true, years: [1990, 2100],
-    text: '입학 전 마지막 해였다. 낮을 보낼 곳을 정해야 했다.',
+    text: '입학 전 마지막 해였다.',
     reason: '입학 전 낮 시간을 보낼 곳',
     choice: {
       prompt: '어디로 갈까?',

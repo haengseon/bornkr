@@ -390,6 +390,7 @@ export default [
   },
   {
     id: 'school.parent.joblost', ages: [7, 18], once: true,
+    when: L => L.family?.parents?.mother?.alive !== false && (!!L.birth?.parents?.singleParent || L.family?.parents?.father?.alive !== false),
     p: L => (L.year >= 1997 && L.year <= 1999 ? 0.12 : L.year === 2009 ? 0.04 : 0.02),
     text: (L, c) => {
       if (L.year >= 1997 && L.year <= 1999) return '아버지의 회사가 문을 닫았다. 저녁 뉴스는 같은 단어를 되풀이했다.';
@@ -408,7 +409,7 @@ export default [
   },
   {
     id: 'school.parent.away', ages: [7, 12], p: 0.04, once: true,
-    when: L => !L.birth?.parents?.singleParent,
+    when: L => !L.birth?.parents?.singleParent && L.family?.parents?.father?.alive !== false,
     text: era([
       [1960, '아버지가 지방 현장으로 나가 주말에만 집에 왔다.'],
       [1976, '아버지는 중동 현장에 나갔다. 편지는 두 달에 한 번 왔다.'],

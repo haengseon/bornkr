@@ -20,7 +20,7 @@ export function recordDailyAccess(L, input) {
     homeDong: L.home?.dong, moveCount: L.home?.moves?.length ?? 0 });
   d.history.push({ id: `access.${input.id}`, year: L.year, sourceEventId: input.sourceEventId,
     choiceId: input.choiceId, kind: 'access', status: 'confirmed',
-    text: '집 안에서 무리 없이 움직일 공간과 동작 범위를 확인했다. 운동을 완료하거나 질병을 치료했다는 뜻은 아니다.' });
+    text: '거실 탁자를 벽으로 밀어 움직일 자리를 냈다.' });
   return true;
 }
 
@@ -47,7 +47,7 @@ export function recordDailyActivity(L, input) {
   if (minutes) { time.personal -= minutes; time.activity = (time.activity || 0) + minutes; }
   d.history.push({ id: `activity.${input.id}.${L.year}.${input.status}`, year: L.year,
     sourceEventId: input.sourceEventId, choiceId: input.choiceId, kind: 'activity', status: 'confirmed',
-    text: input.status === 'paused' ? '이어 오던 활동을 잠시 멈췄다.' : `개인 시간 ${minutes}분을 ${input.kind === 'exercise' ? '가벼운 운동' : input.kind === 'reading' ? '독서' : '게임·미디어 이용'}에 썼다.` });
+    text: input.status === 'paused' ? '이어 오던 활동을 잠시 멈췄다.' : (input.kind === 'exercise' ? '틈을 내 가볍게 운동했다.' : input.kind === 'reading' ? '틈을 내 책을 읽었다.' : '틈을 내 게임·영상을 봤다.') });
   return true;
 }
 

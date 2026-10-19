@@ -2,7 +2,7 @@
 //   UI-SPEC §7.7 · ARCHITECTURE §14·§17.
 import test from 'node:test';
 import {
-  startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, STORAGE_THROW,
+  startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, STORAGE_THROW, menu, pauseClock,
 } from './helpers.mjs';
 
 let srv, br;
@@ -26,7 +26,7 @@ const setHidden = (page, h) => page.evaluate(h => {
 }, h);
 const hud = page => page.evaluate(() => ({
   age: +document.querySelector('[data-hud=age]').textContent, year: +document.querySelector('[data-hud=year]').textContent,
-  stats: [...document.querySelectorAll('.stat__value')].map(x => +x.textContent), name: document.querySelector('.hud__name').firstChild.textContent.trim(),
+  stats: [...document.querySelectorAll('.sbar__v')].map(x => +x.textContent), name: document.querySelector('.hud__name').firstChild.textContent.trim(),
   tag: !document.querySelector('[data-hud=paused]').hidden, banner: document.querySelector('.banner').hidden ? null : document.querySelector('.banner span').textContent,
   pause: document.querySelector('[data-act=pause]').textContent, pressed: document.querySelector('[data-act=pause]').getAttribute('aria-pressed'),
   ring: document.querySelector('.ring__num')?.textContent ?? null, cmpK: document.querySelector('.compare .timer-line__fill')?.style.getPropertyValue('--k') ?? null,
@@ -47,28 +47,29 @@ test('E2E-3a 탭 숨김 → 일시정지·복귀(멈춤 3중 표시, 3초 뒤 �
   c('숨김 20분 뒤에도 진행 화면 유지(15분 상한에 숨김 시간 불포함)', (await screen(page)) === 'life', await screen(page));
   await setHidden(page, false);
   const v0 = await hud(page);
-  c('복귀 → 멈춤 띠 + 멈춤 태그 + 하단 "계속"(aria-pressed=true) 3중 표시', v0.banner && /멈췄습니다/.test(v0.banner) && v0.tag && v0.pause === '계속' && v0.pressed === 'true', JSON.stringify(v0));
+  c('복귀 → 멈춤 띠 + 멈춤 태그 + 하단 "재개"(aria-pressed=true) 3중 표시', v0.banner && /멈췄습니다/.test(v0.banner) && v0.tag && v0.pause === '재개' && v0.pressed === 'true', JSON.stringify(v0));
   await shot(page, 'life-visibility-banner');
   await sim.adv(2400);
   const v1 = await hud(page);
   c('복귀 2.4초 시점엔 아직 멈춤', v1.tag && v1.age === a0.age, JSON.stringify(v1));
   await sim.adv(1000);
   const v2 = await hud(page);
-  c('복귀 3초 뒤 자동 재개(띠·태그 제거, 버튼 "멈춤")', v2.banner == null && !v2.tag && v2.pause === '멈춤', JSON.stringify(v2));
+  c('복귀 3초 뒤 자동 재개(띠·태그 제거, 버튼 "일시정지")', v2.banner == null && !v2.tag && v2.pause === '일시정지', JSON.stringify(v2));
   await sim.adv(12_000);
   c('재개 뒤 나이가 다시 흐른다', (await hud(page)).age > a0.age, `${a0.age} → ${(await hud(page)).age}`);
 
   // 직접 멈춰 둔 상태: 숨김·복귀 뒤에도 자동 재개 없음
   await page.click('[data-act=pause]');
   const p0 = await hud(page);
-  c('직접 멈춤 → 태그·"계속"', p0.tag && p0.pause === '계속', JSON.stringify(p0));
+  c('직접 멈춤 → 태그·"재개"', p0.tag && p0.pause === '재개', JSON.stringify(p0));
   await setHidden(page, true); await sim.adv(5000); await setHidden(page, false);
   await sim.adv(10_000);
   const p1 = await hud(page);
-  c('직접 멈춘 뒤 숨김·복귀 → 3초 뒤에도 멈춤 유지(자동 재개 안 함)', p1.tag && p1.age === p0.age && p1.pause === '계속', JSON.stringify(p1));
+  c('직접 멈춘 뒤 숨김·복귀 → 3초 뒤에도 멈춤 유지(자동 재개 안 함)', p1.tag && p1.age === p0.age && p1.pause === '재개', JSON.stringify(p1));
   await page.click('[data-act=pause]');
-  c('계속 버튼 → 재개', (await hud(page)).pause === '멈춤');
-  // 띠의 [이어 가기]
+  c('재개 버튼 → 재개', (await hud(page)).pause === '일시정지');
+  // 띠의 [이어 가기] — 선택 시트가 떠 있으면 띠가 스크림 아래라 시트가 없을 때 숨긴다(숨김 동안은 진행이 멈춰 새 시트가 안 뜬다)
+  await sim.until(() => !document.querySelector('.sheet'), { max: 120_000 });
   await setHidden(page, true); await sim.adv(1000); await setHidden(page, false);
   await page.click('.banner [data-act=resume]');
   const r = await hud(page);
@@ -101,7 +102,7 @@ test('E2E-3b 새로 고침 후 이어 하기(hj.v1.current): 상태 일치, 선�
   await sim.until(() => !!document.querySelector('.sheet.choice'), { max: 200_000 });
   await sim.adv(800);
   await page.click('[data-opt]:not(.is-default)');
-  await sim.adv(1800);
+  await sim.until(() => !document.querySelector('.sheet.choice'));   // 결과는 읽기 시간 뒤 닫히고, 그동안 하단 바는 숨는다
   await page.click('[data-speed="4"]');
   await sim.until(() => +document.querySelector('[data-hud=age]').textContent >= 9 && !document.querySelector('.sheet.choice'), { max: 200_000, step: 250 });
   await sim.adv(100);
@@ -110,7 +111,7 @@ test('E2E-3b 새로 고침 후 이어 하기(hj.v1.current): 상태 일치, 선�
   // 새로 고침(pagehide → persist)
   await page.reload({ waitUntil: 'load' });
   await waitScreen(page, 'home');
-  await page.clock.pauseAt(new Date('2026-10-15T09:10:00+09:00')).catch(() => {});
+  await pauseClock(page, new Date('2026-10-15T09:10:00+09:00'));   // 새로 고침 뒤에도 시계를 다시 멈춘다(지나간 시각이면 지금 이후로)
   const rs = await page.evaluate(() => ({ text: document.querySelector('.resume')?.innerText.replace(/\n/g, ' '), cur: JSON.parse(localStorage.getItem('hj.v1.current') || 'null') }));
   c('새로 고침 후 홈에 "하던 생애가 있습니다" 이어 하기 카드', /하던 생애가 있습니다/.test(rs.text || '') && rs.text.includes(before.name), rs.text);
   c('hj.v1.current 에 age·name·year 저장', rs.cur && rs.cur.age >= before.age - 1 && rs.cur.name === before.name, JSON.stringify({ age: rs.cur?.age, name: rs.cur?.name, choices: rs.cur?.choices?.length }));
@@ -120,9 +121,10 @@ test('E2E-3b 새로 고침 후 이어 하기(hj.v1.current): 상태 일치, 선�
   const after = await hud(page);
   c('이어 하기 → 같은 이름·나이·연도', after.name === before.name && after.age === before.age && after.year === before.year, `${JSON.stringify(before)} | ${JSON.stringify(after)}`);
   c('이어 하기 → 6지표 값 동일(결정적 재현, 직접 선택 포함)', JSON.stringify(after.stats) === JSON.stringify(before.stats), `${before.stats} | ${after.stats}`);
-  c('이어 하기 → 멈춤 띠("멈춰 둔 생애를 불러왔습니다.") + 태그 + 계속', /불러왔습니다/.test(after.banner || '') && after.tag && after.pause === '계속', JSON.stringify(after));
+  c('이어 하기 → 멈춤 띠("멈춰 둔 생애를 불러왔습니다.") + 태그 + 재개', /불러왔습니다/.test(after.banner || '') && after.tag && after.pause === '재개', JSON.stringify(after));
   const feedAfter = await page.evaluate(() => [...document.querySelectorAll('.feed__year')].map(y => y.querySelector('.feed__when').textContent + ':' + y.querySelectorAll('.entry').length));
-  c('이어 하기 → 피드(나이별 줄 수) 복원', JSON.stringify(feedAfter) === JSON.stringify(feedBefore), `${feedBefore.slice(0, 4)} | ${feedAfter.slice(0, 4)}`);
+  // 진행 중인 해(맨 위)는 줄이 한 줄씩 드러나는 중이라 비교에서 뺀다(revealEntries). 지난 해들은 줄 수가 같아야 한다.
+  c('이어 하기 → 지난 해 피드(나이별 줄 수) 복원', JSON.stringify(feedAfter.slice(1)) === JSON.stringify(feedBefore.slice(1)), `${feedBefore.slice(1, 5)} | ${feedAfter.slice(1, 5)}`);
   const sel = await page.evaluate(() => JSON.parse(localStorage.getItem('hj.v1.settings') || '{}'));
   c('이어 하기 → 배속 설정 유지(4×)', sel.speed === 4, sel.speed);
   await shot(page, 'life-resume-life');
@@ -135,15 +137,18 @@ test('E2E-3b 새로 고침 후 이어 하기(hj.v1.current): 상태 일치, 선�
   // 선택 대기 중 새로 고침 → 다시 묻는다
   await sim.until(() => !!document.querySelector('.sheet.choice'), { max: 200_000 });
   await sim.adv(1000);
-  const prompt = await page.evaluate(() => document.querySelector('.choice__prompt').textContent + '|' + document.querySelector('.choice__meta').textContent);
+  const ask = () => page.evaluate(() => ({ meta: document.querySelector('.choice__meta')?.textContent, opts: [...document.querySelectorAll('.sheet.choice .option__label')].map(x => x.textContent).join('/'), title: document.querySelector('.choice__prompt')?.textContent }));
+  const q1 = await ask();
   await page.reload({ waitUntil: 'load' });
   await waitScreen(page, 'home');
   await page.click('[data-go="resume"]');
   await waitScreen(page, 'life');
   await page.waitForSelector('.sheet.choice', { timeout: 10000 }).catch(() => {});
-  await page.clock.pauseAt(new Date('2026-10-15T09:20:00+09:00')).catch(() => {});
-  const p2 = await page.evaluate(() => document.querySelector('.choice__prompt')?.textContent + '|' + document.querySelector('.choice__meta')?.textContent);
-  c('선택 대기 중 새로 고침 → 이어 하기에서 같은 선택을 다시 묻는다', p2 === prompt, `${prompt} | ${p2}`);
+  await pauseClock(page, new Date('2026-10-15T09:20:00+09:00'));
+  const q2 = await ask();
+  c('선택 대기 중 새로 고침 → 이어 하기에서 같은 선택(나이·연도·선택지)을 다시 묻는다', q2.meta === q1.meta && q2.opts === q1.opts, `${JSON.stringify(q1)} | ${JSON.stringify(q2)}`);
+  // 범용 질문("어떻게 할까?")은 그해 맥락 문장을 제목으로 올린다(HOOK-30S P0-5) — 이어 하기로 다시 물을 때도 같은 제목이어야 한다
+  c('다시 묻는 선택의 제목(맥락 문장)도 같다', q2.title === q1.title, `${q1.title} | ${q2.title}`);
   c('에러 0', appErrors(page).length === 0 && page.qa.pageErrors.length === 0, appErrors(page).concat(page.qa.pageErrors).join('|'));
   c.done();
 });
@@ -162,19 +167,24 @@ test('E2E-3c localStorage 예외 환경에서도 완주(setItem/getItem/removeIt
   await page.click('[data-go="gateOk"]'); await waitScreen(page, 'birth');
   await page.click('[data-act="start"]'); await waitScreen(page, 'life');
   await page.click('[data-speed="4"]');
+  // 자동결정은 기본 켬(DEFAULTS.auto) — 메모리 토글이 도는지 끄고 다시 켜서 '켬'으로 맞춘다
+  const autoOn = () => page.evaluate(() => document.querySelector('.lifebar [data-act=auto]').getAttribute('aria-checked') === 'true');
+  if (await autoOn()) await page.click('.lifebar [data-act="auto"]');
+  c('저장 불가여도 자동결정 끄기 동작(메모리)', !(await autoOn()));
   await page.click('.lifebar [data-act="auto"]');
   c('저장 불가여도 배속·자동결정 메모리 값으로 동작', await page.evaluate(() => document.querySelector('[data-speed="4"]').getAttribute('aria-pressed') === 'true' && document.querySelector('.lifebar [data-act=auto]').getAttribute('aria-checked') === 'true'));
-  await sim.until(() => document.body.dataset.screen === 'death', { max: 20 * 60_000, step: 500 });
+  await sim.until(() => !!document.querySelector('[data-act="last-record"]'), { max: 20 * 60_000, step: 500 });
+  await page.click('[data-act="last-record"]'); await waitScreen(page, 'death');           // 마지막 해·검정 페이지는 직접 넘김(자동 결산 없음)
   c('사망 화면 도달(진행 중 persist/clearCurrent 예외 무시)', true);
-  await sim.until(() => document.body.dataset.screen === 'summary', { max: 20_000, step: 500 });
+  await page.click('[data-act="sum"]'); await waitScreen(page, 'summary');
   const s = await page.evaluate(() => ({ main: document.querySelector('.verdict__main')?.textContent, tl: document.querySelectorAll('.timeline .tl').length }));
   c('결산 렌더', !!s.main && s.tl > 0, JSON.stringify(s));
   await page.click('[data-card="verdict"]');
   await page.waitForSelector('.share__img');
   for (let i = 0; i < 40 && !(await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await sim.adv(300); await page.waitForTimeout(80); }
   c('공유 카드 렌더', await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:image/png')));
-  await page.keyboard.press('Escape');
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.keyboard.press('Escape'); await sim.adv(50);
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
   const arch = await page.evaluate(() => document.querySelector('.empty')?.textContent);
   c('기록관: 저장 불가 → 빈 상태 문구(크래시 없음)', /아직 끝난 생애가 없습니다/.test(arch || ''), arch);
   await page.click('[data-go="home"]'); await waitScreen(page, 'home');
@@ -190,10 +200,10 @@ test('E2E-3c localStorage 예외 환경에서도 완주(setItem/getItem/removeIt
 test('E2E-3d 키보드 조작: 숫자 1~3 선택, Esc는 선택 시트를 닫지 않음, Tab 포커스 링', { timeout: 300_000 }, async () => {
   const c = checks('life-keyboard');
   const { page, sim } = await startGame();
+  // 오탭 방지는 이제 '시트가 뜨기 전에 시작된 탭'만 거른다(arming 120ms) — 가짜 시계 단위(250ms)로는 재현할 수 없어 여기선 보지 않는다
   await sim.until(() => !!document.querySelector('.sheet.choice'), { max: 200_000 });
-  await page.keyboard.press('2');
-  c('0.7초 안 숫자키 무시', await page.evaluate(() => !document.querySelector('.options.is-done')));
-  await sim.adv(800);
+  await sim.adv(300);
+  const opt2 = await page.evaluate(() => document.querySelectorAll('[data-opt]')[1]?.querySelector('.option__label').textContent);
   await page.keyboard.press('Escape');
   c('Esc 로 선택 시트가 닫히지 않음', await page.evaluate(() => !!document.querySelector('.sheet.choice')));
   // 포커스 링
@@ -202,27 +212,23 @@ test('E2E-3d 키보드 조작: 숫자 1~3 선택, Esc는 선택 시트를 닫지
   c('Tab 포커스는 시트 안(배경 inert) + 3px 링', ring.inSheet && /solid 3px/.test(ring.outline), JSON.stringify(ring));
   await shot(page, 'life-keyboard-focus');
   await page.keyboard.press('2');
-  const picked = await page.evaluate(() => document.querySelector('.option.is-picked')?.dataset.opt === document.querySelectorAll('[data-opt]')[1].dataset.opt);
-  c('숫자키 2 → 두 번째 선택지', picked);
-  await sim.adv(1700);
-  c('선택 뒤 시트 닫힘', await page.evaluate(() => !document.querySelector('.sheet.choice')));
+  const picked = await page.evaluate(() => document.querySelector('.picked dd')?.textContent);
+  c('숫자키 2 → 두 번째 선택지(결과의 "고른 행동")', !!opt2 && picked === opt2, `${opt2} | ${picked}`);
+  await page.keyboard.press('Enter');
+  c('결과 상태에서 Enter → 시트 닫힘(읽기 시간 기다리지 않음)', await page.evaluate(() => !document.querySelector('.sheet.choice')));
   // 스페이스 = 멈춤 버튼
   await page.focus('[data-act=pause]');
   await page.keyboard.press('Space');
   c('스페이스 = 하단 멈춤 버튼', (await hud(page)).tag);
   await page.keyboard.press('Space');
   c('스페이스 재입력 → 재개', !(await hud(page)).tag);
-  // 시트 탭 화살표
-  await page.click('[data-tab="stats"]');
-  await page.waitForSelector('.sheet .tabs');
-  await page.focus('.tabs__btn[aria-selected="true"]');
-  await page.keyboard.press('ArrowRight');
-  const t1 = await page.evaluate(() => document.querySelector('.tabs__btn[aria-selected="true"]').dataset.tab);
-  c('S05 탭 화살표 → 다음 탭(성향)', t1 === 'traits', t1);
-  await page.keyboard.press('ArrowRight');
-  c('→ 뉴스', (await page.evaluate(() => document.querySelector('.tabs__btn[aria-selected="true"]').dataset.tab)) === 'issues');
+  // 지표 시트(시트 안 탭 줄은 없어짐 — 상단 지표 버튼으로 연다): Esc 로 닫고 여는 버튼으로 포커스 복귀
+  await sim.until(() => !document.querySelector('.sheet'), { max: 120_000 });
+  await page.focus('.sbar [data-stat="health"] [data-tab="stats"]');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.sheet #panel-stats');
   await page.keyboard.press('Escape');
-  c('Esc → 시트 닫힘 · 여는 버튼으로 포커스', await page.evaluate(() => !document.querySelector('.sheet') && document.activeElement?.dataset?.tab === 'stats'));
+  c('Esc → 시트 닫힘 · 여는 버튼으로 포커스', await page.evaluate(() => !document.querySelector('.sheet') && document.activeElement?.dataset?.tab === 'stats'), await page.evaluate(() => document.activeElement?.className));
   c('에러 0', appErrors(page).length === 0 && page.qa.pageErrors.length === 0, appErrors(page).concat(page.qa.pageErrors).join('|'));
   c.done();
 });
@@ -231,34 +237,38 @@ test('E2E-3e S05 지표·성향·뉴스 시트: 출처·연도·계산 이유 �
   const c = checks('life-stats-sheet');
   const { page, sim } = await startGame({ seed: SEEDS.plain, extra: { speed: 4, auto: true } });
   await sim.until(() => +document.querySelector('[data-hud=age]').textContent >= 12 && !document.querySelector('.sheet') && !document.querySelector('.compare'), { max: 300_000, step: 250 });
-  await page.click('[data-tab="stats"]');
+  // 자동결정 중에는 시트가 떠도 시계가 흐르는 게 설계(play.js popupHalt) — 멈춤은 자동결정을 끄고 본다
+  await page.click('.lifebar [data-act="auto"]');
+  await sim.until(() => !document.querySelector('.sheet'), { max: 120_000 });
+  await page.click('.sbar [data-tab="stats"]');
   await page.waitForSelector('.sheet .metric');
   const age0 = await hud(page);
   await sim.adv(30_000);
-  c('S05 열린 동안 연 진행 멈춤(30초)', (await hud(page)).age === age0.age, `${age0.age} → ${(await hud(page)).age}`);
+  c('S05 열린 동안 연 진행 멈춤(30초, 자동결정 끔)', (await hud(page)).age === age0.age, `${age0.age} → ${(await hud(page)).age}`);
   const info = await page.evaluate(() => ({ n: document.querySelectorAll('.sheet details.metric').length, title: document.querySelector('.sheet__title').textContent }));
-  c('지표 탭: 6지표 details', info.n === 6, JSON.stringify(info));
+  c('지표 시트: 6지표 details', info.n === 6, JSON.stringify(info));
   const rows = [];
   for (const key of ['health', 'intellect', 'happiness', 'wealth', 'relations', 'leisure']) {
     await page.evaluate(k => { document.querySelector(`details[data-key="${k}"]`).open = true; }, key);
-    rows.push(await page.evaluate(k => { const d = document.querySelector(`details[data-key="${k}"]`); return { key: k, reason: d.querySelector('.metric__reason').textContent, explain: [...d.querySelectorAll('.explain li')].map(x => x.textContent), src: [...d.querySelectorAll('.src')].map(x => x.textContent), badges: d.querySelectorAll('.src .badge').length }; }, key));
+    rows.push(await page.evaluate(k => { const d = document.querySelector(`details[data-key="${k}"]`); return { key: k, reason: d.querySelector('.metric__reason').textContent, src: [...d.querySelectorAll('.src')].map(x => x.textContent), badges: d.querySelectorAll('.src [class*="badge"]').length }; }, key));
   }
+  // 지표 시트는 explain 문단 대신 '최근 변화 이유 한 줄 + 출처'만 보인다(설명충 정리, 0ef8ffa). 추정 출처는 배지를 숨긴다(srcList noEst).
   for (const r of rows) {
-    c(`지표 ${r.key}: 계산 이유(explain) 있음`, r.explain.length > 0, r.explain.join(' / ').slice(0, 120));
-    c(`지표 ${r.key}: 출처 있음(기관·통계명·연도 + 구분 배지)`, r.src.length > 0 && r.src.some(s => /\d{4}/.test(s)) && r.badges > 0, r.src.join(' / ').slice(0, 160));
+    c(`지표 ${r.key}: 이유 한 줄 있음`, r.reason.trim().length > 3, r.reason);
+    c(`지표 ${r.key}: 출처 있음(기관·통계명·연도)`, r.src.length > 0 && r.src.some(s => /\d{4}/.test(s)), r.src.join(' / ').slice(0, 160));
   }
-  c.note('지표 explain 샘플', rows.slice(0, 3));
+  c.note('지표 이유·출처 샘플', rows.slice(0, 3));
   await shot(page, 'life-stats-sheet');
-  await page.click('.tabs__btn[data-tab="issues"]');
+  await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('.sheet'));
+  await menu(page, 'issues'); await page.waitForSelector('.sheet .radar--issue');
   const iss = await page.evaluate(() => [...document.querySelectorAll('.sheet details.metric')].map(d => ({ label: d.querySelector('.metric__label').textContent, v: +d.querySelector('.metric__value').textContent, reason: d.querySelector('.metric__reason').textContent })));
-  c('뉴스 탭: 10축 값 내림차순 + 사유 1줄', iss.length === 10 && iss.every((x, i) => i === 0 || iss[i - 1].v >= x.v) && iss.every(x => x.reason.length > 3), JSON.stringify(iss.map(x => [x.label, x.v])));
-  await page.evaluate(() => { document.querySelector('.sheet details.metric').open = true; });
-  const issEx = await page.evaluate(() => ({ explain: [...document.querySelectorAll('.sheet details[open] .explain li')].map(x => x.textContent), src: [...document.querySelectorAll('.sheet details[open] .src')].map(x => x.textContent) }));
-  c('뉴스 탭: 가장 센 이슈에 계산 이유·출처', issEx.explain.length > 0 && issEx.src.length > 0, JSON.stringify(issEx).slice(0, 200));
+  // 관심사는 나이대별 항목(엔진 concernsOf)이라 개수가 바뀐다 — 값 내림차순 + 사유 1줄만 본다
+  c('관심사 시트: 나이대 항목 값 내림차순 + 사유 1줄', iss.length >= 3 && iss.every((x, i) => i === 0 || iss[i - 1].v >= x.v) && iss.every(x => x.reason.trim().length >= 2), JSON.stringify(iss.map(x => [x.label, x.v, x.reason])));
   await shot(page, 'life-issues-sheet');
-  await page.click('.tabs__btn[data-tab="traits"]');
-  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('.sheet .metric').length, note: document.querySelector('.trait-note')?.textContent }));
-  c('성향 탭: 5축 + "가구 배경·질병·장애로 정해지지 않습니다"', tr.n === 5 && /정해지지 않습니다/.test(tr.note || ''), JSON.stringify(tr));
+  await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('.sheet'));
+  await menu(page, 'traits'); await page.waitForSelector('.sheet .mbti-card');
+  const tr = await page.evaluate(() => ({ type: document.querySelector('.sheet .mbti-card__type')?.textContent, axes: document.querySelectorAll('.sheet .mbti-axis').length }));
+  c('성향 시트: 19세 미만은 "성향 형성 중"(MBTI 축은 성년 이후)', /형성 중/.test(tr.type || '') && tr.axes === 0, JSON.stringify(tr));
   const pct = await page.evaluate(() => document.querySelector('.sheet').innerText);
   c.note('S05 시트 안 백분위·순위 표기(GDD §4.4: explain 안에서만 허용)', (pct.match(/.{0,20}(백분위|순위|상위 \d|하위 \d).{0,20}/g) || []).slice(0, 5));
   c('에러 0', appErrors(page).length === 0 && page.qa.pageErrors.length === 0, appErrors(page).concat(page.qa.pageErrors).join('|'));
@@ -278,12 +288,12 @@ test('E2E-3f 설정이 새 생애에 반영(자동결정·배속) + 이어 할 �
   const ask = await page.evaluate(() => ({ screen: document.body.dataset.screen, open: !document.querySelector('#confirm-new')?.hidden, saved: JSON.parse(localStorage.getItem('hj.v1.current') || 'null')?.name }));
   c('(UX) 하던 생애가 있을 때 [태어나기] → 페이지 안 확인이 열리고 저장은 그대로', ask.screen === 'home' && ask.open && ask.saved === '이전생애', JSON.stringify(ask));
   await page.click('#confirm-new [data-go="bornNew"]'); await waitScreen(page, 'birth');       // 확인한 뒤에만 새 생애
-  const note = await page.evaluate(() => document.querySelector('.actionbar__note').textContent);
-  c('설정 자동결정 ON → 출생 화면 "자동결정이 켜져 있습니다."', /자동결정이 켜져 있습니다/.test(note), note);
+  // (출생 화면의 "자동결정이 켜져 있습니다." 안내는 초기 소스부터 없음 — 하단 바 반영만 본다)
   await page.click('[data-act="start"]'); await waitScreen(page, 'life');
   const lb = await page.evaluate(() => ({ auto: document.querySelector('.lifebar [data-act=auto]').getAttribute('aria-checked'), sp: [...document.querySelectorAll('[data-speed]')].map(b => b.getAttribute('aria-pressed')).join() }));
-  c('설정 배속 4×·자동결정 ON 이 진행 화면 하단 바에 반영', lb.auto === 'true' && lb.sp === 'false,false,true,false', JSON.stringify(lb));
-  await sim.adv(6000);
+  c('설정 배속 4×·자동결정 ON 이 진행 화면 하단 바에 반영(배속 1~5×)', lb.auto === 'true' && lb.sp === 'false,false,false,true,false', JSON.stringify(lb));
+  // 진행 저장(persist)은 한 해가 끝날 때 — 0세 '부모님의 첫 결정'(자동 1.2초 + 결과 읽기)이 끼어 첫 해가 길어졌다
+  await sim.until(() => JSON.parse(localStorage.getItem('hj.v1.current') || 'null')?.name !== '이전생애' || document.body.dataset.screen !== 'life', { max: 60_000 }).catch(() => {});
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('hj.v1.current') || 'null'));
   c.note('확인 뒤 새 생애 시작 후 hj.v1.current', saved && { name: saved.name, seed: saved.seed, age: saved.age });
   c('확인한 뒤에는 새 생애가 저장을 이어받는다(이전 생애 이름이 아님)', !saved || saved.name !== '이전생애', `저장: ${saved?.name}`);

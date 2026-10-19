@@ -20,7 +20,8 @@ async function fullRun(mode) {
   await sim.adv(200);
   await page.click('[data-act="start"]'); await waitScreen(page, 'life'); step('life');
   let guard = 0, picks = 0;
-  while ((await screen(page)) === 'life' && sim.t < 25 * 60_000) {
+  while ((await screen(page)) === 'life' && sim.t < 60 * 60_000) {     // 1× 방치는 1년 15초 + 글자 비례 카운트다운이라 장수 생애가 25분을 넘는다
+    if (await page.$('[data-act="last-record"]')) { await page.click('[data-act="last-record"]'); break; }   // 마지막 해는 직접 넘김
     if (mode === 'manual' && await page.evaluate(() => !!document.querySelector('.sheet.choice .options:not(.is-done)'))) {
       await sim.adv(800);
       if (await page.evaluate(() => !!document.querySelector('.sheet.choice .options:not(.is-done)'))) { await page.click('[data-opt]:nth-of-type(1)').catch(() => {}); picks++; }
@@ -31,24 +32,26 @@ async function fullRun(mode) {
   log.lifeFakeSec = Math.round(sim.t / 1000);
   await waitScreen(page, 'death'); step('death');
   await page.click('[data-act="sum"]'); await waitScreen(page, 'summary'); step('summary');
-  const sum = await pageText(page, '.summary');
+  // '이 생애의 위치'(.stand, 0ef8ffa)는 성인·비민감 사망에만 보이는 의도된 통계 비교 % — 그 밖의 결산 본문만 금지어 검사
+  const sum = await page.evaluate(() => { const c = document.querySelector('.summary').cloneNode(true); c.querySelector('.stand')?.remove(); document.body.append(c); const t = c.innerText; c.remove(); return t; });
+  log.liveMain = await page.evaluate(() => document.querySelector('.verdict__main')?.textContent);
   log.fh = forbiddenHits(sum);
   for (const kind of ['birth', 'verdict', 'timeline']) {
     await page.click(`[data-card="${kind}"]`);
     for (let i = 0; i < 40 && !(await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await sim.adv(300); await page.waitForTimeout(60); }
-    const k = await page.evaluate(() => ({ ok: (document.querySelector('.share__img')?.src || '').startsWith('data:image/png'), text: document.querySelector('.share__text').value, canvas: window.__qa.canvas.slice() }));
+    const k = await page.evaluate(() => ({ ok: (document.querySelector('.share__img')?.src || '').startsWith('data:image/png'), text: document.querySelector('.share__text').value, alt: document.querySelector('.share__img')?.alt || '', canvas: window.__qa.canvas.slice() }));
     log['card_' + kind] = k.ok;
-    log['cardMoney_' + kind] = RE_MONEY.test([k.text, ...k.canvas].join('\n'));
+    // 금액: 붙여 넣는 문구·alt 에는 없어야 한다. 캔버스의 '나의 인생 기록' 카드는 순자산을 의도적으로 그린다(0ef8ffa)
+    log['cardMoney_' + kind] = RE_MONEY.test([k.text, k.alt].join('\n'));
     log['cardRank_' + kind] = forbiddenHits([k.text, ...k.canvas].join('\n')).length;
     await page.evaluate(() => { window.__qa.canvas = []; });
-    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape'); await sim.adv(50);     // 시트 이력 칸 정리(setTimeout 0)
   }
   step('cards');
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
   await page.click('[data-rec="0"]'); await page.waitForSelector('.topbar__title'); step('archive-detail');
   log.detailMain = await page.evaluate(() => document.querySelector('.verdict__main')?.textContent);
-  log.liveMain = sum.match(/주문\n+(.*)/)?.[1];
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
   const rec = await page.evaluate(() => JSON.parse(localStorage.getItem('hj.v1.records') || '[]')[0]);
   log.seed = rec?.seed; log.deathAge = rec?.deathAge; log.choices = rec?.choices?.length; log.picks = picks;
   await page.click('.topbar [data-go="home"]'); await waitScreen(page, 'home');

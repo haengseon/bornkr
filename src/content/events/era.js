@@ -39,9 +39,9 @@ const RAW = [
     tiers: {
       child: '물가가 올라 생활비가 늘었다.',
       teen: '물가가 다시 올라 집안이 지출을 줄였다.',
-      adult: '2차 석유파동. 물가는 많게는 28.7%까지 뛰었다.',
+      adult: '2차 석유파동. 시장 물가가 하루가 다르게 뛰었다.',
     },
-    fx: { issues: { living: 10 } }, reason: '2차 석유파동 물가 급등', src: ['R05.S8'],
+    fx: { issues: { living: 10 } }, reason: '물가 최고 28.7%', src: ['R05.S8'],
   },
   {
     id: 'era.1980.tutor.ban', years: [1980, 1981], weight: 3, when: L => quint(L) >= 3,
@@ -66,9 +66,9 @@ const RAW = [
     tiers: {
       child: '대학에 가는 사람이 늘었다는 뉴스가 나왔다.',
       teen: '대학에 가는 사람이 눈에 띄게 늘었다고 했다.',
-      adult: '졸업정원제 뒤 대학 진학률이 27%에서 35%로 올랐다.',
+      adult: '졸업정원제 뒤 대학 문이 넓어졌다.',
     },
-    fx: { issues: { edu: -2 } }, reason: '졸업정원제 시행', src: ['R03.S10'],
+    fx: { issues: { edu: -2 } }, reason: '졸업정원제 · 진학률 27→35%', src: ['R03.S10'],
   },
   {
     id: 'era.1987.june', years: [1987, 1987], weight: 4,
@@ -93,7 +93,7 @@ const RAW = [
     tiers: {
       child: '집값 이야기가 어른들 대화에 자주 나왔다.',
       teen: '집값이 뛰어 이사가 어렵다는 말이 돌았다.',
-      adult: '집값이 가파르게 올랐고 주택 200만 호 건설이 시작됐다.',
+      adult: '집값이 가파르게 올랐고 신도시 공사가 시작됐다.',
     },
     fx: { issues: { housing: 8 } }, reason: '집값 급등·주택 200만 호', src: ['R08.S70'],
   },
@@ -156,9 +156,9 @@ const RAW = [
     tiers: {
       child: '엄마가 장롱 속 금붙이를 꺼내 들고 나섰다.',
       teen: '동네 사람들이 금을 들고 은행 앞에 줄을 섰다.',
-      adult: '금 모으기에 약 350만 명이 참여했다.',
+      adult: '장롱 속 금반지가 은행 창구로 모였다.',
     },
-    fx: { stats: { relations: 1 }, issues: { conflict: -1 } }, reason: '금 모으기', src: ['R08.S70'],
+    fx: { stats: { relations: 1 }, issues: { conflict: -1 } }, reason: '금 모으기 · 약 350만 명', src: ['R08.S70'],
   },
   {
     id: 'era.2000.pharm', years: [2000, 2000], weight: 2,
@@ -327,18 +327,18 @@ const RAW = [
     tiers: {
       child: '집값 이야기가 식탁에서 끊이지 않았다.',
       teen: '집값이 올라 내 집은 먼 일이라는 말이 돌았다.',
-      adult: '아파트값이 14.1% 올랐다. 빚을 내 집을 사는 영끌이 늘었다.',
+      adult: '아파트값이 뛰었다. 빚을 내 집을 사는 영끌이 늘었다.',
     },
-    fx: { issues: { housing: 8, fairness: 6 } }, reason: '집값 급등·영끌', src: ['R05.S5'],
+    fx: { issues: { housing: 8, fairness: 6 } }, reason: '아파트값 +14.1% · 영끌', src: ['R05.S5'],
   },
   {
     id: 'era.2022.rates', shock: true, impact: '그 무렵 사람들은 매달 늘어난 대출 이자를 보며 가계부를 다시 펼쳤다.', years: [2022, 2023], weight: 3, when: hasDebt,
     tiers: {
       child: '이자 이야기가 나오면 부모님 표정이 굳었다.',
       teen: '대출 이자가 올라 집안 살림이 팍팍해졌다고 했다.',
-      adult: '기준금리가 3%대로 올라 대출 이자가 불어났다.',
+      adult: '기준금리가 오르며 대출 이자가 불어났다.',
     },
-    fx: { issues: { housing: 6, living: 4 } }, reason: '기준금리 인상', src: ['R05.S7'],
+    fx: { issues: { housing: 6, living: 4 } }, reason: '기준금리 3%대', src: ['R05.S7'],
   },
   {
     id: 'era.2022.itaewon', years: [2022, 2022], weight: 4, sensitive: 'disaster',
@@ -363,9 +363,9 @@ const RAW = [
     tiers: {
       child: '집에서 난방과 전등을 아껴 쓰자는 말이 늘었다.',
       teen: '겨울 난방비 고지서가 집안 이야기가 됐다.',
-      adult: '전기·가스·수도 요금이 20.2% 올랐다.',
+      adult: '전기·가스·수도 요금 고지서가 무거워졌다.',
     },
-    fx: { issues: { living: 8 } }, reason: '전기·가스 요금 급등', src: ['R08.S30'],
+    fx: { issues: { living: 8 } }, reason: '공공요금 +20.2%', src: ['R08.S30'],
   },
   {
     id: 'era.2024.medical', shock: true, impact: '그 무렵 사람들은 진료 일정이 밀려 병원 대기 문자를 기다렸다.', years: [2024, 2025], weight: 4,
@@ -399,18 +399,18 @@ const RAW = [
     tiers: {
       child: '부모님이 연금 보험료 이야기를 했다.',
       teen: '연금 개혁 뉴스에 어른들이 한참 이야기했다.',
-      adult: '연금 개혁. 보험료율이 2033년까지 9%에서 13%로 오른다.',
+      adult: '연금 개혁. 내는 보험료가 해마다 오른다.',
     },
-    fx: { issues: { fairness: 5 } }, reason: '국민연금 개혁', src: ['R07.S06'],
+    fx: { issues: { fairness: 5 } }, reason: '보험료율 9→13%(2033)', src: ['R07.S06'],
   },
   {
     id: 'era.2025.pension.senior', years: [2025, 2026], weight: 3, ages: [60, 120],
     tiers: {
       child: '할머니가 받는 연금 이야기가 집에 나왔다.',
       teen: '어르신 연금 이야기가 뉴스에 자주 나왔다.',
-      adult: '연금 개혁. 소득대체율 43%가 유지되고 지급 보장이 명시됐다.',
+      adult: '연금 개혁. 연금 지급 보장이 법에 적혔다.',
     },
-    fx: { issues: { fairness: -2 } }, reason: '국민연금 개혁', src: ['R07.S06'],
+    fx: { issues: { fairness: -2 } }, reason: '소득대체율 43%', src: ['R07.S06'],
   },
   {
     id: 'era.2026.heat', years: [2024, 2026], weight: 3,
@@ -426,7 +426,7 @@ const RAW = [
     tiers: {
       child: '(전망) 어르신이 많아진 동네에서 자란다.',
       teen: '(전망) 65세 이상이 인구의 네 명 중 한 명이 된다.',
-      adult: '(전망) 2030년 65세 이상 25.3%. 돌봄 수요가 커진다.',
+      adult: '(전망) 돌봄이 필요한 노인이 크게 는다.',
     },
     fx: { issues: { care: 3 } }, reason: '고령화 전망(65세 이상 25.3%)', src: ['R07.S12'],
   },
@@ -435,20 +435,20 @@ const RAW = [
     tiers: {
       child: '(전망) 아이는 줄고 어르신은 늘어난 나라에서 자란다.',
       teen: '(전망) 생산연령인구가 줄어 연금 걱정이 커진다.',
-      adult: '(전망) 65세 이상 30.9%. 생산연령인구 100명당 노인 50명.',
+      adult: '(전망) 생산연령인구 둘이 노인 한 명을 받친다.',
     },
     when: L => !L?.fired?.['future.2035.dependency'],        // 같은 전망을 뉴스와 개인 사건으로 두 번 적용하지 않는다(QA #6)
-    fx: { issues: { fairness: 3 } }, reason: '고령화 전망(노년부양비 50.1)', src: ['R07.S12'],
+    fx: { issues: { fairness: 3 } }, reason: '65세 이상 30.9% · 부양비 50.1', src: ['R07.S12'],
   },
   {
     id: 'era.2050.aging', years: [2050, 2050], weight: 2, kind: 'projected',
     tiers: {
       child: '(전망) 어르신이 열 명 중 네 명인 나라에서 자란다.',
       teen: '(전망) 노인을 돌볼 사람이 부족해진다는 이야기가 나온다.',
-      adult: '(전망) 65세 이상 40.1%. 생산연령인구 100명당 노인 77명.',
+      adult: '(전망) 생산연령인구 넷이 노인 셋을 받친다.',
     },
     when: L => !L?.fired?.['future.2050.dependency'],
-    fx: { issues: { care: 3 } }, reason: '고령화 전망(노년부양비 77.3)', src: ['R07.S12'],
+    fx: { issues: { care: 3 } }, reason: '65세 이상 40.1% · 부양비 77.3', src: ['R07.S12'],
   },
 ];
 

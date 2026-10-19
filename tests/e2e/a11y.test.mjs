@@ -70,24 +70,28 @@ test('E2E-4e 접근성 구조: 전 화면 DOM 규칙 스캔', { timeout: 600_000
   let gotC = false, gotCmp = false, gotS = false;
   const t0 = sim.t;
   while ((await screen(page)) === 'life' && sim.t - t0 < 20 * 60_000) {
+    if (await page.$('[data-act="last-record"]')) { await S('life-end'); await page.click('[data-act="last-record"]'); break; }   // 마지막 해는 직접 넘김
     const s = await page.evaluate(() => ({ ch: !!document.querySelector('.sheet.choice'), cmp: !!document.querySelector('.compare'), sheet: !!document.querySelector('.sheet'), age: +document.querySelector('[data-hud=age]')?.textContent }));
     if (s.ch && !gotC) { gotC = true; await S('choice'); continue; }
-    if (!s.sheet && s.age >= 8 && !gotCmp) { gotCmp = true; await page.click('.lifebar [data-tab="peers"]'); await page.waitForSelector('.compare-sheet'); await S('compare'); await page.keyboard.press('Escape'); continue; }
+    if (!s.sheet && s.age >= 8 && !gotCmp) { gotCmp = true; await page.click('.life-menu summary'); await page.click('.life-menu [data-tab="peers"]'); await page.waitForSelector('.compare-sheet'); await S('compare'); await page.keyboard.press('Escape'); continue; }
     if (!s.sheet && !s.cmp && s.age >= 12 && !gotS) {
       gotS = true;
-      await page.click('[data-tab="stats"]'); await page.waitForSelector('.sheet .metric'); await S('stats-sheet');
-      await page.click('.tabs__btn[data-tab="issues"]'); await S('issues-sheet'); await page.keyboard.press('Escape'); continue;
+      // 상단 지표(.sbar) → 지표 시트, ⋯ 메뉴 → 관심사 시트(시트 안 탭 줄은 없어짐)
+      await page.click('.sbar [data-tab="stats"]'); await page.waitForSelector('.sheet #panel-stats'); await S('stats-sheet'); await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !document.querySelector('.sheet'));
+      await page.click('.life-menu summary'); await page.click('.life-menu [data-tab="issues"]'); await page.waitForSelector('.sheet .radar--issue'); await S('issues-sheet'); await page.keyboard.press('Escape'); continue;
     }
     await sim.adv(250);
   }
-  await S('death');
+  await waitScreen(page, 'death'); await S('death');
   await page.click('[data-act="sum"]'); await waitScreen(page, 'summary'); await S('summary');
   await page.click('[data-card="verdict"]');
   for (let i = 0; i < 30 && !(await page.evaluate(() => (document.querySelector('.share__img')?.src || '').startsWith('data:'))); i++) { await sim.adv(300); await page.waitForTimeout(80); }
   await S('share-sheet'); await page.keyboard.press('Escape');
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive'); await S('archive');
+  await sim.adv(50);       // 시트 이력 칸 정리(histPop)는 setTimeout(0) — 멈춘 가짜 시계에선 진행해야 돈다
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive'); await S('archive');
   await page.click('[data-rec="0"]'); await page.waitForSelector('.topbar__title'); await S('archive-detail');
-  await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+  await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
   await page.click('.topbar [data-go="home"]'); await waitScreen(page, 'home');
   await page.click('[data-go="codex"]'); await page.waitForSelector('table.stat-table'); await S('codex');
   await page.click('.topbar [data-go="home"]'); await waitScreen(page, 'home');

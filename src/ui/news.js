@@ -2,6 +2,7 @@
 // 데이터: era 사건(kind 'news') 우선, 없으면 src/content/news-archive.js 의 NEWS_ARCHIVE 에서 그 해 1건. 아카이브가 없어도 동작한다.
 import { ISSUES } from '../engine/constants.js';
 import { NEWS_ARCHIVE } from '../content/news-archive.js';
+import ERA from '../content/events/era.js';
 import { fxChips, ISSUE_SHORT } from './labels.js';
 import { esc, $, openSheet } from './dom.js';
 import { reactText } from './reaction-ui.js';
@@ -21,9 +22,11 @@ const issueLabel = k => ISSUE_SHORT[k] ?? ISSUES.find(i => i.key === k)?.label ?
 const splitNews = t => { const m = String(t).match(/^(.+?[.?!])\s+(.+)$/); return m ? [m[1], m[2]] : [String(t), '']; };
 
 // 엔진 news 로그 → 신문 지면 데이터(피드 줄·팝업 공용)
+// 시대 사건의 수치는 본문이 아니라 칩으로 보인다(R3): reason에 숫자가 있으면 그것이 수치 칩이다.
+const ERA_STAT = new Map(ERA.filter(e => /\d/.test(e.reason ?? '')).map(e => [e.id, e.reason]));
 export function newsOfEntry(e, year, L) {
   const [headline, summary] = splitNews(e.text);
-  const chips = fxChips(e.effects);
+  const chips = [ERA_STAT.get(e.id), ...fxChips(e.effects)].filter(Boolean);
   return { year: e.year ?? year, headline, summary, impact: chips.length ? chips.join(' · ') : '', axes: Object.keys(e.effects?.issues || {}), src: e.src, from: 'era', effects: e.effects, scenario: !!e.scenario, react: L ? reactText(e, L) : '', link: e.link || '', linkFx: e.linkFx || null };
 }
 // 피드의 '올해의 뉴스' 줄: 신문 아이콘 + 헤드라인 한 줄 + 개인 영향 칩(사건 단위 effects 만). 누르면 신문 지면 팝업.

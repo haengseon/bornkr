@@ -6,7 +6,7 @@ import * as R from './rng.js';
 import { CHOICE_TIMEOUT_MS, STAT_KEYS, ISSUE_KEYS } from './constants.js';
 import { STAGE_CAP, FEED_DIST, FEED_MAX } from './tuning.js';
 import { stageOf } from './clock.js';
-import { D } from './tables.js';
+import { D, T, yr } from './tables.js';
 import { text, choiceText, rawText, fill, josa } from './text.js';
 import { makeAct } from './act.js';
 import { helpFor } from './safety.js';
@@ -25,7 +25,7 @@ import { STATS, ISSUES } from './constants.js';
 import { TENURE_LABEL, WHO_LABEL } from './act.js';
 import { HT_LABEL } from './systems/education.js';
 import { won } from './text.js';
-import { eraStep, chanceStep, resolveEventChoice, eventById } from './events.js';
+import { eraStep, chanceStep, resolveEventChoice, eventById, archiveNews } from './events.js';
 import { yearNotes } from './notes.js';
 import { driftStats, derive } from './stats.js';
 import { updateIssues } from './issues.js';
@@ -136,21 +136,24 @@ function change(L, group, key, d, reason, src) {
 export function apply(L, fx, meta = {}) {
   if (!fx) return;
   const reason = meta.reason ?? meta.text, src = meta.src;
+  const got = meta.entry && (meta.entry.applied ||= { stats: {}, issues: {} });   // 화면 칩용 실제 반영값(클램프·보정·포화 뒤, M4)
+  const rec = (g, k, d) => { if (got && d) got[g][k] = (got[g][k] || 0) + d; };
   for (const [k, d] of Object.entries(fx.stats || {})) {
     if (!(k in L.stats) || !d) continue;
     let dd = clamp(d, -8, 8);
     dd *= fxScale(L, 'stats', k);   // 예민도·유형 보정(mbti.js)
-    change(L, 'stats', k, dd, reason, src);
+    rec('stats', k, change(L, 'stats', k, dd, reason, src));
   }
   for (const [k, d] of Object.entries(fx.traits || {})) {     // 성향 Δ(사건당 ±5, 5~95)
     if (k in L.traits && d && (L.age < 19 || k === 'sens')) L.traits[k] = clamp(Math.round(L.traits[k] + clamp(d, -5, 5)), 5, 95);
   }
   for (const [k, d] of Object.entries(fx.issues || {})) {
-    if (k in L.issues && d) change(L, 'issues', k, clamp(d, -12, 12) * fxScale(L, 'issues', k), reason, src);
+    if (k in L.issues && d) rec('issues', k, change(L, 'issues', k, clamp(d, -12, 12) * fxScale(L, 'issues', k), reason, src));
   }
   if (fx.money) {
     const act = makeAct(L, makeCtx(L, 'c'));
-    const { debt = 0, assets = 0 } = fx.money;
+    const era = yr(T('ERA_INCOME_INDEX'), L.year);       // 콘텐츠 $a·$d는 2025 금액: 그 시대 소득 수준으로 줄인다
+    const debt = Math.round((fx.money.debt || 0) * era), assets = Math.round((fx.money.assets || 0) * era);
     if (debt > 0) act.borrow(debt, 'credit', { silent: true });
     if (debt < 0) act.repay(-debt);
     if (assets > 0) act.gain(assets);
@@ -181,7 +184,8 @@ function jobInfoFor(L, req) {
 // 평소 생활은 성향대로 진행한다. 중대 결정과 2~3년마다 돌아오는 생활 방향은 직접 묻는다.
 const ROUTINE_CHOICES = new Set(['sys.edu.tutoring', 'sys.fam.sibling_welcome', 'sys.fam.relationship', 'sys.money.sidejob', 'sys.age.grandcare', 'dec.academy.style', 'dec.club.career', 'dec.side.job', 'dec.overwork', 'dec.exercise', 'dec.supplement', 'dec.quit.smoking', 'dec.kid.afterschool', 'dec.friend.choose', 'dec.neighbor.noise', 'dec.volunteer.donate', 'dec.travel.spend', 'dec.hobby.spend', 'dec.retire.activity', 'dec.digital.learn', 'dec.mentor.work', 'dec.health.sleep']);
 const CRITICAL_CHOICES = new Set(['sys.crisis.work_notice', 'sys.crisis.family_separate', 'sys.crisis.family_confirm', 'sys.crisis.support']);
-export const needsPlayerDecision = req => req.cadence === true || (req.major === true || CRITICAL_CHOICES.has(req.eventId)) && !ROUTINE_CHOICES.has(req.eventId);
+// 민감 사건(질병·폭력 등)의 선택은 항상 직접 묻는다. 우연 사건은 choiceBlocked(그해 1건·구간 우연 상한)를 통과해야 발생하므로 상한을 넘지 않는다.
+export const needsPlayerDecision = req => req.cadence === true || !!req.sensitive || (req.major === true || CRITICAL_CHOICES.has(req.eventId)) && !ROUTINE_CHOICES.has(req.eventId);
 
 const NEED = new Set(['sys.home.expire', 'sys.job.lost', 'sys.money.crunch', 'sys.invest.plan', 'sys.invest.panic', 'sys.home.hometown', 'sys.home.relocate']);   // 생활이 걸린 불가피한 갈림길은 주제 반복 규칙으로 묻지 않고 넘기지 않는다
 // 선택 요청. 그해 1건·구간 상한(GDD §2.2). 막히면 시스템 선택은 기본값을 바로 적용(auto, forced).
@@ -214,8 +218,8 @@ export function ask(L, req, ctx) {
   const ji = jobInfoFor(L, req);
   if (ji) full.jobInfo = ji;
   if (isSys) decorate(L, full);                       // 이정표: major·topic·chapter·options[].effects/risk(PROCESS-V2)
-  // 2년쯤 지나면 자연스럽게 만난 생활 선택을 직접 묻는다. 3년째에는 아래 보충 단계가 보장한다.
-  if (!needsPlayerDecision(full) && !full.sensitive && !req.data?.lifeEventId && choiceCadence.due(L, 2) && !L.yr.asked && !L.pending && options.filter(o => o.feasible !== false && o.disabled !== true).length >= 2) full.cadence = true;
+  // 2년쯤 지나면 자연스럽게 만난 생활 선택을 직접 묻는다(루틴은 제외: 성향대로 자동 진행).
+  if (!needsPlayerDecision(full) && !ROUTINE_CHOICES.has(full.eventId) && !full.sensitive && !req.data?.lifeEventId && choiceCadence.due(L, 2) && !L.yr.asked && !L.pending && options.filter(o => o.feasible !== false && o.disabled !== true).length >= 2) full.cadence = true;
   if (!needsPlayerDecision(full)) {
     full.major = false;
     full.routine = true;
@@ -256,10 +260,10 @@ function resolveChoice(L, req, optionId, { auto = false, forced = false } = {}) 
   ctx.sourceEventId = req.eventId;
   const before = req.major ? { p: profileOf(L), s: snapOf(L) } : null;
   if (req.eventId.startsWith('sys.')) {
-    const said = req.eventId === 'sys.life.direction' ? opt.result : rawText(`${req.eventId}.${opt.id}`) ? text(`${req.eventId}.${opt.id}`, { name: L.name, ...req.vars }, ctx) : `${req.prompt} → ${opt.label}`;
+    const said = req.eventId === 'sys.life.direction' || opt.result ? opt.result : rawText(`${req.eventId}.${opt.id}`) ? text(`${req.eventId}.${opt.id}`, { name: L.name, ...req.vars }, ctx) : `${req.prompt} → ${opt.label}`;
     const entry = emit(L, { kind: forced ? 'system' : 'choice', id: req.eventId, text: said, option: opt.id, label: opt.label, auto: !!auto, ...(auto && req.mbti && opt.id === req.defaultId && { mbti: req.mbti }), ...(req.careTarget && { careTarget: req.careTarget }), ...(forced && !(auto && req.mbti && opt.id === req.defaultId) && { quiet: true }) });
     SYS_CHOICES[req.eventId]?.(L, ctx, opt.id, req.data || {});
-    if (req.eventId === 'sys.life.direction') entry.effects = opt.fx;
+    if (req.eventId === 'sys.life.direction' || opt.result) entry.effects = opt.fx;
     if (before) settle(L, ctx, req, opt, entry, before);
   } else if (req.data?.lifeEventId) {
     const result = dailyActivities.resolveLifeEvent(L, ctx, req, opt.id);
@@ -338,7 +342,7 @@ const STATE_LABEL = { 'sys.edu.path:college': '대학 입학', 'sys.edu.path:wor
 const KIND_LABEL = { home: '주거 변경', debt: '대출·상환', assets: '자산 변동', job: '일 변경', family: '가족 변화', edu: '학업 변경', care: '돌봄 시작' };
 const BUY = new Set(['sys.home.buy:buy', 'sys.era.shock:buy']);
 const INTENT = new Set(['sys.home.buy:buy', 'sys.era.shock:buy', 'sys.era.shock:move', 'sys.era.shock:close', 'sys.job.business:open', 'sys.job.offer:move']);   // 상태가 바뀌어야 하는 선택
-// 확률 결과를 굴리고(rngC), 잘 풀리면 기대 방향 지표 +2, 아쉬우면 −2를 더한 뒤 영향·이유를 기록한다.
+// 확률 결과를 굴리고(rngC), 잘 풀리면 칩 지표 +2(칩 방향 무관: 성공은 이득), 아쉬우면 −2를 더한 뒤 영향·이유를 기록한다.
 function settle(L, ctx, req, opt, entry, before) {
   const eff = (opt.effects || []).filter(e => e.key in L.stats);
   let result = 'hold';
@@ -346,7 +350,7 @@ function settle(L, ctx, req, opt, entry, before) {
     const [p0, pr0] = RISK_P[opt.risk || 'low'], o = successOdds(L, req.topic), u = ctx.rand();
     const ps = p0 * o / (1 - p0 + p0 * o), pr = Math.min(1 - ps, pr0 / o);   // 오즈 배수 적용
     result = u < ps ? 'success' : u > 1 - pr ? 'regret' : 'hold';
-    if (result !== 'hold') apply(L, { stats: Object.fromEntries(eff.map(e => [e.key, (result === 'success' ? 2 : -2) * e.dir])) }, { reason: `${opt.label}: ${LUCK_REASON[result]}` });
+    if (result !== 'hold') apply(L, { stats: Object.fromEntries(eff.map(e => [e.key, result === 'success' ? 2 : -2])) }, { reason: `${opt.label}: ${LUCK_REASON[result]}` });
   }
   const key = `${req.eventId}:${opt.id}`, facts = factsOf(before.s, snapOf(L));
   const missed = BUY.has(key) && !L.home.owned;      // 예산에 맞는 집이 없어 매수가 성사되지 않은 경우(act.move가 다른 점유 형태로 대체)
@@ -409,18 +413,10 @@ function flushQuiet(L) {
     else if (shown < target && !seen.has(t)) { shown++; seen.add(t); }          // 같은 해 같은 주제는 한 번만 보인다
     else e.quiet = true;
   }
-  // 확정 결과가 있는 해에는 선택 전 장면과 선택 결과를 한 항목으로 이어 적는다.
-  const visible = () => L.log.slice(ys.start).filter(e => !e.quiet && e.kind !== 'compare' && e.kind !== 'birth');
-  for (const scene of visible().filter(e => e.kind === 'event' && e.asked)) {
-    if (visible().length <= FEED_MAX) break;
-    const result = visible().find(e => e.kind === 'choice' && e.id === scene.id);
-    if (!result) continue;
-    result.text = `${scene.text} ${result.text}`;
-    scene.quiet = true;
-  }
-  // 선택이 뒤늦게 붙어 상한을 넘으면 낮은 우선순위(나중 것부터)를 quiet로
+  // 선택이 뒤늦게 붙어 상한을 넘으면 이번에 새로 나온 낮은 우선순위 줄(나중 것부터)만 quiet로.
+  // 이미 화면에 보인 줄은 숨기지 않는다(이어 하기·다시 보기 피드 일치, D1) — 보인 장면 뒤 선택 결과는 상한 예외.
   for (let over = year.concat(fresh.filter(e => !year.includes(e))).filter(e => !e.quiet).length - FEED_MAX; over > 0; over--) {
-    const v = L.log.slice(ys.start).filter(e => !e.quiet && e.kind !== 'compare' && e.kind !== 'birth' && prio(e) > 0).sort((a, b) => prio(b) - prio(a))[0];
+    const v = L.log.slice(ys.mark).filter(e => !e.quiet && e.kind !== 'compare' && e.kind !== 'birth' && prio(e) > 0).sort((a, b) => prio(b) - prio(a))[0];
     if (!v) break;
     v.quiet = true;
   }
@@ -452,6 +448,7 @@ function run(L, from) {
     if (L.pending || !L.alive) break;
   }
   if (!L.pending) { endYear(L); if (L.alive && !L.yr.noted) { L.yr.noted = true; for (const n of yearNotes(L, 2)) emit(L, { kind: 'personal', id: `personal.${n.key}`, text: n.text }); } }
+  archiveNews(L, makeCtx(L, 'c'));
   flushQuiet(L);
   const ch = chapterOf(L.age);
   // summary: 이정표 결정이 없는 해(빨리감기 한 줄 요약 대상, PROCESS-V2 §1)

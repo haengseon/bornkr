@@ -19,6 +19,7 @@ test('일상은 자동 진행하며 중대 결정 슬롯을 사용하지 않는�
   assert.equal(needsPlayerDecision({eventId:'sys.fam.marry',major:true}), true);
   assert.equal(needsPlayerDecision({eventId:'dec.hobby.spend',major:true}), false);
   assert.equal(needsPlayerDecision({eventId:'sys.crisis.family_confirm'}), true);
+  assert.equal(needsPlayerDecision({eventId:'school.low.mood',sensitive:'illness'}), true);   // 민감 선택은 항상 직접 묻는다
 });
 
 test('자동 일상 결과는 큰 팝업이 아니다', () => {
@@ -69,11 +70,18 @@ test('모델 1/2 자동 일상 기록이 있어도 수동 선택을 정확히 �
 });
 
 
-test('모델2 시드3의 57세 취업 복귀는 후속 뉴스보다 먼저 보인다', () => {
-  const L=runToEnd(newLife({seed:3,modelVersion:2}));
-  const at=L.log.findIndex(e=>e.id==='sys.job.return' && e.age===57);
-  assert.ok(at >= 0);
-  assert.equal(!!L.log[at].quiet,false);
-  const news=L.log.findIndex(e=>e.kind==='news' && e.age===57);
-  assert.ok(news < 0 || at < news);
+// 특정 시드의 한 장면 대신 여러 시드의 모든 취업 복귀를 본다(가계 엔진 변경으로 생애 경로가 바뀌어도 의도를 검사)
+test('모델2 취업 복귀는 같은 해 후속 뉴스보다 먼저 보인다', () => {
+  let n=0;
+  for(let seed=1;seed<=20;seed++) {
+    const L=runToEnd(newLife({seed,modelVersion:2}));
+    L.log.forEach((e,at)=>{
+      if(e.id!=='sys.job.return') return;
+      n++;
+      assert.equal(!!e.quiet,false);
+      const news=L.log.findIndex(x=>x.kind==='news' && x.age===e.age);
+      assert.ok(news < 0 || at < news, `seed ${seed} age ${e.age}`);
+    });
+  }
+  assert.ok(n > 0);
 });

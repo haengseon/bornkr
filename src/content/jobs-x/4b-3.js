@@ -45,7 +45,7 @@ export default [
   }),
   X('44239', {
     entry: [
-      E('hire', { minEdu: 'none', ages: [18, 55], p: 0.35, era: [1975, null], text: 'PC방 아르바이트로 들어가 좌석 관리와 정산을 배웠다.' }),
+      E('hire', { minEdu: 'none', ages: [18, 55], p: 0.35, era: [1998, null], text: 'PC방 아르바이트로 들어가 좌석 관리와 정산을 배웠다.' }),
       E('self', { minEdu: 'none', ages: [26, 60], p: 0.1, era: [1998, null], text: '대출을 받아 PC방을 열었다.' }),
     ],
     transitions: [

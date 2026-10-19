@@ -86,7 +86,7 @@ export default [
   },
   {
     id: 'youth.wage.theft', ages: [19, 27], p: 0.04, once: true, tags: ['y.work'],
-    when: L => ['student', 'seeking'].includes(st(L)) || nonreg(L),
+    when: L => nonreg(L) || (['student', 'seeking'].includes(st(L)) && (!!L?.fired?.['youth.cafe.shift'] || (L?.job?.history?.length ?? 0) > 0)),
     text: '마지막 달 급여가 들어오지 않았다. 가게 주인은 다음 주라고만 했다.',
     reason: '임금이 제때 들어오지 않음',
     choice: {
@@ -94,7 +94,7 @@ export default [
       options: [
         { id: 'complain', label: '노동청에 진정한다', fx: { stats: { wealth: 2, happiness: 1, leisure: -2 } }, result: '진정서를 냈고, 몇 주 뒤 체불액이 입금되었다.', hint: '체불은 노동청에 진정할 수 있다' },
         { id: 'retry', label: '다시 요구한다', fx: { stats: { wealth: 1, relations: -1, happiness: -1 } }, result: '내용증명을 보냈고, 일부를 돌려받았다.', hint: '먼저 직접 요구하는 경우가 흔하다' },
-        { id: 'quit', label: '받지 않고 그만둔다', fx: { stats: { leisure: 1, happiness: -2, wealth: -2 } }, result: '이후로는 계약서와 입금 내역을 사진으로 남겼다.' },
+        { id: 'quit', label: '받지 않고 그만둔다', fx: { stats: { leisure: 1, happiness: -2, wealth: -2 } }, result: '이후로는 계약서와 입금 내역부터 챙겼다.' },
       ],
       default: 'retry',
     },
@@ -190,7 +190,7 @@ export default [
     choice: {
       prompt: '지원할까?',
       options: [
-        { id: 'take', label: '인턴을 한다', fx: { stats: { intellect: 3, relations: 2, leisure: -3, wealth: -1 } }, result: '두 달 동안 복사기와 친해졌고 이름 석 자를 알렸다.', hint: '경력 칸을 채우려는 선택이 흔하다' },
+        { id: 'take', label: '인턴을 한다', fx: { stats: { intellect: 3, relations: 2, leisure: -3, wealth: -1 } }, result: '두 달 동안 복사기와 친해졌고 이름 석 자를 알렸다.', do: (L, act) => act.startGig('인턴'), hint: '경력 칸을 채우려는 선택이 흔하다' },
         { id: 'ask', label: '조건부터 묻는다', fx: { stats: { intellect: 1, relations: 1, leisure: -1 } }, result: '급여와 전환 기준을 물었고, 답은 메일로 왔다.' },
         { id: 'refuse', label: '거절한다', fx: { stats: { leisure: 3, happiness: 2, relations: -1 } }, result: '그 두 달은 지원서와 잠에 썼다.' },
       ],
@@ -449,7 +449,7 @@ export default [
   {
     id: 'youth.dating.app', ages: [24, 34], p: 0.1, once: true, years: [2015, 2100], tags: ['y.love'],
     when: L => !L?.family?.partner && !married(L),
-    text: '친구가 소개팅 앱을 깔아 보라고 했다. 프로필 사진부터 골라야 했다.',
+    text: '친구가 소개팅 앱을 깔아 보라고 했다.',
     reason: '소개팅 앱을 쓸지 고민함',
     choice: {
       prompt: '어떻게 할까?',
@@ -530,7 +530,7 @@ export default [
   },
   {
     id: 'youth.pregnant.work', ages: [27, 34], p: 0.5, cooldown: 4, tags: ['y.baby'],
-    when: L => married(L) && L?.flags?.childPlanned === L.year + 1,
+    when: L => married(L) && working(L) && L?.flags?.childPlanned === L.year + 1,
     text: (L, c) => pickOf(L?.sex === 'F'
       ? ['배가 불러 온 뒤에도 출근길 지하철은 붐볐다. 자리는 가끔 양보받았다.', '임신 중에도 출근했다. 점심시간마다 누울 곳을 찾았다.', '입덧이 심한 날에도 회의실 의자에 앉아 버텼다.']
       : ['아내가 임신한 뒤로 퇴근 시간표를 다시 짰다.', '병원 일정에 맞춰 휴가를 쪼개 쓰기 시작했다.', '초음파 검사 날짜에 맞춰 반차를 미리 냈다.'], c),

@@ -135,7 +135,8 @@ test('선택지 구조: 2~3개, default 존재, result·fx 유효, 선택 간 �
     assert.ok(typeof c.prompt === 'string' && c.prompt.length > 0, `${ev.id}: prompt`);
     assert.ok(c.options.length >= 2 && c.options.length <= 3, `${ev.id}: 선택지 수`);
     assert.equal(new Set(ids).size, ids.length, `${ev.id}: 선택지 id 중복`);
-    assert.ok(ids.includes(c.default), `${ev.id}: default가 선택지에 없음`);
+    if (typeof c.default === 'function') for (const L of scenarios(ev)) assert.ok(ids.includes(c.default(L, {})), `${ev.id}: default()가 선택지에 없음`);
+    else assert.ok(ids.includes(c.default), `${ev.id}: default가 선택지에 없음`);
     for (const o of c.options) { assert.ok(typeof o.result === 'string' && o.result, `${ev.id}/${o.id}: result 필수`); checkFx(o.fx, `${ev.id}/${o.id}`); assert.ok(o.fx, `${ev.id}/${o.id}: fx 필수(무의미 선택 금지)`); }
     for (let i = 0; i < c.options.length; i++) for (let j = i + 1; j < c.options.length; j++) {
       assert.ok(dist(c.options[i].fx, c.options[j].fx) >= 3, `${ev.id}: ${ids[i]}↔${ids[j]} 효과 차이 ${dist(c.options[i].fx, c.options[j].fx)} < 3`);

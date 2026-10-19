@@ -6,6 +6,7 @@ import { creditRate } from '../plans.js';
 import { realReturns, ASSET_LABEL, CAUSE } from '../../data/market.js';
 import { T, yr, ag } from '../tables.js';
 import { ACQ_TAX, RENT_TAX, SIDEJOB, PRIVATE_PENSION, taxKind } from '../../data/incomes.js';
+import { wonAt } from '../text.js';
 import { realRate, priceChg, yieldOf, vacancyOf, HOLD, RENTAL_LABEL } from './money.js';
 
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -13,11 +14,11 @@ const rnd = Math.round;
 const BASE = 0.01;       // money.js가 이미 현금성 자산에 주는 연 1%(실질) — 투자 수익은 이를 뺀 초과분만 더한다
 export const PORTFOLIOS = {
   safe: { label: '예·적금 중심으로 지킨다', w: { deposit: 0.7 }, risk: '안정형' },
-  mix: { label: '예금·주식·달러·부동산에 나눠 담는다', w: { deposit: 0.35, stock: 0.3, fx: 0.1, realty: 0.15 }, risk: '분산형' },
+  mix: { label: '예금·주식 등에 나눠 담는다', w: { deposit: 0.35, stock: 0.3, fx: 0.1, realty: 0.15 }, risk: '분산형' },
   stock: { label: '주식에 분산 투자한다', w: { stock: 0.6, deposit: 0.2 }, risk: '공격형' },
   gold: { label: '금을 사서 모아 둔다', w: { gold: 0.3, deposit: 0.3 }, risk: '안전 자산' },
   fx: { label: '달러 등 외화 자산을 늘린다', w: { fx: 0.4, deposit: 0.3, stock: 0.1 }, risk: '환율 연동' },
-  realty: { label: '소형 부동산(오피스텔·상가)에 투자한다', w: { realty: 0.5, deposit: 0.2 }, risk: '장기·비유동', minAssets: 3000 },
+  realty: { label: '오피스텔·상가에 투자한다', w: { realty: 0.5, deposit: 0.2 }, risk: '장기·비유동', minAssets: 3000 },
   none: { label: '투자하지 않고 일상에 쓴다', w: {}, risk: '소비' },
 };
 const group = L => L.home.regionGroup || 'capital';
@@ -59,9 +60,9 @@ export function step(L, ctx) {
     fl.panicAsked = y;
     const A2 = Math.max(0, m.assets);
     return ctx.ask({ eventId: 'sys.invest.panic', options: [
-      { id: 'sell', label: '더 떨어지기 전에 안전 자산으로 옮긴다', cost: { note: '손실이 확정된다. 이후 반등은 놓친다' } },
+      { id: 'sell', label: '안전 자산으로 옮긴다', cost: { note: '손실이 확정된다. 이후 반등은 놓친다' } },
       { id: 'hold', label: '그대로 버틴다', cost: { note: `역사적으로 큰 하락(−20% 이하) 다음 해 평균 ${pct(reboundAvg())}이었지만 더 내려간 해도 있었다` } },
-      { id: 'add', label: '떨어진 김에 주식 비중을 늘린다', cost: { invest: rnd(A2 * 0.15), note: '맞으면 크게, 틀리면 더 크게 흔들린다' } },
+      { id: 'add', label: '떨어진 김에 주식을 늘린다', cost: { invest: rnd(A2 * 0.15), note: '맞으면 크게, 틀리면 더 크게 흔들린다' } },
     ], defaultId: 'hold', data: {}, vars: { loss: pct(inv.last.r) } });
   }
   evaluateYear(L, ctx);
@@ -106,7 +107,7 @@ export function step(L, ctx) {
   if (m.deficitYears >= 2 && A < Math.max(econ(L).INC * 0.15, (m.cashFlow?.consumption || 0) * 0.25) && (!fl.crunch || y - fl.crunch >= 3) && !L.yr.asked) {
     fl.crunch = y;
     const h = L.home, living = Math.max(60, rnd(econ(L).INC * 0.25)), plans = [];
-    if (h.owned) plans.push({ id: 'sellhome', label: '집을 팔고 전세·월세로 줄여 간다', cost: { cash: Math.max(0, rnd(h.value * 0.97 - (m.loans.mortgage || 0))), note: '집값에서 대출·중개비를 뺀 돈이 들어온다. 이후 집값이 올라도 내 몫이 아니다' } });
+    if (h.owned) plans.push({ id: 'sellhome', label: '집을 팔고 전·월세로 간다', cost: { cash: Math.max(0, rnd(h.value * 0.97 - (m.loans.mortgage || 0))), note: '집값에서 대출·중개비를 뺀 돈이 들어온다. 이후 집값이 올라도 내 몫이 아니다' } });
     const mine = myRentals(L);
     if (mine.length) {
       const r = mine.reduce((p, q) => (q.value > p.value ? q : p)), pay = rentalLoanShare(L, r);
@@ -116,9 +117,11 @@ export function step(L, ctx) {
       plans.push({ id: 'cashout', label: '개인연금을 깨서 쓴다', cost: { cash: rnd(L.pension2.balance * (1 - PRIVATE_PENSION.values.lumpTax)), note: '기타소득세 16.5%를 떼고 받는다. 노후에 받을 연금이 사라진다' } });
     }
     plans.push({ id: 'cut', label: '씀씀이를 크게 줄이고 버틴다', cost: { monthly: -rnd(living * 0.15 / 12), note: '2년간 지출 15%를 줄이는 대신 여가와 기분이 줄어든다' } });
-    if ([L.family.parents.father, L.family.parents.mother].some(p => p.alive) || L.family.children.some(c => c.alive && y - c.birthYear >= 25)) {
-      const aid = clamp(rnd(homePrice(L) * 0.06), 300, 2500);
-      plans.push({ id: 'family', label: '가족에게 도움을 청한다', aid, cost: { cash: aid, note: '도움은 받지만 관계에 빚이 남는다' } });
+    // 가족 도움(QA m1): 부모가 있으면 부모 가구 순자산의 10%까지에서 나가고 그만큼 줄어든다. 자녀에게서는 정액
+    const fromParents = [L.family.parents.father, L.family.parents.mother].some(p => p.alive);
+    if (fromParents || L.family.children.some(c => c.alive && y - c.birthYear >= 25)) {
+      const aid = Math.min(clamp(rnd(homePrice(L) * 0.06), 300, 2500), fromParents ? Math.max(0, rnd(L.household.netWorth * 0.1)) : Infinity);
+      if (aid >= 100) plans.push({ id: 'family', label: '가족에게 도움을 청한다', aid, fromParents, cost: { cash: aid, note: '도움은 받지만 관계에 빚이 남는다' } });
     }
     const need = clamp(rnd(living * 0.5), 200, 3000);
     plans.push({ id: 'loan', label: '신용대출로 일단 버틴다', need, cost: { cash: need, loan: need, monthly: rnd(need * creditRate(L.year) / 12), note: '이자가 매달 나간다' } });
@@ -139,9 +142,11 @@ function evaluateYear(L, ctx) {
     L.tally.invGain = (L.tally.invGain || 0) + delta;
     inv.last = { year: y, r: pr, by, delta };
     const big = Object.entries(inv.w).filter(([k, v]) => v >= 0.2 && Math.abs(r[k]) >= 0.25).sort((p, q) => Math.abs(r[q[0]]) - Math.abs(r[p[0]]))[0];
-    if (Math.abs(pr) >= 0.1 || big) {
+    // 큰 잔고는 수익률이 작아도 금액이 크다: 연소득의 절반(또는 그 시대 1천만 원) 넘게 움직이면 금액과 함께 꼭 보인다(경제 감사)
+    const heavy = Math.abs(delta) >= Math.max(1000 * yr(T('ERA_INCOME_INDEX'), y), 0.5 * (m.income || 0));
+    if (Math.abs(pr) >= 0.1 || big || heavy) {
       const k = big?.[0] ?? Object.entries(inv.w).sort((p, q) => Math.abs(r[q[0]] * q[1]) - Math.abs(r[p[0]] * p[1]))[0][0];
-      ctx.sys('sys.invest.year', { year: y, cause: CAUSE[y] ?? (r[k] >= 0 ? `${ASSET_LABEL[k]} 시장이 올랐다` : `${ASSET_LABEL[k]} 시장이 내렸다`), asset: ASSET_LABEL[k], dir: pr >= 0 ? `불어났다(평가 ${pct(pr)})` : `줄었다(평가 ${pct(pr)})` });
+      ctx.sys('sys.invest.year', { year: y, cause: CAUSE[y] ?? (r[k] >= 0 ? `${ASSET_LABEL[k]} 시장이 올랐다` : `${ASSET_LABEL[k]} 시장이 내렸다`), asset: ASSET_LABEL[k], dir: `${wonAt(Math.abs(delta), y)}만 원 ${pr >= 0 ? '불어났다' : '줄었다'}(평가 ${pct(pr)})` }, heavy ? { essential: true } : undefined);
     }
   }
 }
@@ -170,7 +175,7 @@ export function rentalOptions(L) {
     const netRent = rnd(value * (netYield(sub, y) - HOLD));
     out.push({ id: sub, sub, label, value, acq, equity, loan, rent, cost: {
       invest: equity, loan, monthly: rnd((loan * realRate(y) - netRent) / 12),
-      note: `${RENTAL_LABEL[sub]} ${value}만 원(취득세 ${acq}만 포함, 내 돈 ${equity}만) · 임대수익률 연 ${pct1(yieldOf(sub, y))} · 해마다 공실 위험 ${Math.round(vac * 100)}%(나면 2~6개월 비움) · 최근 10년 이런 투자는 평균 연 ${pct(h.avg)}, 가장 나빴던 해 ${pct(h.worst)}(${h.worstYear}년)`,
+      note: `${RENTAL_LABEL[sub]} ${wonAt(value, y)}만 원(취득세 ${wonAt(acq, y)}만 포함, 내 돈 ${wonAt(equity, y)}만) · 임대수익률 연 ${pct1(yieldOf(sub, y))} · 해마다 공실 위험 ${Math.round(vac * 100)}%(나면 2~6개월 비움) · 최근 10년 이런 투자는 평균 연 ${pct(h.avg)}, 가장 나빴던 해 ${pct(h.worst)}(${h.worstYear}년)`,
     } });
   }
   return out;
@@ -195,8 +200,8 @@ function sideOptions(L) {
   const S = SIDEJOB.values, eraI = yr(T('ERA_INCOME_INDEX'), L.year), on = S.online;
   const online = rnd((on[0] + (on[1] - on[0]) * L.stats.intellect / 100) * eraI), deliver = rnd(S.deliver * eraI);
   return [
-    { id: 'deliver', label: '퇴근 뒤와 주말에 배달·대리운전을 한다', income: deliver, cost: { monthly: -rnd(deliver * 0.85 / 12), note: `세금 떼고 월 ${rnd(deliver * 0.85 / 12)}만 원 안팎 · 쉬는 시간과 건강이 해마다 깎인다 · 한 해에 4명 중 1명꼴로 그만둔다` } },
-    { id: 'online', label: '온라인 판매·강의 같은 부업을 시작한다', income: online, cost: { monthly: -rnd(online * 0.85 / 12), note: `배운 것이 많을수록 더 번다(지금 기준 월 ${rnd(online * 0.85 / 12)}만 원 안팎) · 쉬는 시간이 줄어든다` } },
+    { id: 'deliver', label: L.year >= 2010 ? '배달·대리운전을 한다' : L.year >= 1995 ? '대리운전·야간 알바를 한다' : '야간 아르바이트를 한다', income: deliver, cost: { monthly: -rnd(deliver * 0.85 / 12), note: `세금 떼고 월 ${rnd(deliver * 0.85 / 12)}만 원 안팎 · 쉬는 시간과 건강이 해마다 깎인다 · 한 해에 4명 중 1명꼴로 그만둔다` } },
+    { id: 'online', label: L.year >= 2005 ? '온라인 판매·강의를 한다' : '집에서 부업을 한다', income: online, cost: { monthly: -rnd(online * 0.85 / 12), note: `배운 것이 많을수록 더 번다(지금 기준 월 ${rnd(online * 0.85 / 12)}만 원 안팎) · 쉬는 시간이 줄어든다` } },
     { id: 'no', label: '본업에만 집중한다', cost: { note: '부업하는 사람은 취업자의 2% 안팎(통계청 경제활동인구조사)' } },
   ];
 }
@@ -208,15 +213,15 @@ function pensionProjection(L, mo) {
 }
 function pensionOptions(L) {
   const PP = PRIVATE_PENSION.values, cr = L.year >= 2014 && econ(L).INC < 5500 ? PP.creditLow : ag(PP.credit, L.year);
-  const mk = (id, label, mo) => { const pr = pensionProjection(L, mo); return { id, label, monthly: mo, cost: { monthly: mo, note: `연 ${rnd(mo * 12 * cr)}만 원 세금 혜택 · 60세까지 넣으면 이후 20년간 월 약 ${pr.monthly}만 원(최근 10년 평균 연 ${pct(pr.avg)} 기준) · 중도 해지하면 16.5% 세금` } }; };
-  return [mk('basic', '연금저축·IRP에 매달 조금씩 넣는다', 25), mk('max', '세금 혜택 한도까지 꽉 채워 넣는다', 50),
-    { id: 'no', label: '노후는 국민연금과 집으로 버틴다', cost: { note: '지금 쓸 돈이 늘지만 노후 소득원이 하나 줄어든다' } }];
+  const mk = (id, label, mo) => { const pr = pensionProjection(L, mo); return { id, label, monthly: mo, cost: { monthly: mo, note: `연 ${wonAt(mo * 12 * cr, L.year)}만 원 세금 혜택 · 60세까지 넣으면 이후 20년간 월 약 ${pr.monthly}만 원(최근 10년 평균 연 ${pct(pr.avg)} 기준) · 중도 해지하면 16.5% 세금` } }; };
+  return [mk('basic', '연금저축·IRP에 조금 넣는다', 25), mk('max', '세금 혜택 한도까지 넣는다', 50),
+    { id: 'no', label: '국민연금과 집으로 버틴다', cost: { note: '지금 쓸 돈이 늘지만 노후 소득원이 하나 줄어든다' } }];
 }
 function drawOptions(L) {
   const b = L.pension2.balance, PP = PRIVATE_PENSION.values;
   return [
-    { id: 'annuity', label: '지금부터 20년 동안 나눠 받는다', cost: { monthly: -rnd(b * (1 - PP.annuityTax) / 20 / 12), note: '연금소득세 3.3~5.5%만 낸다. 남은 돈은 계속 굴러간다' } },
-    { id: 'later', label: '65세까지 미뤘다가 10년 동안 받는다', cost: { monthly: -rnd(b * (1 - PP.annuityTax) / 10 / 12), note: '기다리는 동안 적립금이 더 불어나지만, 그 전에는 쓸 수 없다' } },
+    { id: 'annuity', label: '20년 동안 나눠 받는다', cost: { monthly: -rnd(b * (1 - PP.annuityTax) / 20 / 12), note: '연금소득세 3.3~5.5%만 낸다. 남은 돈은 계속 굴러간다' } },
+    { id: 'later', label: '65세부터 10년간 받는다', cost: { monthly: -rnd(b * (1 - PP.annuityTax) / 10 / 12), note: '기다리는 동안 적립금이 더 불어나지만, 그 전에는 쓸 수 없다' } },
     { id: 'lump', label: '한꺼번에 찾아 쓴다', cost: { cash: rnd(b * (1 - PP.lumpTax)), note: '기타소득세 16.5%를 뗀다. 퇴직연금 수령 계좌의 96%(2021년)가 일시금을 골랐다' } },
   ];
 }
@@ -276,7 +281,7 @@ export const choices = {
     if (p.id === 'sellrental') { sellRental(L, ctx, p.rentalAt); return ctx.apply({ issues: { living: 2 }, stats: { happiness: -1 } }, { reason: '세 주던 부동산을 팔아 급한 돈을 마련했다' }); }
     if (p.id === 'cashout') { const pn = L.pension2; ctx.act.gain(rnd(pn.balance * (1 - PRIVATE_PENSION.values.lumpTax))); pn.balance = 0; pn.monthly = 0; pn.draw = 'lump'; return ctx.apply({ issues: { living: 2 }, stats: { happiness: -1 } }, { reason: '노후 연금을 깨서 생활비로 썼다' }); }
     if (p.id === 'cut') { fl.cutUntil = L.year + 2; return ctx.apply({ issues: { living: 3 }, stats: { leisure: -3, happiness: -2 } }, { reason: '씀씀이를 줄이고 버텼다' }); }
-    if (p.id === 'family') { ctx.act.gain(p.aid); return ctx.apply({ stats: { relations: -2, happiness: -1 }, issues: { care: 2 } }, { reason: '가족의 도움을 받았다' }); }
+    if (p.id === 'family') { ctx.act.gain(p.aid); if (p.fromParents) L.household.netWorth -= p.aid; return ctx.apply({ stats: { relations: -2, happiness: -1 }, issues: { care: 2 } }, { reason: '가족의 도움을 받았다' }); }
     ctx.act.borrow(p.need, 'credit', { silent: true }); ctx.act.gain(p.need);
     ctx.apply({ issues: { living: 4 }, stats: { happiness: -2 } }, { reason: '신용대출로 급한 불을 껐다' });
   },

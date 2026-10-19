@@ -62,7 +62,7 @@ function identityConcernHtml(L) {
   return `<section class="identity-summary" aria-labelledby="identity-summary-title"><h3 id="identity-summary-title" class="past-news__h">선택과 마음의 부담</h3>`
     + `<p>${esc(state.stageLabel)}</p><dl class="arows"><div class="arow"><dt>스트레스</dt><dd>${state.stress} / 20</dd></div><div class="arow"><dt>정체성 혼란</dt><dd>${state.confusion} / 10</dd></div></dl>`
     + (state.concern ? `<p>${esc(state.concern)}</p>` : '')
-    + `<p class="cap">선택으로 쌓인 게임 속 상태야. 기존 고민 점수와는 별도로 기록해.</p><h4>최근 부담이 생긴 선택</h4>`
+    + `<h4>최근 부담이 생긴 선택</h4>`
     + (state.causes.length ? `<ul>${state.causes.map(e => `<li>${esc(e.year)}년 · ${e.prompt ? `${esc(e.prompt)} — ` : ''}${esc(e.label)}<br><span class="cap">${changes(e, '+')}</span></li>`).join('')}</ul>` : '<p class="cap">아직 부담이 쌓인 선택은 없어.</p>')
     + `<h4>최근 회복</h4>`
     + (state.recoveries.length ? `<ul>${state.recoveries.map(e => `<li>${esc(e.year)}년 · ${e.natural ? '새로운 충돌 없이 보낸 해의 회복' : '실제로 받은 지원·휴식에 따른 회복'}<br><span class="cap">${changes(e, '−')}</span></li>`).join('')}</ul>` : '<p class="cap">아직 기록된 회복은 없어. 새로운 충돌이 없는 해에는 부담이 조금씩 줄어들어.</p>')

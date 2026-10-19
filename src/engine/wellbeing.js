@@ -56,10 +56,10 @@ function chooseSupport(L, ctx, option, data = {}) {
   w.nextSupportYear = L.year + 3;
   if (option === 'rest' && personalMinutes(L) >= 15) {
     w.pending.push({ id: `${id}:completion`, kind: 'rest', sourceEventId: SUPPORT_EVENT, choiceYear: L.year, dueYear: L.year + 1, status: 'planned' });
-    record(L, ctx, { id, text: '짧게 쉬는 일정을 잡았다. 아직 회복을 완료한 것은 아니다.' });
+    record(L, ctx, { id, text: '짧게 쉬는 일정을 잡았다.' });
   } else if (option === 'contact' && familyContact(L).some(p => p.id === data.personId)) {
     w.pending.push({ id: `${id}:reply`, kind: 'support-request', personId: data.personId, sourceEventId: SUPPORT_EVENT, choiceYear: L.year, dueYear: L.year + 1, status: 'awaiting-consent' });
-    record(L, ctx, { id, text: `${data.personLabel || '가족'}에게 도움을 요청했다. 실제 지원 여부는 아직 확인되지 않았다.` });
+    record(L, ctx, { id, text: `${data.personLabel || '가족'}에게 도움을 청했다. 답은 아직 없었다.` });
   } else record(L, ctx, { id, text: '당장은 생활을 바꾸지 않고 지내기로 했다.' });
 }
 export const choices = { [SUPPORT_EVENT]: chooseSupport };
@@ -91,7 +91,7 @@ export function settleYear(L, ctx) {
       if (!received) continue; // 요청/동의만으로 회복을 지급하지 않는다.
       item.status = 'completed'; item.resolvedAt = L.year;
       w.identityRecovery.push({ id: item.id, year: L.year, stress: 2, confusion: 1 });
-      record(L, ctx, { id: item.id, text: '앞서 요청했던 가족의 지원을 실제로 받았다.' });
+      record(L, ctx, { id: item.id, text: '앞서 청한 가족의 도움을 받았다.' });
     }
   }
 }

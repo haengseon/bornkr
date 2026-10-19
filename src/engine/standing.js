@@ -194,7 +194,7 @@ export function standing(L, { at = 'now' } = {}) {
     } else {
       out.age = item(100 - 100 * (lt.S[a + 1] + (lt.S[a] - lt.S[a + 1]) / 2), `${cohort} 생명표(사망 연령 분포, 2025 이후는 사망률 개선 추계)`, true, { e0: Math.round(lt.e0) });
       const diff = d.age - Math.round(lt.e0);
-      notes.push(`같은 해 태어난 ${SEX[L.sex]}의 기대수명은 약 ${Math.round(lt.e0)}세 — ${diff === 0 ? '비슷하게' : diff > 0 ? `${diff}년 긴` : `${-diff}년 짧은`} 삶이었다.`);
+      notes.push(`같은 해 태어난 ${SEX[L.sex]}의 기대수명은 약 ${Math.round(lt.e0)}세 — ${diff === 0 ? '비슷한' : diff > 0 ? `${diff}년 긴` : `${-diff}년 짧은`} 삶이었다.`);
     }
     // 사인: 자해(sensitive)·관찰 종료는 항목을 두지 않는다
     if (!d.sensitive && !d.horizon && d.cause) {

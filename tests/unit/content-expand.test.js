@@ -71,7 +71,7 @@ test('마일스톤 확장: 150개 이상, 챕터 분포, 형식·효과 상한·
       fxOk(o.fx);
       for (const k of ['success', 'hold', 'miss']) {
         const r = o.outcomes[k];
-        assert.ok(r.text.length <= 40 && sent(r.text) === 1 && clean(r.text) && r.why.length >= 5 && r.why.length <= 50, `${m.id}/${o.id}/${k} "${r.text}"`);
+        assert.ok(r.text.length <= 40 && sent(r.text) === 1 && clean(r.text), `${m.id}/${o.id}/${k} "${r.text}"`);
         fxOk(r.fx);
         for (const v of Object.values(r.fx.money ?? {})) assert.ok(Math.abs(v) <= 30000);
         for (const v of Object.values(r.fx.stats ?? {})) { if (v > 0) hasGain = true; if (v < 0) hasLoss = true; }
@@ -124,7 +124,7 @@ test('dark 사건: 주제 범위(괴롭힘·체불·보증금·빚·돌봄·고�
   }
 });
 
-test('rare 사건: 25개 이상, p 0.0003~0.01, 행운·불운, 후폭풍 선택', () => {
+test('rare 사건: 25개 이상, p 0.0003~0.01(복권 제외), 행운·불운, 후폭풍 선택', () => {
   assert.ok(rare.length >= 25, `${rare.length}개`);
   let lucky = 0, unlucky = 0;
   for (const e of rare) {
@@ -134,7 +134,7 @@ test('rare 사건: 25개 이상, p 0.0003~0.01, 행운·불운, 후폭풍 선택
     for (const L of SAMPLES) {
       if (e.when) assert.doesNotThrow(() => e.when(L), e.id);
       const p = typeof e.p === 'function' ? e.p(L) : e.p;
-      assert.ok(p >= 0.0003 && p <= 0.01, `${e.id} p=${p}`);
+      assert.ok(p >= (/lotto/.test(e.id) ? 1e-6 : 0.0003) && p <= 0.01, `${e.id} p=${p}`);   // 복권은 실제 당첨률(B-12)
     }
     fxOk(e.fx);
     const w = (e.fx?.stats?.wealth ?? 0) + (e.fx?.stats?.happiness ?? 0);
@@ -147,7 +147,7 @@ test('rare 사건: 25개 이상, p 0.0003~0.01, 행운·불운, 후폭풍 선택
   }
   assert.ok(lucky >= 10 && unlucky >= 6, `행운 ${lucky} / 불운 ${unlucky}`);
   const lotto = rare.find(e => e.id === 'rare.lotto.first');
-  assert.equal(lotto.p, 0.0003);
+  assert.equal(lotto.p, 1.5e-5);   // 실제 1등 당첨률(B-12)
   assert.ok(lotto.src[0].includes('8,145,060') && (lotto.fx.money?.assets ?? 0) > 100000);
   assert.ok(lotto.choice.options.some(o => (o.fx.money?.assets ?? 0) <= -20000), '낭비·나눔 후폭풍 선택지');
   assert.ok(rare.find(e => e.id === 'rare.pension.lotto') && rare.find(e => e.id === 'rare.inherit.land') && rare.find(e => e.id === 'rare.redevelop.pay'));

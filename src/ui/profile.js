@@ -59,9 +59,12 @@ export function bizOf(job) {
   };
 }
 
+// 짧은 일(엔진 job.gig: 인턴·아르바이트 등, 노인일자리 flags.seniorJob): 고용 상태는 그대로지만 그해에는 그 일로 보인다
+export const gigOf = L => { const j = L.job || {}; if (j.status === 'employed' || j.status === 'self') return null; return j.gig && j.gig.until >= L.year ? j.gig.kind : L.flags?.seniorJob != null && L.flags.seniorJob === L.year ? '노인일자리' : null; };
 const PART_TIME_WAGE = 1800;   // 비정규 + 연 1,800만원 미만 = 시간제로 본다(추정)
 export function employmentOf(L) {
-  const j = L.job, st = j.status;
+  const j = L.job, st = j.status, gig = gigOf(L);
+  if (gig && st !== 'student') return { code: 'gig', label: gig };
   if (st === 'seeking' && L.flags?.examUntil != null) return { code: 'exam', label: '공무원 시험 준비 중' };
   if (L.age < 6 && st !== 'employed') return { code: 'child', label: L.age < 2 ? '영아' : '영유아' };
   if (st === 'employed') {
@@ -112,6 +115,8 @@ export function jobLineOf(L) {
   if (working) return j.title || '';
   const prev = j.title || j.history?.at(-1)?.title || '';
   if (j.status === 'student' || (L.age < 19 && !prev)) return '';
+  const gig = gigOf(L);
+  if (gig) return gig;
   const st = j.status === 'seeking' ? '구직 중' : j.status === 'retired' ? '은퇴' : j.status === 'inactive' ? '일 쉬는 중' : j.status === 'military' ? '군 복무' : '무직';
   return prev ? `이전 직업: ${prev} · ${st}` : (j.status === 'seeking' ? '구직 중' : '');
 }
@@ -119,7 +124,7 @@ export function jobLineOf(L) {
 export function profileOf(L) {
   const h = L.home || {}, b = L.birth || {}, j = L.job || {}, mo = L.money || {};
   const region = h.region ?? b.region, rg = REGION[region];
-  const tenure = h.tenure ?? b.tenure ?? 'family', moves = (h.moves || []).length;
+  const tenure = h.parents && L.age >= 19 ? 'family' : h.tenure ?? b.tenure ?? 'family', moves = (h.moves || []).length;   // 성인이 부모 집에 살면 부모의 점유 형태(자가·전세)를 본인 것처럼 보이지 않는다
   const last = (h.moves || []).at(-1);
   const emp = employmentOf(L), working = j.status === 'employed' || j.status === 'self';
   const biz = bizOf(j), rank = rankOf(j);
@@ -127,7 +132,7 @@ export function profileOf(L) {
   return {
     home: {
       region, regionLabel: homeLabel(L) || (rg?.label ?? region ?? ''), vibe: vibeOf(h.sigungu, h.dong), area: b.urban === false ? '농촌' : '도시',
-      tenure, tenureLabel: L.age < 19 && h.parents !== false && !['facility', 'dorm'].includes(tenure) ? '부모 집' : TENURE_LABEL[tenure] ?? '', dwelling: dwellingOf(L),
+      tenure, tenureLabel: (h.parents || L.age < 19 && h.parents !== false) && !['facility', 'dorm'].includes(tenure) ? '부모 집' : TENURE_LABEL[tenure] ?? '', dwelling: dwellingOf(L),
       moves, recentMove: !!last && L.year - last.year <= 2, lastMoveYear: last?.year ?? null,
       market: marketLineOf(L),
     },

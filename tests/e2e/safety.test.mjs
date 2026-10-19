@@ -3,7 +3,7 @@
 import test from 'node:test';
 import {
   startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks,
-  RE_RANK, RE_MONEY, RE_JOBRANK, RE_CAUSE_SENS, forbiddenHits, pageText,
+  RE_RANK, RE_MONEY, RE_JOBRANK, RE_CAUSE_SENS, forbiddenHits, pageText, simToDeath,
 } from './helpers.mjs';
 
 let srv, br;
@@ -24,9 +24,9 @@ async function newGame(seed, extra = {}, opts = {}) {
 // 사용자 결정(2026-10): 화면 어디에도 전화번호·'도움 받을 곳' 버튼·도움 시트를 두지 않는다. 민감 사건은 비그래픽 한 줄 + 일반 선택지만.
 const RE_PHONE = /(?:\d{2,4}-\d{3,4}(?:-\d{4})?|\b(?:109|129|117|1388|1393|1577-\d{4}|1588-\d{4}|112|119)\b)/;
 
-test('E2E-5a 민감 선택(illness 17세·violence 8세): 도움 UI·번호 없음, 20초, 자동결정 단축 없음', { timeout: 300_000 }, async t => {
+test('E2E-5a 민감 선택(illness 13세·violence 9세): 도움 UI·번호 없음, 20초, 자동결정 단축 없음', { timeout: 300_000 }, async t => {
   const c = checks('safety-choice');
-  for (const [name, seed, age] of [['illness', SEEDS.sensChoice, 17], ['violence', SEEDS.sensChoiceV, 8]]) {
+  for (const [name, seed, age] of [['illness', SEEDS.sensChoice, 13], ['violence', SEEDS.sensChoiceV, 9]]) {
     const { page, sim } = await newGame(seed);
     await sim.until(a => +document.querySelector('[data-hud=age]')?.textContent === a && !!document.querySelector('.sheet.choice'), { max: 20 * 60_000, arg: age });
     await sim.adv(800);
@@ -40,9 +40,11 @@ test('E2E-5a 민감 선택(illness 17세·violence 8세): 도움 UI·번호 없�
     await sim.adv(5000);
     const o2 = await page.evaluate(() => ({ open: !!document.querySelector('.sheet.choice'), ring: document.querySelector('.ring__num')?.textContent }));
     c(`[${name}] 자동결정 켜도 민감 선택은 5초 뒤에도 열림(1.2초 단축 없음)`, o2.open && +o2.ring >= 12, JSON.stringify(o2));
+    // 남은 카운트다운(링 숫자) + 결과 읽기 시간(초당 9자, 최소 3초 — C5) 뒤 기본값으로 닫힌다
     const t0 = sim.t;
-    await sim.until(() => !document.querySelector('.sheet.choice'), { step: 250, max: 30_000 });
-    c(`[${name}] 무응답 → 20초(+결과 1.5초) 뒤 기본값`, sim.t - t0 >= 14000 && sim.t - t0 <= 17500, `${sim.t - t0}ms (이미 5.8초 경과)`);
+    await sim.until(() => { const r = document.querySelector('.sheet.choice .choice__result, .sheet.choice .reveal'); if (r) { const x = r.cloneNode(true); x.querySelectorAll('details, .sr-only').forEach(n => n.remove()); window.__rms = Math.max(3000, x.textContent.replace(/\s+/g, '').length / 9 * 1000); } return !document.querySelector('.sheet.choice'); }, { step: 250, max: 90_000 });
+    const dt = sim.t - t0, left = +o2.ring * 1000, rMs = await page.evaluate(() => window.__rms || 0);
+    c(`[${name}] 무응답 → 남은 카운트다운 + 결과 읽기 시간 뒤 기본값`, rMs >= 3000 && dt >= left - 1000 + rMs - 250 && dt <= left + rMs + 750, `${dt}ms / 남은 ${left} / 결과 ${rMs}`);
     c(`[${name}] 콘솔·페이지 에러 0`, appErrors(page).length === 0 && page.qa.pageErrors.length === 0, appErrors(page).concat(page.qa.pageErrors).join('|'));
     await page.ctx.close();
   }
@@ -65,7 +67,7 @@ test('E2E-5b 민감 피드(재난 1세): 도움 줄·번호 없음, 비그래픽
 test('E2E-5c 민감 사망(자해 23세): 도움 UI 없음 · 자동 넘김 없음 · 사인 비노출 · 카드/결산', { timeout: 300_000 }, async t => {
   const c = checks('safety-death');
   const { page, sim } = await newGame(SEEDS.sensDeath);
-  await sim.until(() => document.body.dataset.screen === 'death', { max: 25 * 60_000 });
+  await simToDeath(page, sim, { max: 25 * 60_000 });   // 마지막 해 [마지막 페이지로]는 직접 넘김
   await sim.adv(3000);                           // 한 줄씩 나타나는 연출
   const d = await page.evaluate(() => {
     const inner = document.querySelector('.death__inner');
@@ -78,7 +80,8 @@ test('E2E-5c 민감 사망(자해 23세): 도움 UI 없음 · 자동 넘김 없�
   c('S09 도움 박스·버튼 없음', d.box === 0, d.box);
   c('S09 화면에 전화번호 없음', !RE_PHONE.test(d.text.replace(/\d{4}|\d+세/g, '')), (d.text.match(RE_PHONE) || [''])[0]);
   c('S09 사인 문구 대신 "세상을 떠났습니다."', d.cause === '세상을 떠났습니다.' && !RE_CAUSE_SENS.test(d.outside), `${d.cause} / ${d.outside.replace(/\n/g, ' ')}`);
-  c('S09 민감 사망 자동 넘김 문구·타이머 없음', d.note == null && !d.timer && d.btn === '결산 보기', `${d.note}/${d.timer}`);
+  // 사망 화면은 이제 모든 사망에서 직접 넘긴다(F-9: 버튼 하나 "살아온 날들 돌아보기"). 안내 문구는 직접 넘김 안내뿐, 자동 넘김 문구·타이머 없음
+  c('S09 민감 사망 자동 넘김 문구·타이머 없음', !/초 뒤|넘어갑니다/.test(d.note ?? '') && !d.timer && d.btn === '살아온 날들 돌아보기', `${d.note}/${d.timer}/${d.btn}`);
   c('S09 광고 없음', d.ads === 0);
   c('S09 기록 저장 완료(사망 화면 전)', d.rec === 1, d.rec);
   await shot(page, 'safety-death-sensitive');
@@ -104,7 +107,8 @@ test('E2E-5c 민감 사망(자해 23세): 도움 UI 없음 · 자동 넘김 없�
     const k = await page.evaluate(() => ({ text: document.querySelector('.share__text').value, alt: document.querySelector('.share__img').alt, canvas: window.__qa.canvas.slice() }));
     const joined = [k.text, k.alt, ...k.canvas].join('\n');
     c(`카드 ${kind}: 자해·자살·사인 없음`, !RE_CAUSE_SENS.test(joined) && !/(으로|로) 세상을 떠났/.test(joined), (joined.match(/.{0,20}(자해|자살).{0,20}/) || [''])[0]);
-    c(`카드 ${kind}: 금액·순위·직급 없음`, !RE_MONEY.test(joined) && forbiddenHits(joined).length === 0, (joined.match(RE_MONEY) || [''])[0]);
+    // 금액은 붙여 넣는 문구·alt 에만 금지 — 캔버스 '나의 인생 기록' 카드는 순자산을 의도적으로 그린다(0ef8ffa). 순위·직급은 모두 금지
+    c(`카드 ${kind}: 문구·alt 금액 없음 · 전체 순위·직급 없음`, !RE_MONEY.test([k.text, k.alt].join('\n')) && forbiddenHits(joined).length === 0, ([k.text, k.alt].join('\n').match(RE_MONEY) || forbiddenHits(joined) || [''])[0]);
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('.sheet'));
   }
@@ -116,7 +120,7 @@ test('E2E-5d 이른 사망(0세·3세) · 원인 숨기기 설정', { timeout: 3
   const c = checks('safety-early');
   for (const [name, seed] of [['infant', SEEDS.infant], ['short', SEEDS.short]]) {
     const { page, sim } = await newGame(seed);
-    await sim.until(() => document.body.dataset.screen === 'death', { max: 10 * 60_000 });
+    await simToDeath(page, sim, { max: 10 * 60_000 });   // 마지막 해 [마지막 페이지로]는 직접 넘김
     await sim.adv(1300);
     const d = await page.evaluate(() => ({ years: document.querySelector('.death__years').textContent, cause: document.querySelector('.death__cause').textContent, text: document.querySelector('.death').innerText, hb: !!document.querySelector('.help-box'), note: document.querySelector('.actionbar__note')?.textContent }));
     c(`[${name}] 사망 화면 렌더`, !!d.years, d.years);
@@ -137,7 +141,7 @@ test('E2E-5d 이른 사망(0세·3세) · 원인 숨기기 설정', { timeout: 3
   // 원인 숨기기: 비민감 사망(seed 67) → "세상을 떠났습니다."만
   for (const hide of [false, true]) {
     const { page, sim } = await newGame(SEEDS.plain, { hideSensitiveCause: hide });
-    await sim.until(() => document.body.dataset.screen === 'death', { max: 25 * 60_000 });
+    await simToDeath(page, sim, { max: 25 * 60_000 });   // 마지막 해 [마지막 페이지로]는 직접 넘김
     await sim.adv(1300);
     const cause = await page.evaluate(() => document.querySelector('.death__cause').textContent);
     c(`원인 숨기기=${hide}: 사망 화면 문구`, hide ? cause === '세상을 떠났습니다.' : /(으로|로) 세상을 떠났습니다\./.test(cause), cause);

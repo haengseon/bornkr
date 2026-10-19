@@ -48,7 +48,10 @@ export const STAGES = [
 export const COMPARE_AGES = [7, 19, 29, 42, 55, 70];
 export const BASE_YEAR_MS = 15_000;       // 1배속에서 1년 = 현실 15초(고정, 배속으로만 나눈다: 5배속 3초)
 export const MIN_YEAR_MS = 1_500;         // 예산 압축 시 하한(1배속 기준)
-export const CHOICE_TIMEOUT_MS = 12_000;  // 선택 카운트다운
+export const CHOICE_TIMEOUT_MS = 12_000;  // 선택 카운트다운(하한)
+export const CHOICE_READ_CPS = 9;         // 카운트다운은 시트 글자 수/초당 9자 + 여유 이상(UI가 적용)
+export const CHOICE_READ_PAD_MS = 3_000;
+export const CHOICE_READ_MAX_MS = 40_000; // 긴 중대 결정도 40초 상한(일시정지 중엔 멈추므로 충분)
 export const HARD_CAP_MS = Infinity;     // 시간 상한 없음(1년=30초 정책: 1배속 완주는 35~50분이라 15분 상한과 양립 불가)
 export const SPEEDS = [1, 2, 3, 4, 5];
 

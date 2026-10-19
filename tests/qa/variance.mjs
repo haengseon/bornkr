@@ -1,4 +1,4 @@
-// QA-S 75:25 분산 분해(GDD §13.2). 실행: node tests/qa/variance.mjs [시드 수=2000] [선택지점 표본 상한=120]
+// QA-S 75:25 분산 분해(GDD §13.2). 실행: node tests/qa/variance.mjs [시드 수=2000] [선택지점 표본 상한=120] [--quick]
 //  Y = mean(econ, health, relations, autonomy, 100 − careBurden), 정책 5개(default 1 + random 4), 시드 N
 //  share_choice = Var_within / (Var_between + Var_within)
 //  + 출생 분위↔econ 상관(random) + 선택 지점별 옵션 간 평균 |ΔY|(CRN: 같은 시드, 해당 선택만 바꿔 다시 돌림)
@@ -100,8 +100,9 @@ async function main() {
   console.log('default 정책 econ 평균(출생 분위별):', byQ.join(' · '));
   console.log(`부수: Y 합성 SD(default) ${Math.sqrt(comp.between).toFixed(2)}`);
 
-  // 선택 지점별 효과
+  // 선택 지점별 효과(오래 걸림). --quick 이면 핵심 지표만 보고 끝낸다.
   console.error(`main done ${(Date.now() - t0) / 1000}s; scan…`);
+  if (process.argv.includes('--quick')) return;
   const scanN = 6000;
   const sparts = await pool(import.meta.url, range(scanN, 200).map(([from, to]) => ({ type: 'scan', from, to })));
   const occ = {};

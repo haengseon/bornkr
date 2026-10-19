@@ -20,7 +20,7 @@ test('키는 실제 문구 키이고 행 수 ≥6', () => {
 test('모든 변형: 길이·금지어·시대 가드·조건 문법', () => {
   const ALLOWED = [/^e60|e80|e90|e00|e10|e20|c19|child|teen|youth|mid|old|rural|urban|poor|rich|wed|solo|[OCEAS][+-]$/];
   for (const [k, rows] of Object.entries(ROWS)) for (const [spec, ...txt] of rows) {
-    for (const t of spec.split('&').filter(Boolean)) assert.match(t, /^(e60|e80|e90|e00|e10|e20|c19|child|teen|youth|mid|old|rural|urban|poor|rich|wed|solo|[OCEAS][+-])$/, k + ' spec ' + spec);
+    for (const t of spec.split('&').filter(Boolean)) assert.match(t, /^(e60|e80|e90|e00|e10|e20|c19|child|teen|youth|mid|old|rural|urban|poor|rich|wed|solo|mom|gk|[OCEAS][+-])$/, k + ' spec ' + spec);
     for (const s of txt) {
       assert.ok(s.length <= 40 || /\{/.test(s) && s.replace(/\{[^}]*\}/g, 'XXXX').length <= 40, `${k} 길이 ${s}`);
       assert.doesNotMatch(s, BAD, s);

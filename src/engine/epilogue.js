@@ -61,7 +61,7 @@ function facts(L) {
     owned: !!home.owned || moves.some(m => m.to === 'own'), fraud: !!L.flags?.fraud,
     toCapital: !!L.flags?.toCapital && !REGION[b.region]?.capital,
     married, divorced: !!f.divorced || spouses.some(s => ['divorce', 'divorced'].includes(s.end)), widowed: !!f.widowed,
-    kids: (f.children || []).length, grand: (f.grandchildren || 0) > 0, parentsGone: parGone,
+    kids: (f.children || []).filter(k => k.alive !== false).length, grand: (f.grandchildren || 0) > 0, parentsGone: parGone,
     spouseCare: married && !f.widowed && age >= 65 && (f.caringFor === 'spouse' || !!f.partner?.ltc),
     top, trait: Math.abs(tdev) >= 12 ? `${tk}${tdev > 0 ? '+' : '-'}` : 'mid', extraHi: (tr.extra ?? 50) >= 60,
     diabetes: !!L.health?.dx?.diabetes, ltc: !!L.aging?.ltc, alone: !!f.livingAlone,

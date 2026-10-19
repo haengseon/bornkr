@@ -2,6 +2,7 @@
 // 작가 문구(SYSTEM_TEXT)에 키가 있으면 그것을, 없으면 아래 DEFAULT_TEXT를 쓴다.
 import { SYSTEM_TEXT } from '../content/system-text.js';
 import { needYear, eraSchool } from './anachro.js';
+import { nominal } from '../ui/format.js';
 
 const PAIRS = {
   은: ['은', '는'], 는: ['은', '는'], 이: ['이', '가'], 가: ['이', '가'],
@@ -72,7 +73,10 @@ export function won(n) {
   const eok = Math.trunc(n / 10000), rest = Math.abs(n % 10000);
   return rest ? `${eok}억 ${c(rest)}` : `${eok}억`;
 }
-const MONEY_VARS = ['amount', 'loan', 'pay'];
+const MONEY_VARS = ['amount', 'loan', 'pay', 'tax', 'net', 'lost', 'earned'];
+// 엔진 금액은 2025년 실질 만원. 문장에는 화면 카드와 같은 환산(그해 명목)으로 쓴다 — 1985년 첫 월급이 2025년 금액으로 찍히지 않게
+export const wonAt = (n, year) => { const v = year ? nominal(n, year) : n; return won(v > 0 && v < 1 ? 1 : v); };
+const moneyVars = (vars, ctx) => { const y = vars.year ?? ctx?.L?.year; for (const k of MONEY_VARS) if (typeof vars[k] === 'number') vars = { ...vars, [k]: wonAt(vars[k], y) }; return vars; };
 
 // 작가 문구 우선, 없으면 기본값. keys 여러 개면 처음 존재하는 키.
 export function rawText(...keys) {
@@ -82,7 +86,7 @@ export function rawText(...keys) {
 }
 
 export function text(key, vars = {}, ctx) {
-  for (const k of MONEY_VARS) if (typeof vars[k] === 'number') vars = { ...vars, [k]: won(vars[k]) };
+  vars = moneyVars(vars, ctx);
   let t = rawText(...[].concat(key));
   if (t && typeof t === 'object' && !Array.isArray(t)) t = t.prompt;
   return fill(t, vars, ctx);
@@ -90,7 +94,7 @@ export function text(key, vars = {}, ctx) {
 
 // 선택 지점 문구: { prompt, labels:{id:label} }
 export function choiceText(key, vars = {}, ctx) {
-  for (const k of MONEY_VARS) if (typeof vars[k] === 'number') vars = { ...vars, [k]: won(vars[k]) };
+  vars = moneyVars(vars, ctx);
   const def = DEFAULT_TEXT[key] || {};
   const own = SYSTEM_TEXT[key];
   const isObj = own && typeof own === 'object' && !Array.isArray(own);
@@ -104,11 +108,11 @@ export const DEFAULT_TEXT = {
   'sys.edu.kinder': '유치원 가방을 처음 멨다.',
   'sys.edu.elem_enter': '초등학교에 입학했다.',
   'sys.edu.middle_enter': '중학생이 되었다.',
-  'sys.edu.tutoring': { prompt: '학원을 더 다닐지 정해야 했다.', options: { more: '학원을 늘린다', keep: '지금대로', less: '줄인다' } },
-  'sys.edu.high_type': { prompt: '고등학교를 골라야 했다.', options: { general: '일반고', voc: '특성화고', special: '특목·자사고' } },
+  'sys.edu.tutoring': { prompt: '학원을 더 다닐까?', options: { more: '학원을 늘린다', keep: '지금대로', less: '줄인다' } },
+  'sys.edu.high_type': { prompt: '어느 고등학교에 갈까?', options: { general: '일반고', voc: '특성화고', special: '특목·자사고' } },
   'sys.edu.high_enter': '{highTypeLabel}에 들어갔다.',
   'sys.edu.csat': '{exam|을} 치렀다.',
-  'sys.edu.path': { prompt: '졸업 후 갈 길을 정해야 했다.', options: { college: '대학에 간다', work: '일을 시작한다', retake: '한 해 더' } },
+  'sys.edu.path': { prompt: '졸업 후 어디로 갈까?', options: { college: '대학에 간다', work: '일을 시작한다', retake: '한 해 더' } },
   'sys.edu.college_enter': '{collegeLabel}에 입학했다.',
   'sys.edu.no_college': '대학 대신 일을 찾기로 했다.',
   'sys.edu.retake': '한 해 더 시험을 준비했다.',
@@ -119,15 +123,19 @@ export const DEFAULT_TEXT = {
   'sys.edu.graduate': '{levelLabel|을} 졸업했다.',
   'sys.edu.grad_enter': '대학원에 진학했다.',
   // 이정표(PROCESS-V2) — 작가가 SYSTEM_TEXT에 넣으면 그쪽이 우선
-  'sys.mil.timing': { prompt: '입대 시기를 정해야 했다.', options: { now: '바로 간다', later: '학업·일 뒤로 미룬다' } },
+  'sys.mil.timing': { prompt: '언제 입대할까?', options: { now: '바로 간다', later: '학업·일 뒤로 미룬다' } },
   'sys.fam.love': { prompt: '마음이 가는 사람이 생겼다.', options: { confess: '마음을 전한다', wait: '지켜본다', focus: '일에 집중한다' } },
-  'sys.era.shock': { prompt: '{shock|이} 내 삶에도 닥쳤다. 어떻게 버틸지 정해야 했다.', options: { hold: '자리를 지킨다', move: '직장을 옮긴다', cut: '빚과 씀씀이를 줄인다', learn: '배움에 투자한다', close: '가게를 정리한다', buy: '지금 집을 산다', wait: '지켜본다' } },
+  'sys.era.shock': { prompt: '{shock|이} 내 삶에도 닥쳤다.', options: { hold: '자리를 지킨다', move: '직장을 옮긴다', cut: '빚과 씀씀이를 줄인다', learn: '배움에 투자한다', close: '가게를 정리한다', buy: '지금 집을 산다', wait: '지켜본다' } },
   'sys.chain.biz_crisis': { prompt: '가게 매출이 몇 달째 바닥이었다.', options: { push: '대출로 버틴다', close: '정리한다' } },
-  'sys.chain.biz_rebuild': { prompt: '가게를 접은 지 한 해. 다시 해 볼지 정해야 했다.', options: { again: '다시 연다', work: '일자리를 찾는다' } },
+  'sys.chain.biz_rebuild': { prompt: '가게를 접은 지 한 해. 다시 해 볼까?', options: { again: '다시 연다', work: '일자리를 찾는다' } },
   'sys.chain.mortgage': { prompt: '집 대출 이자가 월급의 절반 가까이 되었다.', options: { hold: '버틴다', sell: '팔고 전세로' } },
   'sys.chain.exam_retry': { prompt: '시험에 또 떨어졌다.', options: { again: '한 번 더 본다', quit: '그만두고 취업한다' } },
+  'sys.money.welfare': '소득이 기준에 못 미쳐 기초생활급여를 받기 시작했다.',
+  'sys.money.welfare_old': '생활이 어려워 생활보호 대상자가 되었다. 동사무소에서 생계비를 조금씩 받았다.',
   'sys.ripple.career': '{n}년 전 고른 길({label})이 지금의 하루를 만들고 있다.',
   'sys.ripple.job': '{n}년 전 일의 결정({label})이 지금 통장에 남아 있다.',
+  'sys.ripple.money': '{n}년 전 돈의 결정({label})이 지금 통장에 남아 있다.',
+  'sys.ripple.family': '{n}년 전 가족에게 한 결정({label})이 지금의 거리를 만들었다.',
   'sys.ripple.housing': '{n}년 전 집 문제의 결정({label})이 지금 사는 곳을 정했다.',
   'sys.ripple.love': '{n}년 전 마음({label})이 지금의 관계로 이어졌다.',
   'sys.ripple.marriage': '{n}년 전 결혼의 결정({label})이 지금의 식탁을 만들었다.',
@@ -153,12 +161,12 @@ export const DEFAULT_TEXT = {
   'sys.job.business': { prompt: '가게를 차려 볼까 하는 마음이 들었다.', options: { open: '가게를 연다', job: '일자리를 찾는다' } },
   'sys.job.business_open': '{title} 일로 가게 문을 열었다.',
   'sys.job.business_close': '가게를 정리했다.',
-  'sys.job.childcare': { prompt: '아이가 태어났다. 일을 어떻게 할지 정해야 했다.', options: { leave: '육아휴직', quit: '그만둔다', keep: '그대로 다닌다' } },
+  'sys.job.childcare': { prompt: '아이가 태어났다. 일은 어떻게 할까?', options: { leave: '육아휴직', quit: '그만둔다', keep: '그대로 다닌다' } },
   'sys.job.career_break': '일을 그만두었다({reasonLabel}).',
   'sys.job.return': '{n}년 만에 다시 일을 시작했다.',
   'sys.job.honorary': { prompt: '희망퇴직 명단이 돌았다.', options: { accept: '받아들인다', stay: '버틴다' } },
   'sys.job.exit_main': '{years}년 다닌 일을 그만두었다({reasonLabel}).',
-  'sys.job.after_main': { prompt: '이제 무엇을 할지 정해야 했다.', options: { work: '다시 일한다', rest: '쉰다', shop: '가게를 연다' } },
+  'sys.job.after_main': { prompt: '이제 무엇을 할까?', options: { work: '다시 일한다', rest: '쉰다', shop: '가게를 연다' } },
   'sys.job.platform': '배달 앱에 라이더로 등록했다.',
   'sys.job.ai_shift': '하던 일의 절반을 프로그램이 하기 시작했다.',
   'sys.job.retire': '일을 완전히 놓았다.',
@@ -177,7 +185,7 @@ export const DEFAULT_TEXT = {
   'sys.money.fraud_loss': '모아 둔 돈 일부가 사라졌다.',
   // 주거
   'sys.home.family_move': '집이 이사를 했다({toLabel}).',
-  'sys.home.independence': { prompt: '집을 나와 살지 정해야 했다.', options: { stay: '부모 집에 산다', room: '원룸 월세', jeonse: '전세 대출로' } },
+  'sys.home.independence': { prompt: '집을 나와 살까?', options: { stay: '부모 집에 산다', room: '원룸 월세', jeonse: '전세 대출로' } },
   'sys.home.dorm': '기숙사에 짐을 풀었다.',
   'sys.home.move': '{toLabel|으로} 이사했다({reasonLabel}).',
   'sys.home.renew': { prompt: '계약 만기. 집주인이 {amount}만 원을 올려 달라고 했다.', options: { pay: '올려 준다', cheaper: '싼 곳으로', monthly: '월세로 돌린다' } },
@@ -214,7 +222,7 @@ export const DEFAULT_TEXT = {
   'sys.fam.divorced': '이혼했다.',
   'sys.fam.remarry': '다시 결혼했다.',
   'sys.fam.widowed': '배우자가 세상을 떠났다.',
-  'sys.fam.parent_care': { prompt: '{parentLabel|을} 누가 돌볼지 정해야 했다.', options: { home: '{parentLabel|을} 모신다', facility: '{parentLabel} 요양시설', share: '형제와 나눈다' } },
+  'sys.fam.parent_care': { prompt: '{parentLabel|을} 누가 돌볼까?', options: { home: '{parentLabel|을} 모신다', facility: '{parentLabel} 요양시설', share: '형제와 나눈다' } },
   'sys.fam.care_end': '{who}{because} 돌봄이 종료됐다.',
   'sys.fam.living_alone': '집에 혼자 남았다.',
   // 건강
@@ -239,7 +247,7 @@ export const DEFAULT_TEXT = {
   'sys.age.senior_job': '동네 공익활동 일자리를 얻었다. 한 달 29만 원.',
   'sys.age.grandcare': { prompt: '자식이 손주를 봐 줄 수 있느냐고 물었다.', options: { yes: '맡아 준다', some: '주 2~3일만', no: '어렵다고 한다' } },
   'sys.age.ltc': '장기요양 {grade}등급을 받았다.',
-  'sys.age.residence': { prompt: '앞으로 어디서 지낼지 정해야 했다.', options: { home: '집에서 방문요양', facility: '요양시설', child: '자녀 집으로' } },
+  'sys.age.residence': { prompt: '앞으로 어디서 지낼까?', options: { home: '집에서 방문요양', facility: '요양시설', child: '자녀 집으로' } },
   'sys.age.spouse_care': '배우자를 돌보는 게 하루의 대부분이 되었다.',
   'sys.age.isolated': '며칠 동안 아무와도 말하지 않았다.',
   'sys.age.digital': '주민센터 대신 앱으로 하라고 했다.',

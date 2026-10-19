@@ -4,6 +4,9 @@ import test from 'node:test';
 import {
   startServer, launch, openPage, appErrors, screen, waitScreen, shot, Sim, seedInit, presetInit, SEEDS, checks, median, saveJson,
 } from './helpers.mjs';
+import { HARD_CAP_MS } from '../../src/engine/constants.js';
+// 15분 상한은 초기 소스부터 꺼져 있다(constants.js HARD_CAP_MS = Infinity, 1년=15초 정책). 상한이 다시 켜지면 2c·2d가 저절로 돈다.
+const NO_CAP = HARD_CAP_MS === Infinity ? '15분 상한 없음(HARD_CAP_MS = Infinity)' : false;
 
 let srv, br;
 test.before(async () => { srv = await startServer(); br = await launch(); });
@@ -53,8 +56,8 @@ test('E2E-2a 실시간: 홈 로드 → 출생 카드 · 첫 선택(1×)', { time
 });
 
 // ───────── 방치 완주(가짜 시계) ─────────
-async function idleRun(seed, speed = 1) {
-  const page = await openPage(br, srv.url, { clock: true, init: seedInit(seed) + presetInit({ seen19: true, speed, auto: false }) });
+async function idleRun(seed, speed = 2) {      // 기본 설정: 배속 2×(HOOK-30S P0-4) · 자동결정 켬(auto는 저장하지 않아 DEFAULTS를 따른다)
+  const page = await openPage(br, srv.url, { clock: true, init: seedInit(seed) + presetInit({ seen19: true, speed }) });
   const sim = new Sim(page);
   await waitScreen(page, 'home');
   await page.click('[data-go="born"]');
@@ -67,7 +70,9 @@ async function idleRun(seed, speed = 1) {
     const s = await page.evaluate(() => ({ screen: document.body.dataset.screen, toast: document.querySelector('.toast')?.textContent || '', age: document.querySelector('[data-hud=age]')?.textContent, nodes: document.querySelectorAll('*').length }));
     if (s.age != null) { lastAge = +s.age; nodes = Math.max(nodes, s.nodes); }
     if (toastAt == null && /시간이 다 되어/.test(s.toast)) toastAt = sim.t - t0;
-    if (deathAt == null && s.screen === 'death') deathAt = sim.t - t0;
+    // 마지막 해·사망 화면은 자동결정과 무관하게 직접 넘긴다(자동 결산 없음) — 방치 소요는 [마지막 페이지로]가 뜬 시각까지, 그 뒤 두 번 눌러 결산
+    if (deathAt == null && await page.$('[data-act="last-record"]')) { deathAt = sim.t - t0; await page.click('[data-act="last-record"]'); await waitScreen(page, 'death'); continue; }
+    if (s.screen === 'death') { await page.click('[data-act="sum"]'); continue; }
     if (s.screen === 'summary') { sumAt = sim.t - t0; break; }
     await sim.adv(500);
   }
@@ -79,15 +84,16 @@ async function idleRun(seed, speed = 1) {
   return { seed, speed, deathAt, sumAt, toastAt, capped: toastAt != null, lastAge, deathAge, nodes, capNote, err };
 }
 
-test('E2E-2b 방치 완주(가짜 시계, 1×): 출생→사망 화면·결산 진입 ≤ 15:00', { timeout: 900_000 }, async () => {
+// 목표: 기본 설정(2×·자동결정 켬)으로 손을 떼도 약 15분(안내문 "약 15분. 손을 떼도 삶은 흘러갑니다.", HOOK-30S §4 완주 15~16분)
+test('E2E-2b 방치 완주(가짜 시계, 기본 2×): 출생→마지막 해·결산 진입 ≤ 16:00', { timeout: 900_000 }, async () => {
   const c = checks('timing-idle');
-  const seeds = [1, 2, 3, 4, 5, 13, 20, 23, 28, 36, 63, 69, 67, 10];
+  const seeds = [1, 2, 3, 5, 13, 20, 28, 63];   // 장수·단명 섞어 8생애(시간 초과 방지)
   const out = [];
   for (let i = 0; i < seeds.length; i += 4) out.push(...await Promise.all(seeds.slice(i, i + 4).map(s => idleRun(s))));
   const fmt = ms => ms == null ? '-' : `${Math.floor(ms / 60000)}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}`;
   for (const r of out) {
-    c(`seed ${r.seed}(향년 ${r.deathAge}): 사망 화면 도달 ≤ 15:00`, r.deathAt != null && r.deathAt <= 900_000, `death ${fmt(r.deathAt)} summary ${fmt(r.sumAt)}`);
-    c(`seed ${r.seed}: 결산 진입(사망 화면 8초 자동 포함) ≤ 15:00`, r.sumAt != null && r.sumAt <= 900_000, `${fmt(r.sumAt)} (상한 도달=${r.capped})`);
+    c(`seed ${r.seed}(향년 ${r.deathAge}): 마지막 해 도달 ≤ 16:00`, r.deathAt != null && r.deathAt <= 960_000, `last ${fmt(r.deathAt)} summary ${fmt(r.sumAt)}`);
+    c(`seed ${r.seed}: 결산 진입(직접 넘김 2회) ≤ 16:00`, r.sumAt != null && r.sumAt <= 960_000, `${fmt(r.sumAt)}`);
     c(`seed ${r.seed}: 에러 0`, r.err.length === 0, r.err.join('|'));
   }
   const dts = out.map(r => r.deathAt).filter(x => x != null);
@@ -98,7 +104,7 @@ test('E2E-2b 방치 완주(가짜 시계, 1×): 출생→사망 화면·결산 �
 });
 
 // ───────── 15분 상한 ─────────
-test('E2E-2c 15분 상한: 선택 링을 멈춰 방치 → 기본값 → 토스트 → 결산', { timeout: 600_000 }, async () => {
+test('E2E-2c 15분 상한: 선택 링을 멈춰 방치 → 기본값 → 토스트 → 결산', { timeout: 600_000, skip: NO_CAP }, async () => {
   const c = checks('timing-cap');
   const page = await openPage(br, srv.url, { clock: true, init: seedInit(SEEDS.plain) + presetInit({ seen19: true, speed: 1, auto: false }) });
   const sim = new Sim(page);
@@ -141,7 +147,7 @@ test('E2E-2c 15분 상한: 선택 링을 멈춰 방치 → 기본값 → 토스�
   c.done();
 });
 
-test('E2E-2d 상한 직전 이어 하기(elapsed 14:40, 장수 시드): 상한 → 결산', { timeout: 300_000 }, async () => {
+test('E2E-2d 상한 직전 이어 하기(elapsed 14:40, 장수 시드): 상한 → 결산', { timeout: 300_000, skip: NO_CAP }, async () => {
   const c = checks('timing-cap-resume');
   const cur = { seed: SEEDS.long, choices: [], elapsed: 14 * 60_000 + 40_000, age: 30, name: '테스트', year: 2000, at: Date.now() };
   const page = await openPage(br, srv.url, { clock: true, init: seedInit(SEEDS.long) + presetInit({ seen19: true, speed: 1, auto: false }, { 'hj.v1.current': cur }) });
@@ -183,16 +189,20 @@ test('E2E-2e 배속 1×/2×/4×: 연 간격 비율, 선택 카운트다운은 �
     const stamps = {};
     let age = 0;
     const t0 = sim.t;
-    while (age < 4 && sim.t - t0 < 200_000) {
+    // 연 간격만 잰다: 선택·결과 시트가 떠 있는 시간(배속과 무관한 카운트다운·읽기 시간, 0세 '부모님의 첫 결정' 포함)은 빼고 센다
+    let tl = 0;
+    while (age < 4 && sim.t - t0 < 400_000) {
+      const open = await page.evaluate(() => !!document.querySelector('.sheet'));
       await sim.adv(100);
+      if (!open) tl += 100;
       const a = +(await page.evaluate(() => document.querySelector('[data-hud=age]').textContent));
-      if (a !== age) { age = a; stamps[a] = sim.t - t0; }
+      if (a !== age) { age = a; stamps[a] = tl; }
     }
     res[speed] = { stamps, pressed: await page.evaluate(() => [...document.querySelectorAll('[data-speed]')].map(b => b.getAttribute('aria-pressed')).join()) };
     // 선택 카운트다운(5세)은 배속과 무관: 열린 시각 → 기본값 처리
     await sim.until(() => !!document.querySelector('.sheet.choice'), { max: 200_000, step: 100 });
     const o = sim.t;
-    await sim.until(() => !document.querySelector('.sheet.choice'), { max: 30_000, step: 100 });
+    await sim.until(() => !document.querySelector('.sheet.choice'), { max: 90_000, step: 100 });
     res[speed].choiceMs = sim.t - o;
     await page.ctx.close();
   }
@@ -200,7 +210,8 @@ test('E2E-2e 배속 1×/2×/4×: 연 간격 비율, 선택 카운트다운은 �
   c('1×: 0→4세 소요', first(1) > 0, `${first(1)}ms`);
   c('2× 는 1× 의 약 1/2(0.4~0.65)', first(2) / first(1) >= 0.4 && first(2) / first(1) <= 0.65, `${(first(2) / first(1)).toFixed(2)}`);
   c('4× 는 1× 의 약 1/4(0.2~0.4)', first(4) / first(1) >= 0.2 && first(4) / first(1) <= 0.4, `${(first(4) / first(1)).toFixed(2)}`);
-  for (const s of [1, 2, 4]) c(`${s}×: 선택 카운트다운(무응답→기본값) 12~14.5초 — 배속 무관`, res[s].choiceMs >= 12000 && res[s].choiceMs <= 14500, `${res[s].choiceMs}ms`);
+  // 카운트다운은 글자 수 비례(최소 12초·최대 40초, C1) + 결과 읽기(최소 3초, C5). 같은 시드·같은 첫 선택이라 배속과 무관하게 같아야 한다.
+  for (const s of [1, 2, 4]) c(`${s}×: 선택 무응답→기본값→닫힘 ≥ 12+3초, ≤ 40+결과 — 배속 무관(1× 와 ±0.5초)`, res[s].choiceMs >= 15000 && res[s].choiceMs <= 60_000 && Math.abs(res[s].choiceMs - res[1].choiceMs) <= 500, `${res[s].choiceMs}ms (1× ${res[1].choiceMs}ms)`);
   c.note('배속 측정', res);
   c.done();
 });
@@ -253,13 +264,14 @@ test('E2E-7 성능·메모리: 완주 후 DOM 노드 수, 연 진행 1회 처리
     await page.click('[data-act="start"]'); await waitScreen(page, 'life');
     let years = 0, lastAge = -1, nodesLife = 0, maxFeed = 0;
     while ((await screen(page)) === 'life') {
+      if (await page.$('[data-act="last-record"]')) { await page.click('[data-act="last-record"]'); break; }   // 마지막 해는 직접 넘김
       await sim.adv(500);
       const s = await page.evaluate(() => ({ age: +document.querySelector('[data-hud=age]')?.textContent, nodes: document.querySelectorAll('*').length, feed: document.querySelectorAll('.feed > li').length }));
       if (s.age !== lastAge) { lastAge = s.age; years++; }
       nodesLife = Math.max(nodesLife, s.nodes); maxFeed = Math.max(maxFeed, s.feed);
     }
     const m1 = await metrics();
-    await sim.until(() => document.body.dataset.screen === 'summary', { max: 20_000 });
+    await waitScreen(page, 'death'); await page.click('[data-act="sum"]'); await waitScreen(page, 'summary');   // 버튼 하나로 결산(F-9)
     const nodesSum = await page.evaluate(() => document.querySelectorAll('*').length);
     const js = (m1.ScriptDuration - m0.ScriptDuration) * 1000, lay = (m1.LayoutDuration - m0.LayoutDuration) * 1000, sty = (m1.RecalcStyleDuration - m0.RecalcStyleDuration) * 1000, task = (m1.TaskDuration - m0.TaskDuration) * 1000;
     runs.push({ run: k + 1, years, js: +js.toFixed(0), layout: +lay.toFixed(0), style: +sty.toFixed(0), task: +task.toFixed(0), perYearMs: +(task / Math.max(1, years)).toFixed(2), nodesLife, maxFeed, nodesSum, heapMB: +((await heap()) / 1048576).toFixed(2), listeners: (await cdp.send('Runtime.evaluate', { expression: 'document.querySelectorAll("*").length' })).result.value });

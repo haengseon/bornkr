@@ -100,7 +100,12 @@ test('시계: 1년=1배속 15초 고정, 배속 1~5로만 나눔, 일시정지 �
   assert.equal(c.overCap(), false);            // 1년=30초 정책: 15분 상한 없음
   const L = E.newLife({ seed: 1 });
   const want = { 1: 15000, 2: 7500, 3: 5000, 4: 3750, 5: 3000 };
+  L.age = 5;
   for (const [sp, ms] of Object.entries(want)) assert.equal(c.yearDelay(L, Number(sp)), ms);
+  L.age = 0;                                    // 0~4세는 한 해를 0.4배로 압축(HOOK-30S P0-2)
+  assert.equal(c.yearDelay(L, 1), 6000);
+  L.age = 70;                                   // 70세 이후는 1/1.5(E1 페이싱)
+  assert.equal(c.yearDelay(L, 1), 10000);
 });
 
 test('1,000생애 평균 사망 나이 ≈ 출생아 가중 해석 목표(GDD §6.5 ±1.0)', async () => {

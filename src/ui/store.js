@@ -3,7 +3,7 @@ const K = { records: 'hj.v1.records', settings: 'hj.v1.settings', current: 'hj.v
 export const MAX_RECORDS = 30;
 import { SPEEDS } from '../engine/constants.js';
 import { restoreJobNames } from './job-names.js';
-export const DEFAULTS = { speed: 1, auto: false, theme: 'system', seen19: false, reduceMotion: false, hideSensitiveCause: false };
+export const DEFAULTS = { speed: 2, auto: true, theme: 'system', seen19: false, reduceMotion: false, hideSensitiveCause: false };
 
 function get(key, fallback) {
   try { return JSON.parse(globalThis.localStorage.getItem(key)) ?? fallback; } catch { return fallback; }

@@ -11,11 +11,11 @@ test.after(async () => { await br?.close(); srv?.stop(); });
 
 const hud = page => page.evaluate(() => ({
   age: +document.querySelector('[data-hud=age]').textContent, year: +document.querySelector('[data-hud=year]').textContent,
-  stats: [...document.querySelectorAll('.stat__value')].map(x => +x.textContent), name: document.querySelector('.hud__name').firstChild.textContent.trim(),
+  stats: [...document.querySelectorAll('.sbar__v')].map(x => +x.textContent), name: document.querySelector('.hud__name').firstChild.textContent.trim(),
   feed: [...document.querySelectorAll('.feed__year')].slice(0, 6).map(y => y.querySelector('.feed__when').textContent + '|' + [...y.querySelectorAll('.entry')].filter(e => !e.hasAttribute('data-cmp')).map(e => e.textContent.replace(/\s+/g, ' ').trim()).join('/')),
 }));
 const summaryDump = page => page.evaluate(() => ({
-  main: document.querySelector('.verdict__main')?.textContent, reasons: [...document.querySelectorAll('.verdict__reasons li')].map(x => x.textContent),
+  main: document.querySelector('.verdict__main')?.textContent, reasons: [...document.querySelectorAll('.verdict .epi__title, .verdict .epi__body p')].map(x => x.textContent),   // 이유 목록 → 회고문(0ba9a1a)
   closing: [...document.querySelectorAll('section[aria-labelledby=sum-closing] .metric')].map(m => m.querySelector('.metric__label').textContent + ':' + m.querySelector('.metric__value').textContent + ':' + m.querySelector('.metric__reason').textContent),
   issues: [...document.querySelectorAll('section[aria-labelledby=sum-issues] .metric')].map(m => m.innerText.replace(/\s+/g, ' ')),
   tl: [...document.querySelectorAll('.timeline .tl')].map(x => x.innerText.replace(/\s+/g, ' ')), head: document.querySelector('.lifehead__years').textContent,
@@ -30,9 +30,10 @@ for (const [seed, pattern] of [[3, 'cycle'], [13, 'last'], [20, 'first']]) {
     const sim = new Sim(page);
     await waitScreen(page, 'home'); await page.click('[data-go="born"]'); await waitScreen(page, 'birth'); await page.click('[data-act="start"]'); await waitScreen(page, 'life');
     let k = 0, picks = 0, reloads = 0;
-    const marks = [35, 65];
+    const marks = [35, 55];   // seed 13(last)은 62세 사망 — 두 번째 점검을 55세로
     const guard = sim.t;
     while ((await screen(page)) === 'life' && sim.t - guard < 25 * 60_000) {
+      if (await page.$('[data-act="last-record"]')) { await page.click('[data-act="last-record"]'); break; }   // 마지막 해는 직접 넘김
       const s = await page.evaluate(() => ({ open: !!document.querySelector('.sheet.choice .options:not(.is-done)'), n: document.querySelectorAll('.sheet.choice [data-opt]').length, sheet: !!document.querySelector('.sheet'), cmp: !!document.querySelector('.compare'), age: +document.querySelector('[data-hud=age]')?.textContent, banner: !document.querySelector('.banner')?.hidden }));
       if (s.open) {
         await sim.adv(800);
@@ -52,7 +53,8 @@ for (const [seed, pattern] of [[3, 'cycle'], [13, 'last'], [20, 'first']]) {
         reloads++;
         c(`[${before.age}세] 이어 하기: 나이·연도·이름 일치`, after.age === before.age && after.year === before.year && after.name === before.name, `${before.age}/${after.age}`);
         c(`[${before.age}세] 이어 하기: 6지표 일치(직접 선택 ${picks}회 포함)`, JSON.stringify(after.stats) === JSON.stringify(before.stats), `${before.stats} | ${after.stats}`);
-        c(`[${before.age}세] 이어 하기: 피드 최근 해 문구 일치`, JSON.stringify(after.feed) === JSON.stringify(before.feed), JSON.stringify(before.feed.slice(0, 2)) + ' | ' + JSON.stringify(after.feed.slice(0, 2)));
+        // 진행 중인 해(맨 위)는 줄이 한 줄씩 드러나는 중이라 뺀다(revealEntries)
+        c(`[${before.age}세] 이어 하기: 피드 지난 해 문구 일치`, JSON.stringify(after.feed.slice(1)) === JSON.stringify(before.feed.slice(1)), JSON.stringify(before.feed.slice(1, 3)) + ' | ' + JSON.stringify(after.feed.slice(1, 3)));
         await sim.adv(3300);
         continue;
       }
@@ -63,7 +65,7 @@ for (const [seed, pattern] of [[3, 'cycle'], [13, 'last'], [20, 'first']]) {
     const live = await summaryDump(page);
     await page.evaluate(() => document.querySelectorAll('details.birth-again').forEach(d => { d.open = true; }));
     const live2 = await summaryDump(page);
-    await page.click('.actionbar [data-go="archive"]'); await waitScreen(page, 'archive');
+    await page.click('.sum-more [data-go="archive"]'); await waitScreen(page, 'archive');
     await page.click('[data-rec="0"]'); await page.waitForSelector('.topbar__title');
     await page.evaluate(() => document.querySelectorAll('details.birth-again').forEach(d => { d.open = true; }));
     const det = await summaryDump(page);
@@ -71,7 +73,7 @@ for (const [seed, pattern] of [[3, 'cycle'], [13, 'last'], [20, 'first']]) {
     c.note('기록', { seed: rec.seed, choices: rec.choices.length, auto: rec.choices.filter(x => x.auto).length, picks, reloads, deathAge: rec.deathAge });
     c('직접 선택 5회 이상 수행(재현 검증 의미)', picks >= 5, picks);
     c('이어 하기 점검 2회 수행', reloads === 2, reloads);
-    c('재열람 = 결산: 판정 주문·이유', det.main === live.main && JSON.stringify(det.reasons) === JSON.stringify(live.reasons), `${live.main} | ${det.main} || ${live.reasons} | ${det.reasons}`);
+    c('재열람 = 결산: 판정 주문·회고문', det.main === live.main && JSON.stringify(det.reasons) === JSON.stringify(live.reasons), `${live.main} | ${det.main} || ${live.reasons} | ${det.reasons}`);
     c('재열람 = 결산: 결산 5지표(값·사유)', JSON.stringify(det.closing) === JSON.stringify(live.closing), JSON.stringify(live.closing.slice(0, 2)) + ' | ' + JSON.stringify(det.closing.slice(0, 2)));
     c('재열람 = 결산: 내 삶에 들어온 뉴스 10축(값·사유)', JSON.stringify(det.issues) === JSON.stringify(live.issues), live.issues.filter((x, i) => x !== det.issues[i]).slice(0, 2).join(' || '));
     c('재열람 = 결산: 연표 전 줄', JSON.stringify(det.tl) === JSON.stringify(live.tl), live.tl.filter((x, i) => x !== det.tl[i]).slice(0, 2).join(' || '));

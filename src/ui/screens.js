@@ -1,6 +1,9 @@
 // 화면: S01 홈 · S02 안내 · S03 출생 신고서 · S09 사망 · S10 결산 · S12 기록관 · S13 통계 도감 · S14 설정
 import { SPEEDS } from '../engine/constants.js';
-import { newLife, birthCert, peers, summarize, replay } from '../engine/index.js';
+import { newLife, birthCert, peers, summarize, replay, expectedRemainingYears } from '../engine/index.js';
+import { ORDER_L } from '../engine/compare.js';
+import { FAMILY_HISTORY } from '../content/family-history.js';
+import { FAMILY_HISTORY_EXT } from '../content/family-history-ext.js';
 import { S, routes, go, $, $$, esc, show, toast, setSetting, pushScreen, reduced } from './dom.js';
 import { loadRecords, loadCurrent, clearRecords } from './store.js';
 import {
@@ -23,14 +26,15 @@ const opts = () => ({ hideSensitiveCause: S.settings.hideSensitiveCause });
 
 // ───────── S01 홈 ─────────
 routes.home = () => {
+  S.again = null;
   const recs = loadRecords(), cur = loadCurrent();
   const homeEl = show('home', `<section class="screen has-bar home" data-screen="home"><div class="screen__body">
-    <p class="home__formno">생애 시뮬레이션 · 1회 배속에 따라 약 7~25분 <span class="tag">19세 이상</span></p>
+    <p class="home__formno">생애 시뮬레이션 · 약 15분 <span class="tag">19세 이상</span></p>
     <h1 class="home__title">태어나보니 대한민국</h1>
     <p class="home__sub">한 번뿐인 인생</p>
     ${SITE_NAV}
-    <p class="home__lede">대한민국 어딘가에서 무작위로 태어나, 한 번의 생을 마지막 순간까지 삽니다. 태어날 곳은 고를 수 없고, 고를 수 있는 건 생각보다 적습니다.</p>
-    <dl class="facts"><div><dt>소요</dt><dd>약 10~30분</dd></div><div><dt>끝</dt><dd>사망할 때까지</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
+    <p class="home__lede">대한민국 어딘가에서 태어나 마지막 순간까지 삽니다. 태어날 곳은 고를 수 없습니다. 고를 수 있는 건 생각보다 적습니다.</p>
+    <dl class="facts"><div><dt>소요</dt><dd>약 15분</dd></div><div><dt>끝</dt><dd>사망할 때까지</dd></div><div><dt>권장</dt><dd>19세 이상</dd></div></dl>
     ${cur ? `<div class="resume"><div class="resume__text"><p class="resume__title">하던 생애가 있습니다</p><p class="cap">${esc(cur.name ?? '')} · ${cur.age}세(${cur.year ?? ''}년)</p></div><button class="btn" type="button" data-go="resume">이어 하기</button></div>
     <div class="confirm" id="confirm-new" role="group" aria-labelledby="confirm-new-text" hidden>
       <p class="confirm__text" id="confirm-new-text">새로 태어나면 하던 생애(${esc(cur.name ?? '')} · ${cur.age}세)는 이어 할 수 없습니다. 그래도 새로 태어날까요?</p>
@@ -65,7 +69,7 @@ routes.home = () => {
 
 // 하던 생애가 있으면 새 생애 전에 페이지 안 확인(QA-E-04). 확인 없이는 저장된 생애를 건드리지 않는다.
 function askNew() {
-  if (document.body.dataset.screen !== 'home') routes.home();
+  if (document.body.dataset.screen !== 'home') { const a = S.again; routes.home(); S.again = a; }
   const c = $('#confirm-new');
   if (!c) return false;
   c.hidden = false;
@@ -79,17 +83,19 @@ function askNew() {
 routes.born = () => (loadCurrent() && askNew() ? undefined : S.settings.seen19 ? go('birth') : go('gate'));
 routes.bornNew = () => (S.settings.seen19 ? go('birth') : go('gate'));
 routes.gate = () => show('gate', `<section class="screen has-bar" data-screen="gate" aria-labelledby="gate-title"><div class="screen__body">
-  <article class="doc"><p class="doc__formno">■ 태어나보니 대한민국 [안내]</p><div class="doc__head"><h1 class="doc__title" id="gate-title">안내문</h1></div>
+  <article class="doc"><p class="doc__formno">■ 태어나보니 대한민국 [안내]</p><div class="doc__head"><h1 class="doc__title" id="gate-title">태어나기 전에</h1></div>
   <ol class="notice-list">
-    <li>이 게임은 19세 이상을 위해 만들었습니다.</li>
-    <li>질병·사고·폭력·상실·자해를 다루는 이야기가 있습니다.</li>
-    <li>그런 일은 짧게만 적고, 선택지는 평소와 같습니다.</li>
-    <li>출생부터 결산까지 배속에 따라 약 7~25분입니다(한 해는 1배속에서 15초, 배속은 1~5배). 손을 떼도 기본 행동으로 끝까지 진행됩니다.</li>
-  </ol></article></div>
+    <li>19세 이상을 위해 만들었습니다.</li>
+    <li>병·사고·폭력·상실·자해가 나옵니다. 짧게만 적습니다.</li>
+    <li>약 15분. 손을 떼도 삶은 흘러갑니다. 선택은 자동결정이 기본(설정에서 끔).</li>
+  </ol>
+  <p class="gate__line">어디서, 누구로 태어날지는 아무도 고르지 않습니다.</p></article></div>
   <div class="actionbar"><button class="btn" type="button" data-go="home">홈으로</button><button class="btn btn--primary" type="button" data-go="gateOk">확인하고 태어나기</button></div></section>`);
 routes.gateOk = () => { setSetting('seen19', true); go('birth'); };
 routes['again-era'] = () => { go('home'); const c = $('.eraChip'); c?.scrollIntoView?.({ block: 'center' }); c?.focus?.({ preventScroll: true }); };   // 시대 고르는 홈 영역으로
 routes.again = () => go('born');                  // 하던 생애가 있으면 확인을 거친다
+// 같은 시드·같은 시대 고정으로 다시 태어난다(HOOK-30S P0-6). 하던 생애가 있으면 같은 확인을 거친다.
+routes['again-same'] = () => { const v = S.view; S.again = v ? { seed: v.L.seed, forced: v.forced ?? null } : null; go('born'); };
 
 // ───────── S03 출생 신고서 ─────────
 const dots = q => `<span class="dots" role="img" aria-label="${quintileAria(q)}">${[1, 2, 3, 4, 5].map(i => `<i${i <= q ? ' class="is-on"' : ''}></i>`).join('')}</span>`;
@@ -100,33 +106,76 @@ function certForm(cert, L, withDots) {
     ['성명', `${esc(L.name)} (${sexLabel(L.sex)})`], ['출생일', dateKo(b)], ['출생지', esc(region)],
     ['가구 형편', (withDots && q ? dots(q) : '') + esc(cert.quintileLabel ?? '')],
     ['부모', esc(cert.parentsLine ?? '').replace(/,\s*(어머니)/, '<br>$1')], ['주거', esc(cert.homeLine ?? '')],
-    ['돌봄', esc(cert.careLine ?? '')], ['의료 접근', esc(cert.accessLine ?? '')], ['시대', esc(cert.eraLine ?? '')],
+    ['의료 접근', esc(cert.accessLine ?? '')], ['시대', esc(cert.eraLine ?? '')],
   ];
   return `<dl class="form">${rows.map(([l, v]) => `<div class="form__row"><dt class="form__label">${l}</dt><dd class="form__value">${v}</dd></div>`).join('')}</dl>`;
 }
 const peerBirthLine = p => p.birthLine || p.homeLine || '';
 const peerLi = (p, line, self) => `<li class="peer"><span class="peer__name">${esc(p.name)}</span><span class="peer__meta">${sexLabel(p.sex)} · ${esc(p.regionLabel ?? regionShort(p.region))}</span>${self ? ' <span class="tag">본인</span>' : ''}${line ? `<p class="peer__line">${esc(line)}</p>` : ''}</li>`;
 
-// 출생 시퀀스: 장면(병원·집) → 아기 등장 → 검은 화면 내레이션 → 진행. 탭하면 건너뛰고 출생 카드를 본다.
+// 출생 시퀀스(HOOK-30S § 인트로 재기획): 카드 3장(언제·어디서·어떤 집)을 뒤집는다 → 탄생 장면 + 이름 → 가족사 한 줄 → "몇 살까지?" 질문.
+// 탭하면 다음 단계로 앞당기고, [건너뛰기]·하단 [삶을 시작하기]로 언제든 나간다. 사망 화면에서 질문의 답을 보여 준다.
 const bornAtHospital = b => b.year >= 2000 || (b.year >= 1985 && b.urban !== false);
-function cineHtml(L, cert) {
+const CAPITAL = ['seoul', 'incheon', 'gyeonggi'];
+const AREA = { yeongnam: ['busan', 'daegu', 'ulsan', 'gyeongbuk', 'gyeongnam'], honam: ['gwangju', 'jeonbuk', 'jeonnam'], chungcheong: ['daejeon', 'sejong', 'chungbuk', 'chungnam'], gangwon: ['gangwon'], jeju: ['jeju'] };
+const FH = [...FAMILY_HISTORY, ...FAMILY_HISTORY_EXT];
+// 문장 속 친족어가 실제 가족 구성과 어긋나면 뺀다(A7): 출생 때 살아 있는 조부모, 한부모·맞벌이, 손위 형제.
+// ponytail: 친족어 정규식 판별. 이모·삼촌·고모·사촌은 엔진이 모형화하지 않아 거르지 않는다(모형화되면 여기에 추가).
+export function kinOk(line, L) {
+  const p = L.birth.parents, f = L.family || {}, s = line.replace(/이웃(집)? ?형/g, '');
+  const gp = f.gp || [], has = (side, sex) => gp.some(g => g.alive && (!side || g.side === side) && (!sex || g.sex === sex));
+  const older = (f.siblingMembers || []).filter(m => m.birthYear < L.birth.year || (m.birthYear === L.birth.year && L.birth.order > 1));
+  const rules = [
+    [/외할아버지/, () => has('maternal', 'M')], [/외할머니/, () => has('maternal', 'F')],
+    [/(?<![외조])할아버지/, () => has(null, 'M')], [/(?<!외)할머니/, () => has(null, 'F')],
+    [/조부모/, () => has()],
+    [/(?<!큰|작은|할)아버지|(?<!조)부모/, () => !p.singleParent], [/맞벌이/, () => p.dualIncome],
+    [/형(은|이|과|와|의)|큰형/, () => L.sex === 'M' && older.some(m => m.sex === 'M')],
+  ];
+  return rules.every(([re, ok]) => !re.test(s) || ok());
+}
+// 가족사 한 줄: 출생연도·지역권·형편으로 거른 뒤 시드로 고정 선택(같은 출생 = 같은 줄)
+export function familyLine(L) {
+  const b = L.birth, cap = CAPITAL.includes(b.region);
+  const pool = FH.filter(f => b.year >= f.cohorts[0] && b.year <= f.cohorts[1]
+    && (!f.regionGroup || (f.regionGroup === 'capital' ? cap : !cap || b.urban === false))
+    && (!f.region || AREA[f.region]?.includes(b.region))
+    && (!f.wealth || (f.wealth === 'low' ? b.quintile <= 2 : b.quintile >= 4))
+    && kinOk(f.line, L));
+  return pool.length ? pool[(L.seed >>> 0) % pool.length].line : '';
+}
+// 출생 때 기대수명(모형, 반올림). 0세가 아니면 같은 시드로 갓 태어난 생애를 다시 만들어 잰다.
+export const birthE0 = (L, forced) => {
+  try { return Math.round(expectedRemainingYears(L.age === 0 && L.alive ? L : newLife({ seed: L.seed, modelVersion: L.modelVersion, forced: forced ?? undefined }))); } catch { return 0; }
+};
+function cineHtml(L, cert, e0, same) {
   const b = L.birth, hosp = bornAtHospital(b);
-  let sents = [].concat(cert.story || []).join(' ').split(/(?<=[.?!])s+/).filter(Boolean).slice(0, 4);
-  if (!sents.length) sents = [`${josa(L.name, '은')} ${b.year}년, ${regionShort(b.region)}에서 태어났다.`];
-  sents.push('이제 이 삶을 들여다본다.');
   const place = hosp ? '산부인과 병원' : `${TENURE_LABEL[b.tenure] ?? ''} 집`.trim();
-  return `<div class="cine" data-cine><div class="cine__stage">${sceneHtml(L, { over: { birth: hosp ? 'hospital' : 'home', place: hosp ? 'hospital' : null, still: false } })}<p class="cine__place"><span class="mono">${b.year}</span>년 · ${esc(regionShort(b.region))} · ${esc(place)}</p></div>
-    <div class="cine__veil"></div><div class="cine__lines" aria-live="polite">${sents.map(t => `<p class="cine__line">${esc(t)}</p>`).join('')}</div>
-    <button class="cine__tap" type="button" data-act="skip"><span class="cine__skip">화면을 누르면 건너뜁니다</span></button></div>`;
+  const ord = b.siblings === 0 ? '외동' : ORDER_L[b.order - 1] ?? '막내';
+  const cards = [['언제', `<span class="mono" data-roll>${b.year}</span>년 ${b.month}월`], ['어디서', esc(cert.regionLabel ?? regionShort(b.region))],
+    ['어떤 집', `${esc(TENURE_LABEL[b.tenure] ?? '')} · ${esc(cert.quintileLabel ?? '')} ${dots(cert.quintile ?? b.quintile)}`]];
+  const lines = [`${L.sex === 'F' ? '딸' : '아들'}, ${ord}. 이름은 ${L.name}.`, familyLine(L), e0 ? `이 아이의 기대수명은 약 ${e0}년.` : ''].filter(Boolean);
+  return `<div class="cine is-veil" data-cine><div class="cine__veil"></div>
+    <div class="draw"><p class="draw__head">${same ? '같은 집, 같은 날.' : '어디서, 누구로 태어날지는 고를 수 없다.'}</p>
+      <ol class="draw__cards">${cards.map(([k, v], i) => `<li><button class="drawcard" type="button" data-draw="${i}"><span class="drawcard__k">${k}</span><span class="drawcard__v">${v}</span></button></li>`).join('')}</ol>
+      <p class="draw__hint">카드를 눌러 뒤집으세요</p></div>
+    <div class="cine__stage">${sceneHtml(L, { over: { birth: hosp ? 'hospital' : 'home', place: hosp ? 'hospital' : null, still: false } })}<p class="cine__place"><span class="mono">${b.year}</span>년 · ${esc(regionShort(b.region))} · ${esc(place)}</p></div>
+    <div class="cine__lines" aria-live="polite">${lines.map(t => `<p class="cine__line">${esc(t)}</p>`).join('')}
+      <p class="cine__line cine__q">몇 살까지 살까?</p>
+      <div class="cine__line cine__guess">${e0 ? `<button class="btn" type="button" data-guess="under">${e0}세 전에</button><button class="btn" type="button" data-guess="over">${e0}세 넘어서</button>` : '<button class="btn" type="button" data-guess="">지켜보기</button>'}</div></div>
+    <button class="cine__tap" type="button" data-act="skip"><span class="cine__skip">건너뛰기</span></button></div>`;
 }
 
 routes.birth = () => {
   let L, cert = {};
-  const seed = globalThis.crypto?.getRandomValues?.(new Uint32Array(1))[0] ?? Math.floor(Math.random() * 2 ** 32);
-  S.forced = S.era ? { year: pickYear(S.era, (seed >>> 0) / 2 ** 32) } : null;
+  const again = S.again, same = !!again;      // [같은 출생으로 다시]: 시드·시대 고정을 그대로(엔진 결정성)
+  S.again = null;
+  const seed = again?.seed ?? globalThis.crypto?.getRandomValues?.(new Uint32Array(1))[0] ?? Math.floor(Math.random() * 2 ** 32);
+  S.forced = again ? again.forced : S.era ? { year: pickYear(S.era, (seed >>> 0) / 2 ** 32) } : null;
   try { L = newLife({ seed, forced: S.forced ?? undefined }); } catch (e) { console.error(e); toast('태어날 곳을 정하지 못했습니다. 잠시 뒤 다시 해 주세요.'); return go('home'); }
   try { cert = birthCert(L) || {}; } catch (e) { console.error(e); }
-  S.L = L; S.cert = cert; S.sum = null; S.view = null;
+  S.L = L; S.cert = cert; S.sum = null; S.view = null; S.guess = null;
+  const e0 = birthE0(L);
   const b = L.birth;
   const el = show('birth', `<section class="screen has-bar birth" data-screen="birth" aria-labelledby="birth-title"><div class="screen__body">
     <div class="birth__scene"></div>
@@ -141,14 +190,12 @@ routes.birth = () => {
       <section class="birth__peers" aria-labelledby="birth-peers"><h2 class="birth__peers-title" id="birth-peers">같은 날 태어난 사람들</h2>
         <ul class="peer-list" data-peers><li class="peer"><p class="peer__line">같은 날 태어난 사람을 찾고 있습니다.</p></li></ul></section>
     </article></div>
-    ${cineHtml(L, cert)}
+    ${cineHtml(L, cert, e0, same)}
     <div class="actionbar">
       <p class="actionbar__note">준비되면 [삶을 시작하기]를 눌러 주세요.</p>
       <button class="btn" type="button" aria-haspopup="dialog" data-act="share">신고서 공유</button>
       <button class="btn btn--primary" type="button" data-act="start">삶을 시작하기</button>
     </div></section>`);
-
-  mountScene($('[data-cine]', el), L, { yearMs: 9000, speed: 1 });
 
   // 같은 날 태어난 3명(엔진이 각자 끝까지 돌림) — 첫 화면을 먼저 그린 뒤 계산
   setTimeout(() => {
@@ -159,20 +206,54 @@ routes.birth = () => {
   }, 60);
 
   const start = () => startNew(L);   // 출생 카드는 자동으로 넘어가지 않는다: [삶을 시작하기]만
-  // 시퀀스: 장면 2.6초 → 검은 막 → 내레이션 한 줄씩 → 출생 카드(건너뛰기 가능). 자동 시작 없음
-  const cine = $('[data-cine]', el), cts = [];
-  const endCine = natural => {
+  // 시퀀스: 카드 3장(탭, 손을 떼면 4초 뒤 다음 장이 저절로) → 탄생 장면 + 한 줄씩(초당 약 9자) → 질문에 답하면 출생 카드. 자동 시작 없음
+  // 두 번째 생애부터는 카드가 0.5초 간격으로 저절로, 같은 출생이면 처음부터 펼쳐져 있다.
+  const cine = $('[data-cine]', el), cts = [], cards = $$('.drawcard', cine), lines = $$('.cine__line', cine);
+  const fast = loadRecords().length > 0, rm = reduced();
+  let phase = 0, li = 0, tLine;
+  const later = (f, ms) => { const t = setTimeout(f, ms); cts.push(t); return t; };
+  const endCine = () => {
     cts.forEach(clearTimeout);
-    if (!el.isConnected) return;
+    if (!el.isConnected || cine.classList.contains('is-out')) return;
     cine.classList.add('is-out'); setTimeout(() => cine.remove(), 420);
     $('.birth__scene', el).innerHTML = sceneHtml(L);       // 카드 화면의 정지 장면은 건너뛴 뒤에 그린다(출생 화면 첫 렌더 부담 줄이기)
   };
-  const lines = $$('.cine__line', cine);
-  $('.cine__tap', cine).addEventListener('click', () => endCine(false));
-  cts.push(setTimeout(() => cine.classList.add('is-veil'), 2600));
-  const step = Math.min(2400, (14400 - 1500 - 3300) / lines.length);   // 어떤 길이든 약 15초 안에 자동 시작
-  lines.forEach((ln, i) => cts.push(setTimeout(() => ln.classList.add('on'), 3300 + i * step)));
-  cts.push(setTimeout(() => endCine(true), 14400));
+  const readMs = t => 600 + (t.textContent || '').trim().length * 111;   // 초당 약 9자
+  const nextLine = () => {
+    clearTimeout(tLine);
+    const ln = lines[li++];
+    if (!ln) return;
+    ln.classList.add('on');
+    if (ln.classList.contains('cine__q')) { lines[li++]?.classList.add('on'); $('[data-guess]', cine)?.focus({ preventScroll: true }); return; }
+    tLine = later(nextLine, readMs(ln));
+  };
+  const born = () => { phase = 1; cine.classList.add('is-born'); mountScene(cine, L, { yearMs: 9000, speed: 1 }); tLine = later(nextLine, rm ? 300 : 1200); };
+  const roll = n => {
+    if (rm || !n) return;
+    const v = n.textContent; let k = 0;
+    const t = setInterval(() => { n.textContent = String(1960 + Math.floor(Math.random() * 66)); if (++k > 12 || !n.isConnected) { clearInterval(t); n.textContent = v; } }, 55);
+  };
+  let tIdle;
+  const flip = i => {
+    clearTimeout(tIdle);
+    const c = cards[i];
+    if (!c || c.classList.contains('is-open')) return;
+    c.classList.add('is-open');
+    if (i === 0) roll($('[data-roll]', c));
+    const rest = cards.findIndex(x => !x.classList.contains('is-open'));
+    if (rest < 0) { cine.classList.add('is-drawn'); later(born, fast ? 900 : 1300); }
+    else tIdle = later(() => flip(rest), fast ? 500 : 3000);
+  };
+  if (same) { cards.forEach(c => c.classList.add('is-open')); cine.classList.add('is-drawn'); later(born, 1400); }
+  else tIdle = later(() => flip(0), fast ? 400 : 3000);
+  cine.addEventListener('click', e => {
+    if (e.target.closest('.cine__tap')) return endCine();
+    const g = e.target.closest('[data-guess]');
+    if (g) { if (g.dataset.guess) S.guess = { seed: L.seed, e0, over: g.dataset.guess === 'over' }; return endCine(); }
+    if (phase === 1) return nextLine();
+    const c = e.target.closest('[data-draw]');
+    flip(c && !c.classList.contains('is-open') ? +c.dataset.draw : cards.findIndex(x => !x.classList.contains('is-open')));
+  });
   el.addEventListener('click', e => {
     const a = e.target.closest('[data-act]')?.dataset.act;
     if (a === 'start') start();
@@ -186,6 +267,8 @@ routes.death = () => {
   const L = S.L, sum = S.sum, d = sum?.death ?? L.death ?? { age: L.age, year: L.year };
   const sens = !!(d.sensitive ?? L.death?.sensitive);
   const de = [...L.log].reverse().find(e => e.kind === 'death');
+  const causeE0 = `<p class="death__cause">${deathLine({ ...L.death, ...d, sensitive: sens }, S.settings.hideSensitiveCause)}</p>
+      ${sens || d.horizon || d.age < 19 ? '' : e0Answer(L, d.age)}`;
   const el = show('death', `<section class="screen screen--paper death" data-screen="death" aria-labelledby="death-name">
     <div class="death__inner">
       <div class="death__scene">${sceneHtml(L, { still: true, dead: true })}</div>
@@ -193,17 +276,25 @@ routes.death = () => {
       <p class="death__year">${d.year}</p>
       <h1 class="death__name" id="death-name">${esc(L.name)}</h1>
       <p class="death__years">${L.birth.year} – ${d.year} · ${ageText(d.age, d.horizon)}</p>
-      <p class="death__cause">${deathLine({ ...L.death, ...d, sensitive: sens }, S.settings.hideSensitiveCause)}</p>
+      ${causeE0}
     </div>
     <div class="actionbar actionbar--single">
 <p class="actionbar__note">읽고 난 뒤 직접 넘겨 주세요.</p>
       <button class="btn btn--ink btn--block" type="button" data-act="sum">결산 보기</button>
     </div></section>`);
-  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda, de);
+  deathCine(el, L, d, sens ? null : sum?.epilogue?.coda, de, causeE0);
 };
 
+// 출생 때 던진 "몇 살까지 살까?"의 답. 민감 사망·19세 미만·관찰 종료에는 부르지 않는다.
+function e0Answer(L, age) {
+  const g = S.guess?.seed === L.seed ? S.guess : null, e0 = g?.e0 || birthE0(L, S.forced);
+  if (!e0) return '';
+  const diff = age - e0;
+  return `<p class="death__e0">출생 때 기대수명 ${e0}년 · ${diff > 0 ? `${diff}년 더 살았다.` : diff < 0 ? `${-diff}년 짧았다.` : '꼭 그만큼 살았다.'}</p>${g ? `<p class="death__guess">당신의 예상: ${e0}세 ${g.over ? '넘어서' : '전에'}</p>` : ''}`;
+}
+
 // 마지막 페이지는 사용자가 한 장씩 넘긴다. 자동결정·배속·모션 설정의 영향을 받지 않는다.
-function deathCine(el, L, d, coda, entry) {
+function deathCine(el, L, d, coda, entry, causeE0 = '') {
   const horizon = !!d.horizon;
   const lines = [horizon ? '여기까지의 삶' : '한 사람의 시간이 멈췄습니다', L.name,
     `${L.birth.year}년부터 ${d.year}년까지 · ${ageText(d.age, horizon)}`];
@@ -213,14 +304,11 @@ function deathCine(el, L, d, coda, entry) {
   el.insertAdjacentHTML('beforeend', `<div class="dcine" data-dcine><div class="dcine__lines">
     ${lines.map((t, i) => `<p class="dcine__line on${i === 1 ? ' dcine__name' : ''}">${esc(t)}</p>`).join('')}
     <p class="dcine__line on dcine__closing">${esc(closing)}</p></div>
-    ${finalRecord ? `<div class="dcine__details"><p class="dcine__eyebrow">마지막 기록</p><p>${esc(finalRecord)}</p></div>` : ''}</div>`);
+    <div class="dcine__details">${causeE0}${finalRecord ? `<p class="dcine__eyebrow">마지막 기록</p><p>${esc(finalRecord)}</p>` : ''}</div></div>`);
+  // 버튼 하나로 결산까지(F-9): 사인·기대수명 답을 검정 페이지에 함께 두고, 같은 자리 버튼을 두 번 누르게 하지 않는다.
   const button = $('[data-act="sum"]', el);
-  button.textContent = '마지막 기록 보기';
-  button.addEventListener('click', () => {
-    const cine = $('[data-dcine]', el);
-    if (cine) { cine.remove(); button.textContent = '살아온 날들 돌아보기'; }
-    else go('summary');
-  });
+  button.textContent = '살아온 날들 돌아보기';
+  button.addEventListener('click', () => go('summary'));
 }
 
 // ───────── S10 결산 (기록관 상세 S12-b 공용) ─────────
@@ -304,14 +392,18 @@ function summaryHtml(L, sum, archive) {
       </div>
     </section>
     ${sum.sources?.length ? `<details class="birth-again"><summary>출처 ${toMetas(sum.sources).length}개</summary>${srcList(sum.sources)}</details>` : ''}
+    <nav class="menu sum-more" aria-label="더 보기">
+      <button class="linkrow" type="button" data-go="archive"><span><span class="linkrow__title">${archive ? '기록 목록으로' : '기록관'}</span><span class="linkrow__desc">지난 생애 모아 보기</span></span></button>
+      <button class="linkrow" type="button" data-go="again-era"><span><span class="linkrow__title">시대 선택해 태어나기</span><span class="linkrow__desc">태어날 연대를 고릅니다</span></span></button>
+    </nav>
   </div>
   <div class="actionbar">
-    <button class="btn" type="button" data-go="archive">${archive ? '목록으로' : '기록관'}</button>
-    <button class="btn" type="button" data-go="again-era">시대 선택해 태어나기</button><button class="btn btn--primary" type="button" data-go="again">다시 태어나기</button>
+    <p class="actionbar__note">같은 집, 같은 날. 이번엔 다르게 골라 보세요.</p>
+    <button class="btn" type="button" data-go="again-same">같은 출생으로 다시</button><button class="btn btn--primary" type="button" data-go="again">다시 태어나기</button>
   </div></section>`;
 }
-function showSummary(L, sum, archive) {
-  S.view = { L, sum, cert: sum.birthCert ?? S.cert ?? {} };
+function showSummary(L, sum, archive, forced = S.forced) {
+  S.view = { L, sum, cert: sum.birthCert ?? S.cert ?? {}, forced };
   const el = show('summary', summaryHtml(L, sum, archive));
   setTimeout(() => morphRadar($('.sum-radar .radar', el), L.issues, 900), 120);
   el.addEventListener('click', e => {
@@ -352,7 +444,7 @@ routes.archive = () => {
     try {
       const L = replay(rec.seed, rec.choices, { ...(rec.forcedYear ? { forced: { year: rec.forcedYear } } : {}), modelVersion: rec.modelVersion ?? 1 });
       if (rec.capped) L.flags.capped = L.age;       // 시간 상한 고지는 replay가 복원하지 않으므로 기록의 표시로(QA-E-02)
-      showSummary(L, summarize(L, opts()), true);
+      showSummary(L, summarize(L, opts()), true, rec.forcedYear ? { year: rec.forcedYear } : null);
     } catch (err) { console.error(err); summaryFail(rec, true); }
   });
 };

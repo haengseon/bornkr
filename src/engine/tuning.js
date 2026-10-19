@@ -10,14 +10,16 @@ export const CHOICE_GAP = 'chance';
 export const CAL_COLLEGE = { 1990: 1.05, 2000: 0.96, 2008: 1.08, 2015: 0.97, 2024: 0.92 };   // QA-S-37 검증값(졸업연도 진학률)
 
 // 결혼 위험률 보정(성별 × 출생 코호트 키). 초기 1.0 (GDD §5.6)
-export const CAL_MARRY = { M: { 1960: 0.95, 1970: 0.95, 1978: 0.8, 1990: 0.75, 2026: 0.75 }, F: { 1960: 1, 2026: 1 } };   // QA-S-07: 성향 이질성(FAMILY_CAL.trait)과 함께 보정
+export const CAL_MARRY = { M: { 1960: 1.8, 1970: 1.5, 1978: 1.1, 1990: 0.9, 2026: 0.9 }, F: { 1960: 1.35, 1970: 1.12, 2026: 1.0 } };   // QA-S-07: 성향 이질성(FAMILY_CAL.trait)과 함께 보정. B-02(보류가 상대를 지우지 않음·기본값 결혼) 뒤 재보정
 
 // 가족 보정(QA-S-07). trait: 결혼 위험 성향 이질성 × exp(trait·(외향성 − 50)/15), 0이면 끔.
 //   parity: 유배우 출산 위험의 출생 순위 배수(첫째·둘째·셋째+), GDD 1/.45/.12에서 보정.
-export const FAMILY_CAL = { trait: 0.8, parity: [2.6, 0.85, 0.3], nm20: 0.8, single: 0.1, noChild: 0.05 };
+// single: '혼자 살기' 뒤 10년 쿨다운이 지난 결혼 위험 배수, laterKeep: '조금 더 있다가' 뒤 같은 상대와 이어질 확률 [게임 가정]
+export const FAMILY_CAL = { trait: 0.8, parity: [2.6, 0.65, 0.25], nm20: 0.8, single: 0.5, laterKeep: 0.6, noChild: 0.05,
+  age: { M: { 18: 0.5, 27: 0.85, 31: 1.4, 35: 1.6 }, F: { 18: 0.4, 25: 0.75, 29: 1.4, 33: 1.8 } } };   // age: 결혼 위험의 나이 배수(F4-b, 이른 초혼을 늦추고 미혼율은 유지)
 
 // 주택 구입(QA-S-05): own = OWN_TRANSITION 배수, affordRef = afford 상대 배수 1이 되는 값, buyMin = 기본값이 buy가 되는 afford 하한
-export const HOUSING_CAL = { own: { 25: 1.5, 35: 1.5, 45: 0.8, 55: 0.6 }, affordRef: 0.7, buyMin: 0.4, cohortAdj: 1.3 };
+export const HOUSING_CAL = { own: { 25: 6, 35: 2.5, 45: 0.8, 55: 0.6 }, affordRef: 0.7, buyMin: 0.4, cohortAdj: 1.3 };
 
 // 노년(QA-S-08). 기초연금: basicW·NWpos + (1−basicW)·INCpos < basicCut. 장기요양: 발생 × ltcInc × (건강<40 ltcSick) × (치매 ltcDem), 인정자 사망 배수 ltcMort(1·2등급 ×1.3)
 export const AGING_CAL = { basicW: 1, basicCut: 25, ltcInc: 0.45, ltcSick: 1.5, ltcDem: 3, ltcMort: 3 };
@@ -40,7 +42,7 @@ export const INCOME_CAL = { eq: { P20: 1400, P40: 2475, P60: 3025, P80: 4275 }, 
 
 // 세대 간 이전(75:25의 구조 몫, QA-S-17 출생 분위↔econ ρ≥.35). transfer: 독립 시 부모 이전(만원, Q1~Q5, GDD §4.2 [추정]),
 //   help: 주택 구입 때 부모 가구 순자산 중 보태는 몫, college: 진학 확률의 분위당 배수(GDD .03)
-export const CLASS_CAL = { transfer: [0, 800, 3000, 8000, 25000], help: [0, 0.05, 0.1, 0.2, 0.4], college: 0.12, wageQ: 0.08 };
+export const CLASS_CAL = { transfer: [0, 800, 3000, 8000, 25000], help: [0, 0.05, 0.15, 0.3, 0.5], college: 0.25, wageQ: 0.25 };   // 2026-10 재보정: 부모 가구 순자산 갱신(m1) 뒤에도 ρ .26 → 임금·진학 분위 경사와 주택 도움을 키움
 
 // 관계 목표값의 구조 성분(QA-S-17: 관계 지표 share ≤ .40). extra: 외향성 계수(GDD .1), sib: 형제 1명당(최대 3)
 export const REL_CAL = { extra: 0.25, sib: 1.5 };

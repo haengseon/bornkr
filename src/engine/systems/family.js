@@ -29,8 +29,8 @@ export function pre(L, ctx) {
     const q = qx(who === 'father' ? 'M' : 'F', p.age, y) * T('MORT_Q')[L.birth.quintile] * (p.care ? 1.5 : 1);
     if (ctx.chance(q)) {
       p.alive = false; p.deathYear = y; p.deathEventId = `parent-death:${who}:${y}`;
-      if (f.caringFor === who) ctx.act.endCare('death');
       ctx.sys('sys.fam.parent_death', { parentLabel: WHO_LABEL[who], pAge: p.age }, { ...sensFields(L, 'death'), parentId: who, transitionId: p.deathEventId });
+      if (f.caringFor === who) ctx.act.endCare('death');   // 사망 문장 뒤에 돌봄 종료(F2-c)
       p.funeralYear = y;
       ctx.sys('sys.fam.parent_funeral', { parentLabel: WHO_LABEL[who] }, { essential: true, parentId: who, causeEventId: p.deathEventId, ...sensFields(L, 'death') });
       const orphan = !f.parents.father.alive && !f.parents.mother.alive;
@@ -42,7 +42,7 @@ export function pre(L, ctx) {
         amount = inh.share;
         ctx.act.gain(amount);
         L.tally.inherit = (L.tally.inherit || 0) + amount;
-        ctx.sys('sys.money.inheritance', { amount });
+        ctx.sys('sys.money.inheritance', { amount }, { essential: true });   // 큰 목돈: 피드 상한에 묻히면 순자산이 까닭 없이 뛴다
         if (inh.tax > 0) ctx.sys('sys.money.inheritance_tax', { tax: inh.tax });
       }
       if (atHome) {
@@ -115,11 +115,10 @@ export function pre(L, ctx) {
   const sp = f.partner;
   if (sp) {
     sp.age++;
-    if (sp.income && sp.age >= 65) sp.income = 0;
-    else if (sp.income) sp.income = Math.round(sp.income * 1.01);
+    spouseWork(L, ctx, sp);
     if (ctx.chance(qx(sp.sex, sp.age, y) * (sp.ltc ? 1.5 : 1))) {
-      if (f.caringFor === 'spouse') ctx.act.endCare('death');
       ctx.act.loseSpouse();
+      if (f.caringFor === 'spouse') ctx.act.endCare('death');
     }
   }
   // 자녀
@@ -148,6 +147,33 @@ export function pre(L, ctx) {
   }
 }
 
+// 배우자 일(QA M1): 해마다 그 나이·시대 고용률을 정상상태로 하는 취업·이직 전이, 어린 자녀가 있으면 아내의 경력단절이 잦다.
+// 연금 개시 나이에 은퇴하고 국민연금(가입 10년 이상)·기초연금(본인 수급 가구, 부부 감액 20%)을 받는다.
+const empRate = (sex, age, y) => yr(ag(T('EMPLOYMENT_RATE')[sex], Math.min(age, 65)) ?? {}, y) ?? 0.6;
+function spouseWork(L, ctx, sp) {
+  const y = L.year, era = yr(T('ERA_INCOME_INDEX'), y);
+  sp.pensionYears ??= 0;
+  if (sp.age >= Math.round(yr(T('PENSION_START_AGE'), y - sp.age))) {
+    if (sp.pension == null) {
+      const n = sp.pensionYears, pb = T('PENSION_BY_YEARS');
+      sp.pension = n >= 10 ? Math.round(12 * pb[n >= 30 ? 30 : n >= 20 ? 20 : 10]) : 0;   // 본인 연금(aging.js)과 같은 표·단위
+      if (sp.code) sp.group = '은퇴';
+      sp.code = null;
+    }
+    sp.income = sp.pension + (L.aging?.basic && sp.age >= 65 ? Math.round(L.aging.basic * 12 * 0.8) : 0);
+    return;
+  }
+  const working = sp.income > 0, pEmp = empRate(sp.sex, sp.age, y);
+  const babies = L.family.children.some(c => c.alive && y - c.birthYear < 3);
+  const out = (sp.regular ? 0.04 : 0.1) * (sp.sex === 'F' && babies ? 3 : 1);
+  if (working && ctx.chance(out)) Object.assign(sp, { income: 0, code: null, regular: false, group: '일을 쉬는 사람' });
+  else if (!working && ctx.chance(Math.min(0.6, 0.07 * pEmp / Math.max(0.05, 1 - pEmp)) * (sp.sex === 'F' && babies ? 0.3 : 1))) {
+    const row = assignJob(L, ctx, { sex: sp.sex, level: sp.edu, age: sp.age, colMajor: null }), regular = ctx.chance(sp.age < 40 ? 0.6 : 0.4);
+    Object.assign(sp, { code: row.code, group: GROUP[row.major] ?? '직장인', regular, income: wageFor(L, ctx, row, { regular, firmSize: 'mid', sex: sp.sex, age: sp.age }) });
+  } else if (working) sp.income = Math.round(sp.income * era / yr(T('ERA_INCOME_INDEX'), y - 1) * 1.01);
+  if (sp.income > 0 && y >= 1988) sp.pensionYears += yr(T('PENSION_CONTRIB_P')[sp.regular ? 'regular' : 'nonregular'], y);
+}
+
 function makePartner(L, ctx) {
   const sex = L.sex === 'M' ? 'F' : 'M';
   const gap = ctx.weighted(T('SPOUSE_AGE_GAP'));
@@ -157,14 +183,14 @@ function makePartner(L, ctx) {
   const age = Math.max(18, L.age + (L.sex === 'M' ? -maleOlder : maleOlder));
   const mine = Math.max(0, LEVELS.indexOf(L.edu.level));
   const level = ctx.chance(0.6) ? LEVELS[mine] : LEVELS[Math.max(0, Math.min(4, mine + (ctx.chance(0.5) ? 1 : -1)))];
-  const empl = T('EMPLOYMENT_RATE')[sex];
-  const pEmp = yr(ag(empl, Math.min(age, 65)) ?? {}, L.year) ?? 0.6;
+  const pEmp = empRate(sex, age, L.year);
   const row = assignJob(L, ctx, { sex, level, age, colMajor: null });
   const working = ctx.chance(pEmp);
   const regular = working && ctx.chance(0.6);
   return {
     age, sex, edu: level, code: working ? row.code : null, group: working ? GROUP[row.major] ?? '직장인' : '일을 쉬는 사람',
     income: working ? wageFor(L, ctx, row, { regular, firmSize: 'mid', sex, age }) : 0, regular, alive: true, ltc: false,
+    pensionYears: Math.max(0, L.year - Math.max(1988, L.year - age + 25)) * pEmp * 0.6,   // 결혼 전 가입 이력 근사
   };
 }
 
@@ -199,6 +225,15 @@ export function step(L, ctx) {
         ctx.act.marry(makePartner(L, ctx), { silent: true });       // 상태를 먼저 바꿔 사건 impact가 변화를 잡게 한다
         ctx.sys('sys.fam.remarry', {}, { spouse: { no: f.partner.no, name: f.partner.name, since: f.partner.since } });
       }
+    } else if (fl.marryLater >= y || (typeof fl.single === 'number' && y - fl.single < 10)) {
+      // 보류는 3년, 혼자 살기는 10년 동안 다시 묻지 않는다(F-8)
+    } else if (fl.laterPartner) {                // 미뤘던 상대: 관계가 이어졌으면 같은 사람과 다시 결혼 이야기가 나온다(B-02)
+      const { partner: p, year } = fl.laterPartner;
+      fl.laterPartner = null;
+      if (ctx.chance(FAMILY_CAL.laterKeep)) {
+        p.age += y - year;
+        ctx.ask({ eventId: 'sys.fam.marry', options: ['marry', 'later', 'single'], defaultId: 'marry', data: { partner: p }, vars: { partnerAge: p.age, partnerJobGroup: p.group } });
+      }
     } else {
       const s = L.sex, b = band5(a);
       const mr = T('MARRIAGE_RATE')[s][b], nmT = T('NEVER_MARRIED')[s][b];
@@ -217,7 +252,7 @@ export function step(L, ctx) {
       if (fl.single) h *= FAMILY_CAL.single;
       if (fl.loveBoost >= y) h *= 1.4;                 // 이정표 '고백한다'의 파급
       if (fl.loveFocus >= y) h *= 0.7;
-      if (fl.marryLater >= y) h *= 0.5;
+      h *= ag(FAMILY_CAL.age[s], a);                   // 초혼 연령 분포 모양(F4-b: 시대별 평균 초혼 연령)
       h *= yr(CAL_MARRY[s], L.birth.year) * Math.exp(FAMILY_CAL.trait * (L.traits.extra - 50) / 15);   // 타고난 성향에 따른 결혼 위험 이질성(QA-S-07)
       if (ctx.chance(Math.min(0.9, h))) {
         const p = makePartner(L, ctx);
@@ -282,8 +317,8 @@ export const choices = {
   },
   'sys.fam.marry'(L, ctx, opt, { partner }) {
     if (opt === 'marry') return ctx.act.marry(partner);
-    if (opt === 'later') L.flags.marryLater = L.year + 2;
-    else L.flags.single = true;
+    if (opt === 'later') { L.flags.marryLater = L.year + 2; L.flags.laterPartner = { partner, year: L.year }; }   // 3년째 되는 해에 다시
+    else L.flags.single = L.year;
   },
   'sys.fam.child'(L, ctx, opt) {
     const fl = L.flags;

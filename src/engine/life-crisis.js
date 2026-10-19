@@ -82,7 +82,7 @@ export function step(L, ctx) {
     const personAvailable = !dueRequest.personId || specificContact(L, dueRequest.personId);
     if (personAvailable && chance(ctx, .7)) { ask(L, ctx, 'supportReply', { requestId: dueRequest.id, personId: dueRequest.personId }); return; }
     dueRequest.nextReplyYear = L.year + 1;
-    recorded(L, ctx, { id: `${dueRequest.id}:waiting:${L.year}`, status: 'pending', sourceEventId: dueRequest.sourceEventId, text: '앞서 요청한 지원의 가능한 연락 시간을 아직 확인하지 못했다. 지원이나 거절을 받은 것으로 처리하지 않았다.' });
+    recorded(L, ctx, { id: `${dueRequest.id}:waiting:${L.year}`, status: 'pending', sourceEventId: dueRequest.sourceEventId, text: '도움을 청한 곳에서 아직 답이 없었다.' });
   }
   if (raw.severe && raw.impairment && raw.isolation && raw.losses.length && !(c.nextSafetyYear > L.year)) {
     ask(L, ctx, 'safety'); return;
@@ -99,6 +99,9 @@ export function step(L, ctx) {
   const rotation = Math.abs(L.year) % 3;
   if (strained && key && !['ending', 'notice'].includes(c.work?.stage) && (rotation === 0 || !spouse) && !(c.work?.nextCheckYear > L.year)) { ask(L, ctx, 'workDay', { jobKey: key }); return; }
   if (strained && spouse && !(c.family?.nextCheckYear > L.year)) { ask(L, ctx, 'familyDay', { spouseKey: spouse }); return; }
+  // 요양시설·치매 상태에선 동네 모임 장면이 성립하지 않는다. 처음 만남은 두 번 거절하면 그 생애에선 다시 묻지 않는다.
+  const away = L.home?.tenure === 'facility' || L.health?.care === 'facility' || L.health?.conditions?.some(x => x.active && x.key === 'dementia');
+  if (away || (!c.social.contact?.accessible && (c.social.declined ?? 0) >= 2)) return;
   if (L.year >= c.nextSocialYear && (strained || !c.social.contact)) ask(L, ctx, c.social.contact?.accessible ? 'socialReply' : 'socialMeet');
 }
 
@@ -111,7 +114,7 @@ function workChoice(L, ctx, option, data, key) {
     if (w.stage !== 'notice' || !w.noticeId) return;
     if (option === 'accept') {
       w.stage = 'ending'; w.effectiveYear = L.year + 1;
-      result(L, ctx, eventId, option, '통지에 적힌 다음 해 효력일을 확인했다. 그때까지는 현재 일자리에서 근무한다.', { status: 'pending' });
+      result(L, ctx, eventId, option, '통지에 적힌 날짜는 내년이었다. 그때까지는 출근한다.', { status: 'pending' });
     } else {
       // 이견·협의 자체를 성공으로 만들지 않으며 회사의 실제 응답을 현재 장면에 기록한다.
       const retained = chance(ctx, .6);
@@ -130,7 +133,7 @@ function workChoice(L, ctx, option, data, key) {
       recorded(L, ctx, { id: `work.warning:${L.year}:${w.misses}`, sourceEventId: eventId, text: '회사가 반복된 근무 미이행에 대한 경고와 일정 협의를 다시 전달했다.', domain: 'employer-response', sourceIds: [sourceId] });
       if (w.misses >= 3 && w.warnings >= 2 && chance(ctx, .5)) {
         w.stage = 'notice'; w.noticeYear = L.year + 1; w.noticeId = `work.notice:${L.year}`;
-        recorded(L, ctx, { id: w.noticeId, sourceEventId: eventId, text: '회사가 고용 종료를 검토한다는 통지와 답변 기회를 보냈다. 아직 고용이 종료된 것은 아니다.', status: 'pending', domain: 'employment-notice' });
+        recorded(L, ctx, { id: w.noticeId, sourceEventId: eventId, text: '회사가 고용 종료를 검토한다며 답변을 요구했다.', status: 'pending', domain: 'employment-notice' });
       }
     }
     return;
@@ -195,19 +198,19 @@ function socialChoice(L, ctx, option, key) {
   c.nextSocialYear = L.year + 2; s.nextResponseYear = L.year + 2;
   if (key === 'socialMeet') {
     if (option === 'join') { s.contact = { id: `neighbor:${L.year}`, since: L.year, accessible: true }; s.desiredContact = true; s.isolatedSince = null; result(L, ctx, eventId, option, '오늘 새로 인사를 나눈 이웃과 연락처를 나누고 다음 모임 소식을 받기로 했다.'); }
-    else result(L, ctx, eventId, option, '지금은 혼자 쉬고 싶다고 사정을 전했다. 이웃은 고개를 끄덕였다.');
+    else { s.declined = (s.declined ?? 0) + 1; c.nextSocialYear = L.year + 2 * 2 ** s.declined; result(L, ctx, eventId, option, '지금은 혼자 쉬고 싶다고 사정을 전했다. 이웃은 고개를 끄덕였다.'); }
     return;
   }
   if (!s.contact) return result(L, ctx, eventId, option, '이어 갈 모임 연락처가 없어 이전 모임의 결정을 적용하지 않았다.', { status: 'canceled' });
   if (key === 'exclusion') {
     if (option === 'ask') {
       const restored = chance(ctx, .55); s.excluded = !restored; s.contact.accessible = restored;
-      result(L, ctx, eventId, option, restored ? '운영자가 배제를 멈추고 모임 소식을 다시 전달했다. 배제한 행동의 책임은 운영자에게 남는다.' : '운영자가 요청을 받았지만 아직 모임 소식 전달을 재개하지 않았다. 다른 도움을 구할 여지를 남겼다.', { domain: 'exclusion-response' });
+      result(L, ctx, eventId, option, restored ? '운영자가 사과하고 모임 소식을 다시 보내 주었다.' : '운영자는 답하지 않았다. 모임 소식은 여전히 오지 않았다.', { domain: 'exclusion-response' });
       if (restored) { s.missedReplies = 0; s.isolatedSince = null; }
     } else {
       if (option === 'leave') { s.contact.accessible = false; s.excluded = false; }
       c.support.push({ id: `social.support:${L.year}`, year: L.year, status: 'requested', sourceEventId: eventId });
-      result(L, ctx, eventId, option, option === 'leave' ? '소식에서 자꾸 제외되던 모임을 떠나 다른 접점을 찾아보기로 했다.' : '실제 배제 기록을 남기고 다른 지인이나 상담 창구에 도움을 요청했다. 접수·응답·해결은 아직 별도다.');
+      result(L, ctx, eventId, option, option === 'leave' ? '소식에서 자꾸 제외되던 모임을 떠나 다른 접점을 찾아보기로 했다.' : '있었던 일을 적어 두고 다른 지인과 상담 창구에 도움을 청했다.');
     }
     return;
   }
@@ -218,7 +221,7 @@ function socialChoice(L, ctx, option, key) {
       s.contact.accessible = false;
       if (chance(ctx, .25)) {
         s.excluded = true;
-        recorded(L, ctx, { id: `social.exclusion:${L.year}`, sourceEventId: eventId, text: '모임 운영자가 앞선 갈등 뒤 여러 차례 모임 소식 전달에서 제외했다. 다른 사람의 배제 행동으로 기록하며 당사자의 아픔이나 성향을 정당화 근거로 삼지 않았다.', domain: 'exclusion', actor: 'group-organizer' });
+        recorded(L, ctx, { id: `social.exclusion:${L.year}`, sourceEventId: eventId, text: '모임 운영자가 다툼 뒤로 나에게만 모임 소식을 보내지 않았다.', domain: 'exclusion', actor: 'group-organizer' });
       }
     }
     return;
@@ -226,13 +229,13 @@ function socialChoice(L, ctx, option, key) {
   if (option === 'distance') { s.contact.accessible = false; s.desiredContact = false; s.missedReplies = 0; s.isolatedSince = null; result(L, ctx, eventId, option, '이 모임과는 당분간 거리를 두고 싶다는 뜻을 전했다.'); return; }
   if (option === 'support') {
     s.desiredContact = true; c.support.push({ id: `social.support:${L.year}`, year: L.year, status: 'requested', sourceEventId: eventId });
-    result(L, ctx, eventId, option, '새로운 접점과 도움을 요청할 수 있는 창구를 알아보기 시작했다. 실제 연결 성공은 아직 확인되지 않았다.'); return;
+    result(L, ctx, eventId, option, '도움을 청할 수 있는 다른 곳을 찾아보기 시작했다.'); return;
   }
   s.desiredContact = true;
   if (option === 'reconnect') {
     const accepts = chance(ctx, .7); s.contact.accessible = accepts; s.missedReplies = accepts ? 0 : s.missedReplies;
     if (accepts) s.isolatedSince = null;
-    result(L, ctx, eventId, option, accepts ? '이웃이 작은 방식으로 모임 소식을 다시 주고받자는 제안을 받아들였다.' : '이웃에게 다시 연락했지만 아직 답을 받지 못했다. 거절이나 배제로 단정하지 않고 응답을 기다린다.');
+    result(L, ctx, eventId, option, accepts ? '이웃이 작은 방식으로 모임 소식을 다시 주고받자는 제안을 받아들였다.' : '이웃에게 다시 연락했다. 답은 아직 없었다.');
   } else { s.missedReplies = 0; s.contact.accessible = true; s.isolatedSince = null; result(L, ctx, eventId, option, option === 'decline' ? '이번 모임은 쉬고 싶다고 답했다. 이웃은 사정을 알겠다며 다음에 보자고 했다.' : '가능한 시간을 답했고 이웃과 연락을 이어 갔다.'); }
 }
 
@@ -243,7 +246,7 @@ function safetyChoice(L, ctx, option) {
   if (option === 'accompany' && !contacts(L)) return;
   c.nextSafetyYear = L.year + 2;
   c.support.push({ id, year: L.year, kind: option, status: 'requested', sourceEventId: CRISIS_EVENTS.safety.id });
-  result(L, ctx, CRISIS_EVENTS.safety.id, option, option === 'professional' ? '생활 위기 속에서 이용 가능한 상담·진료 창구에 연결을 요청했다. 실제 접수·이용·회복은 별도로 확인한다.' : option === 'accompany' ? '연락 가능한 사람에게 당장 곁에 있어 달라고 요청했다. 동행 여부는 상대의 응답을 확인해야 한다.' : '지금의 부담 일정을 줄일 수 있는지 관계된 사람들과 협의를 요청했다. 요청만으로 일정이 바뀐 것으로 기록하지 않았다.', { sensitive: 'distress', domain: 'crisis-support' });
+  result(L, ctx, CRISIS_EVENTS.safety.id, option, option === 'professional' ? '상담·진료 창구에 연락해 상담을 신청했다.' : option === 'accompany' ? '연락 가능한 사람에게 당장 곁에 있어 달라고 요청했다. 동행 여부는 상대의 응답을 확인해야 한다.' : '지금의 부담 일정을 줄일 수 있는지 관계된 사람들과 협의를 요청했다. 요청만으로 일정이 바뀐 것으로 기록하지 않았다.', { sensitive: 'distress', domain: 'crisis-support' });
 }
 
 function resolve(L, ctx, option, data = {}) {
@@ -257,15 +260,15 @@ function resolve(L, ctx, option, data = {}) {
     c.nextRecoveryYear = L.year + 3;
     if (option === 'late') {
       const time = currentTime(L), minutes = Math.min(60, Math.max(0, time?.sleep ?? 0));
-      if (!minutes) return result(L, ctx, event.id, option, '현재 수면 시간 배정을 확인할 수 없어 수면을 줄였다는 결과를 기록하지 않았다.', { status: 'canceled' });
+      if (!minutes) return result(L, ctx, event.id, option, '오늘은 잠을 줄이지 않았다.', { status: 'canceled' });
       time.sleep -= minutes; time.unfinishedWork = (time.unfinishedWork || 0) + minutes;
-      result(L, ctx, event.id, option, `오늘 수면 시간 ${minutes}분을 줄이고 남은 일을 처리했다. 이 날의 수면 부족을 실제 선택 기록으로 남겼다.`, { domain: 'sleep', minutes });
+      result(L, ctx, event.id, option, '잠을 줄여 남은 일을 끝냈다.', { domain: 'sleep', minutes });
       fact(L, 'sleep.shortfall', event.id, option, { minutes });
       fact(L, L.family?.caringFor ? 'care.overload' : 'work.overload', event.id, option);
       fact(L, 'recovery.unavailable', event.id, option);
     } else if (option === 'request') {
       c.support.push({ id: `recovery.request:${L.year}`, year: L.year, status: 'requested', sourceEventId: event.id });
-      result(L, ctx, event.id, option, '남은 일을 나눌 수 있는지 지원을 요청했다. 상대의 동의나 실제 지원을 받은 것으로 처리하지 않았다.');
+      result(L, ctx, event.id, option, '남은 일을 나눠 줄 수 있는지 물었다. 답은 아직 없었다.');
     } else result(L, ctx, event.id, option, '남은 일은 내일로 미루고 오늘은 정해 둔 시간에 잠들었다.');
   }
   else if (key === 'supportReply') {
@@ -298,13 +301,13 @@ export function finishYear(L, ctx) {
       w.stage = 'ended';
       const id = `crisis.job-end:${L.year}:${w.jobKey}`;
       c.losses.push({ id, year: L.year, kind: 'employment', sourceIds: [w.noticeId] });
-      recorded(L, ctx, { id, sourceEventId: CRISIS_EVENTS.workNotice.id, text: '통지된 효력일에 해당 일자리가 종료됐다. 근무 미이행·면담·경고·이견 기록을 남겼으며 법적으로 정당한 해고인지는 판단하지 않는다.', status: 'completed', domain: 'employment-end' });
+      recorded(L, ctx, { id, sourceEventId: CRISIS_EVENTS.workNotice.id, text: '통지된 날짜에 일자리를 잃었다.', status: 'completed', domain: 'employment-end' });
     } else { w.stage = 'canceled'; recorded(L, ctx, { id: `crisis.job-end-canceled:${L.year}`, status: 'canceled', text: '대상 일자리나 절차 조건이 달라져 예정된 고용 종료를 적용하지 않았다.' }); }
   }
   const s = c.social;
   if (s.desiredContact && s.contact && !s.contact.accessible && contacts(L) === 0 && (s.missedReplies >= 2 || s.excluded)) {
     s.isolatedSince ??= L.year;
-    recorded(L, ctx, { id: `crisis.isolation:${L.year}`, domain: 'social-isolation', text: '연결을 원하지만 현재 기록에서 바로 연락해 도움을 청할 접점을 찾지 못했다. 혼자 쉬기를 원해서 택한 시간과 구분해 기록했다.' });
+    recorded(L, ctx, { id: `crisis.isolation:${L.year}`, domain: 'social-isolation', text: '연락할 사람이 떠오르지 않았다.' });
   } else s.isolatedSince = null;
   // 실제 받은 지원만 회복/위기 완화에 반영한다. 신청/접수와 구분한다.
   for (const support of c.support.filter(e => e.status === 'requested')) {
@@ -313,7 +316,7 @@ export function finishYear(L, ctx) {
     support.status = 'received'; support.receivedYear = L.year;
     const well = L.wellbeing ||= {}; well.identityRecovery ||= [];
     if (!well.identityRecovery.some(e => e.id === support.id)) well.identityRecovery.push({ id: support.id, year: L.year, stress: 3, confusion: 1 });
-    recorded(L, ctx, { id: `${support.id}:received`, sourceEventId: support.sourceEventId, status: 'completed', domain: 'support-received', text: '앞서 요청한 지원을 실제로 이용한 기록을 확인했다. 앞으로의 회복 상태는 이어서 살핀다.' });
+    recorded(L, ctx, { id: `${support.id}:received`, sourceEventId: support.sourceEventId, status: 'completed', domain: 'support-received', text: '앞서 청한 도움을 받았다.' });
   }
   const condition = crisisCondition(L), active = condition.severe && condition.impairment && condition.isolation && condition.losses.length > 0;
   const previous = c.riskAnnual;

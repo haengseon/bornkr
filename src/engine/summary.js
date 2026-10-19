@@ -14,7 +14,6 @@ import { QLABEL, ORDER_L, birthLine } from './compare.js';
 const EDU_L = { mid: '중졸', high: '고졸', '2yr': '전문대졸', '4yr': '대졸' };
 const JOB_L = { 1: '관리 일', 2: '전문 일', 3: '사무 일', 4: '서비스 일', 5: '판매 일', 6: '농사일', 7: '기술 일', 8: '공장 일', 9: '몸 쓰는 일', A: '군 복무' };
 const TENURE_L = { own: '자가', jeonse: '전세', monthly: '보증금 있는 월세', public: '공공임대', family: '조부모 집에서 함께' };
-const CARE_L = { parent: '낮에도 부모 곁에서', grandparent: '낮에는 할머니 손에서', daycare: '낮에는 어린이집에서' };
 const ISSUE_LABEL = Object.fromEntries(ISSUES.map(i => [i.key, i.label]));
 const comma = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
@@ -35,14 +34,13 @@ export function birthCert(L) {
   const story = [
     fill('{name|은} {year}년 {month}월, {region}에서 {ord|으로} 태어났다.', { name: L.name, year: b.year, month: b.month, region: b.sigungu ? placeLabel(b.region, b.sigungu, b.dong, b.year) : b.urban ? sidoAt(b.region, b.year) : `${sidoAt(b.region, b.year)}의 농촌 마을`, ord: orderLabel }),
     `집은 ${homeLine}, 형편은 ${qLabel}이었다.`,
-    `${CARE_L[b.care]} 자랐다.`,
   ];
   return {
     name: L.name, sex: L.sex === 'M' ? '남' : '여',
     date: `${b.year}.${String(b.month).padStart(2, '0')}.${String(b.day).padStart(2, '0')}`,
     regionLabel: `${b.sigungu ? placeLine(b.region, b.sigungu, b.dong, b.year) : sidoAt(b.region, b.year)} · ${b.urban ? '도시' : '농촌'}`, urban: b.urban,
     quintileLabel: qLabel, parentsLine: [father, mother].filter(Boolean).join(', '), homeLine,
-    careLine: CARE_L[b.care], accessLine, eraLine, story, hook: text('end.hook'), birthLine: birthLine(L),
+    accessLine, eraLine, story, hook: text('end.hook'), birthLine: birthLine(L),
     quintile: b.quintile,               // 화면 내부 로직용 — 표시 금지
   };
 }

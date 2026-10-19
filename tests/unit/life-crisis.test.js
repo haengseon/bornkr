@@ -57,7 +57,7 @@ test('실제 반복 미이행→경고→통지→응답→다음해 효력일�
   next(L); finishYear(L, ctx); assert.equal(ctx.lost, 1); assert.equal(L.job.status, 'seeking');
   finishYear(L, ctx); assert.equal(ctx.lost, 1); assert.equal(L.lifeCrisis.losses[0].kind, 'employment');
   assert.ok(L.lifeCrisis.history.some(e => e.domain === 'employment-end' && e.status === 'completed'));
-  assert.ok(L.lifeCrisis.history.some(e => /법적으로 정당한 해고인지는 판단하지 않는다/.test(e.text)));
+  assert.ok(L.lifeCrisis.history.some(e => /통지된 날짜에 일자리를 잃었다/.test(e.text)));
 });
 
 test('승인 휴가·거절 후 정상 이행·합의된 조정은 무단 근태 위반으로 계산하지 않는다', () => {
@@ -156,4 +156,16 @@ test('구버전·미성년·사망 상태는 새 연쇄나 위험 상태를 만�
   }
   const partial = life(); partial.lifeCrisis = {}; const before = structuredClone(partial);
   assert.equal(crisisRiskContext(partial).active, false); assert.deepEqual(partial, before);
+});
+
+test('이웃 모임 거절은 간격을 늘리고 2회면 그 생애에선 끝나며 요양시설·치매에선 묻지 않는다', () => {
+  const asks = L => { const ctx = context(L); step(L, ctx); return ctx.asked.filter(r => r.eventId === CRISIS_EVENTS.socialMeet.id).length; };
+  const L = life(); L.identityStrain = { stress: 0, confusion: 0 };
+  assert.equal(asks(L), 1); pick(L, context(L), 'socialMeet', 'alone');
+  const gap = L.lifeCrisis.nextSocialYear - L.year; assert.equal(gap, 4);
+  for (let i = 0; i < gap; i++) next(L);
+  assert.equal(asks(L), 1); pick(L, context(L), 'socialMeet', 'alone');
+  for (let i = 0; i < 30; i++) { next(L); assert.equal(asks(L), 0); }
+  const F = life(); F.identityStrain = { stress: 0, confusion: 0 }; F.home = { tenure: 'facility' }; assert.equal(asks(F), 0);
+  const D = life(); D.identityStrain = { stress: 0, confusion: 0 }; D.health.conditions = [{ key: 'dementia', active: true }]; assert.equal(asks(D), 0);
 });
