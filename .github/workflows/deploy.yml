@@ -76,6 +76,15 @@ jobs:
           for f in dist/site/icon*.png dist/site/apple-touch-icon.png dist/site/favicon*; do [ -f "$f" ] && aws s3 cp "$f" $B/$(basename "$f") --cache-control "public,max-age=86400"; done
           true
 
+      - name: 이전 빌드의 해시 JS·CSS 정리
+        if: steps.keys.outputs.ok == 'true'
+        run: |
+          # 새 HTML 업로드 후 현재 빌드에 없는 해시 파일만 삭제한다.
+          aws s3 sync dist/site "s3://$BUCKET" --delete \
+            --exclude "*" \
+            --include "app.*.js" --include "app.*.css" --include "content-ads.*.js" \
+            --cache-control "public,max-age=31536000,immutable"
+
       - name: CloudFront 캐시 갱신
         if: steps.keys.outputs.ok == 'true' && vars.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/" "/index.html" "/guide.html" "/how-it-works.html" "/about.html" "/contact.html" "/privacy.html" "/robots.txt" "/sitemap.xml" "/site.css" "/ads.txt" "/manifest.webmanifest"
